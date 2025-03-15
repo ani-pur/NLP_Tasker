@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from logic import auth
-import tasks
+from logic import tasks
 
 app = Flask(__name__)
 app.secret_key = 'goodmorningbob'  # Replace with a secure random secret in production
