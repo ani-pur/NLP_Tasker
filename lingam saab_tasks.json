@@ -1,13 +1,3 @@
 {
-    "tasks": [
-        {
-            "task_name": "say goodmorning",
-            "task_time": "all day",
-            "task_description": "goodmonring",
-            "color": "#ffffff",
-            "due_date": "2025-03-16",
-            "status": "pending",
-            "id": 1
-        }
-    ]
+    "tasks": []
 }

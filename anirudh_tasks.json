@@ -1,24 +1,3 @@
 {
-    "tasks": [
-        {
-            "task_name": "call tesla SALES",
-            "task_time": "all day",
-            "task_description": "call tesla sales @ 972 764 4504",
-            "due_date": "2025-03-17",
-            "status": "pending IMPORTANT",
-            "color": "#d31212",
-            "all_day": true,
-            "id": 1
-        },
-        {
-            "task_name": "test",
-            "task_time": "all day",
-            "task_description": "good",
-            "due_date": "2025-03-17",
-            "status": "lingam saab",
-            "color": "#18c91b",
-            "all_day": true,
-            "id": 2
-        }
-    ]
+    "tasks": []
 }
