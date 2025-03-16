@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Task Manager - Mobile</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    /* Include the Honk font (assumes Honk.ttf is in the static folder) */
+    @font-face {
+      font-family: 'Honk';
+      src: url('/static/Honk.ttf') format('truetype');
+    }
+    body {
+      font-size: 18px;
+      padding: 10px;
+      background-image: url("/static/mobile_bg.jpg");
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+      background-position: center center;
+      background-color: #f2f2f2;
+    }
+    h1, h2 {
+      text-align: center;
+      color: #fff;
+    }
+    h1 {
+      font-family: 'Honk', sans-serif;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+    li {
+      margin-bottom: 10px;
+      padding: 10px;
+      /* Translucent task box color: adjust here */
+      background-color: rgba(0, 0, 0, 0.795);
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    li .task-details {
+      display: none;
+      color: #fdfdfd;
+      background-color: rgba(255, 255, 255, 0);
+      padding: 5px;
+      border-radius: 5px;
+      margin-top: 5px;
+    }
+    input, button, textarea {
+      font-size: 16px;
+      padding: 10px;
+      margin: 5px 0;
+      width: 100%;
+      box-sizing: border-box;
+      background: transparent;
+      border: 1px solid #ccc;
+      color: #fff;
+    }
+    button {
+      background-color: #007BFF;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <h1>Welcome, {{ username }}!</h1>
+  <a href="{{ url_for('logout') }}" style="color: #fff;">Logout</a>
+  
+  <h2>Your Tasks</h2>
+  <ul id="taskList"></ul>
+
+  <h2>Add New Task</h2>
+  <form id="taskForm">
+    <!-- 1. Task Name -->
+    <input type="text" id="task_name" placeholder="Task Name" required>
+    
+    <!-- 2. Task Time (time picker interface) -->
+    <input type="time" id="task_time" required>
+    
+    <!-- All Day checkbox linked to Task Time -->
+    <label for="all_day" style="display: flex; align-items: center; gap: 5px;">
+      <input type="checkbox" id="all_day" name="all_day"> All Day
+    </label>
+    
+    <!-- 3. Task Description (longer textarea) -->
+    <textarea id="task_description" placeholder="Task Description" rows="4"></textarea>
+    
+    <!-- 4. Due Date (calendar interface) -->
+    <input type="date" id="due_date" required>
+    
+    <!-- 5. Status -->
+    <input type="text" id="status" placeholder="Status (e.g., pending)" required>
+    
+    <!-- 6. Select Color (placed below status) -->
+    <label for="color">Select Color</label>
+    <input type="color" id="color" value="#ffffff">
+    
+    <button type="submit">Add Task</button>
+  </form>
+
+  <script>
+    const allDayCheckbox = document.getElementById('all_day');
+    const taskTimeInput = document.getElementById('task_time');
+
+    // When "All Day" is checked, disable the time picker.
+    allDayCheckbox.addEventListener('change', function() {
+      if (this.checked) {
+        taskTimeInput.value = "";
+        taskTimeInput.disabled = true;
+      } else {
+        taskTimeInput.disabled = false;
+      }
+    });
+
+    // Toggle task details when a task is clicked.
+    function toggleDetails(liElement) {
+      const details = liElement.querySelector('.task-details');
+      if (details) {
+        details.style.display = (details.style.display === 'block') ? 'none' : 'block';
+      }
+    }
+
+    async function loadTasks() {
+      const response = await fetch('/tasks');
+      const tasks = await response.json();
+      const taskList = document.getElementById('taskList');
+      taskList.innerHTML = '';
+      tasks.forEach(task => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <div class="task-summary">
+          <strong style="color: ${task.color};">${task.task_name}</strong> 
+          <span style="color: ${task.color};">Due: ${task.due_date}</span> - 
+          <span style="color: ${task.color};">${task.status}</span>
+          </div>
+          <div class="task-details">
+            <p>Time: ${task.task_time}</p>
+            <p>Description: ${task.task_description}</p>
+          </div>
+          <button onclick="deleteTask(${task.id}); event.stopPropagation();">Delete</button>
+        `;
+        li.addEventListener('click', function() {
+          toggleDetails(li);
+        });
+        taskList.appendChild(li);
+      });
+    }
+
+    async function deleteTask(taskId) {
+      const response = await fetch('/tasks/' + taskId, { method: 'DELETE' });
+      if (response.ok) {
+        loadTasks();
+      } else {
+        alert('Failed to delete task');
+      }
+    }
+
+    document.getElementById('taskForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const taskData = {
+        task_name: document.getElementById('task_name').value,
+        task_time: taskTimeInput.disabled ? "all day" : taskTimeInput.value,
+        task_description: document.getElementById('task_description').value,
+        due_date: document.getElementById('due_date').value,
+        status: document.getElementById('status').value,
+        color: document.getElementById('color').value,
+        all_day: allDayCheckbox.checked
+      };
+      const response = await fetch('/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(taskData)
+      });
+      if (response.ok) {
+        document.getElementById('taskForm').reset();
+        taskTimeInput.disabled = false;
+        loadTasks();
+      } else {
+        alert('Failed to add task');
+      }
+    });
+
+    // Load tasks when the page loads
+    loadTasks();
+  </script>
+</body>
+</html>

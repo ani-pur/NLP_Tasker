@@ -1,3 +1,14 @@
 {
-    "tasks": []
+    "tasks": [
+        {
+            "task_name": "call tesla SALES",
+            "task_time": "all day",
+            "task_description": "call tesla sales @ 972 764 4504",
+            "due_date": "2025-03-17",
+            "status": "pending IMPORTANT",
+            "color": "#d31212",
+            "all_day": true,
+            "id": 1
+        }
+    ]
 }

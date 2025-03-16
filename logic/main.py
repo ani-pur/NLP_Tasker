@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
-from logic import auth
-from logic import tasks
+import auth
+import tasks
 
 app = Flask(__name__)
 app.secret_key = 'goodmorningbob'  # Replace with a secure random secret in production
@@ -17,6 +17,15 @@ def login():
             error = "Invalid password. Please try again."
     return render_template('login.html', error=error)
 
+def is_mobile():
+    """
+    Detects if the incoming request is from a mobile device
+    by checking the User-Agent header for common mobile keywords.
+    """
+    user_agent = request.headers.get('User-Agent', '').lower()
+    mobile_keywords = ['iphone', 'android', 'mobile']
+    return any(keyword in user_agent for keyword in mobile_keywords)
+
 @app.route('/logout')
 def logout():
     session.pop('username', None)
@@ -26,7 +35,10 @@ def logout():
 def index():
     if 'username' not in session:
         return redirect(url_for('login'))
-    return render_template('index.html', username=session['username'])
+    # Automatically choose template based on device type.
+    if is_mobile():
+        return render_template('mobile.html', username=session['username'])
+    return render_template('desktop.html', username=session['username'])
 
 @app.route('/tasks', methods=['GET', 'POST'])
 def handle_tasks():
