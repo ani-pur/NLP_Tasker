@@ -10,15 +10,17 @@
       font-family: 'Honk';
       src: url('/static/Honk.ttf') format('truetype');
     }
-    body {
+    html, body {
       font-size: 18px;
       padding: 10px;
-      background-image: url("/static/mobile_blackpanther.png");
+      background-image: url("static/mobile_mountainminimal.png");
       background-size: cover;
       background-repeat: no-repeat;
       background-attachment: fixed;
       background-position: center center;
       background-color: #f2f2f2;
+      height:100%;
+      overflow:auto;
     }
     h1, h2 {
       text-align: center;
@@ -68,6 +70,7 @@
       margin-top: 10px;
       color: #fff;
     }
+    
   </style>
 </head>
 <body>
@@ -142,16 +145,17 @@
         const li = document.createElement('li');
         li.innerHTML = `
           <div class="task-summary">
-          <strong style="color: ${task.color};">${task.task_name}</strong> 
-          <span style="color: ${task.color};">Due: ${task.due_date}</span> - 
-          <span style="color: ${task.color};">${task.status}</span>
+            <strong style="color: ${task.color};">${task.task_name}</strong> 
+            <span style="color: ${task.color};">Due: ${task.due_date}</span> - 
+            <span style="color: ${task.color};">${task.status}</span>
           </div>
           <div class="task-details">
             <p>Time: ${task.task_time}</p>
             <p>Description: ${task.task_description}</p>
+            <button onclick="deleteTask(${task.id}); event.stopPropagation();" style="margin-top: 10px;">Delete</button>
           </div>
-          <button onclick="deleteTask(${task.id}); event.stopPropagation();">Delete</button>
         `;
+
         li.addEventListener('click', function() {
           toggleDetails(li);
         });
