@@ -1,3 +1,7 @@
 
 
 anirudh_tasks.json
+*.vbs
+*.txt
+launchMain.bat
+$null

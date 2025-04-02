@@ -8,6 +8,34 @@
             "due_date": "2025-04-04",
             "status": "IMPORTANT",
             "id": 1
+        },
+        {
+            "task_name": "set up appointment with lily ASAP",
+            "task_time": "all day",
+            "task_description": "",
+            "color": "#80ff00",
+            "due_date": "2025-04-04",
+            "status": "IMPORTANT",
+            "id": 2
+        },
+        {
+            "task_name": "START MATH DUMBFUCK ",
+            "task_time": "all day",
+            "task_description": "STAAART MAAAAAAAATH\n",
+            "color": "#fbff00",
+            "due_date": "2025-04-02",
+            "status": "MOST IMPORTANT",
+            "id": 3
+        },
+        {
+            "task_name": "ECON assignment quiz 3",
+            "task_time": "23:59",
+            "task_description": "make sure its a pdf gng and submit on time",
+            "due_date": "2025-04-01",
+            "status": "URGENT",
+            "color": "#ffffff",
+            "all_day": false,
+            "id": 4
         }
     ]
 }
