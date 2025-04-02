@@ -19,23 +19,22 @@
             "id": 2
         },
         {
-            "task_name": "START MATH DUMBFUCK ",
-            "task_time": "all day",
-            "task_description": "STAAART MAAAAAAAATH\n",
-            "color": "#fbff00",
+            "task_name": "[URGENT] DUE TODAY - FINISH 5 CS REVIEW QUIZZES ",
+            "task_time": "23:59",
+            "task_description": "Review Quiz 2.1 - APUE01\nReview Quiz 2.2 - APUE03\nReview Quiz 2.3 - APUE04\nReview Quiz 2.4 - APUE Ch07-Ch10 (Process2)\nReview Quiz 2.5 - ps kill nice top\n",
+            "color": "#2ff9eb",
             "due_date": "2025-04-02",
-            "status": "MOST IMPORTANT",
-            "id": 3
+            "status": "[URGENT]",
+            "id": 4
         },
         {
-            "task_name": "ECON assignment quiz 3",
-            "task_time": "23:59",
-            "task_description": "make sure its a pdf gng and submit on time",
-            "due_date": "2025-04-01",
-            "status": "URGENT",
-            "color": "#ffffff",
-            "all_day": false,
-            "id": 4
+            "task_name": "START MATH DUMBFUCK",
+            "task_time": "all day",
+            "task_description": "\tSTAAART MAAAAAAAATH ITS BEEN 10 DAYS HOLY SHIT FATASS MOOOOOVE",
+            "color": "#fff700",
+            "due_date": "2025-04-02",
+            "status": "IMPORTANT",
+            "id": 5
         }
     ]
 }
