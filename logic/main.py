@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
-from logic import auth
-from logic import tasks        # 'from logic import' if not running locally
+import auth
+import tasks        # 'from logic import' if not running locally
 import secrets
 
 
