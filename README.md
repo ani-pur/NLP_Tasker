@@ -8,7 +8,7 @@ This is a simple (and horrible) locally hosted task-manager app built using the 
 > 
 > Credentials are stored in ``` users.json ``` as ```username:hashed_password``` pairs (Werkzeug security library in python).
 > 
-> Once a user is added, they can log in at [tasker.4nirudh.org]
+> Once a user is added, they can log in at ``` ~~redacted~~ ```
 > 
 > App is "scaleable" ~~up to 10 users before my computer crashes~~ and supports multiple users with individual task storage, no overlap.
 > 
