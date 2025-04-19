@@ -5,12 +5,18 @@ This is a simple (and horrible) locally hosted task-manager app built using the 
 
 ## User Authentication: 
 > User profiles are handled on the backend (hasher.py provides CRUD operations)
+> 
 > Credentials are stored in ``` users.json ``` as ```username:hashed_password``` pairs (Werkzeug security library in python).
+> 
 > Once a user is added, they can log in at [tasker.4nirudh.org]
+> 
 > App is "scaleable" ~~up to 10 users before my computer crashes~~ and supports multiple users with individual task storage, no overlap.
+> 
 > Tasks are currently sorted by ``` Earliest Due - Latest Due```
 
-# Deployment and Architecture:
+
+## Deployment and Architecture:
+
 - Containerized with Docker
 - Reverse proxied through Cloudflare using [Cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)
 - UI auto-switches between mobile and desktop based on User-Agent headers.
