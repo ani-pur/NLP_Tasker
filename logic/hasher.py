@@ -65,4 +65,4 @@ while True:
             print("Invalid option, please try again.")
             
     except ValueError:
-        print("Please enter a valid number.")
+        print("Please enter a valid number. [OR EMPTY LIST]")
