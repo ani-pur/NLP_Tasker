@@ -14,4 +14,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 EXPOSE 5000
 
 # Command to run the app
-CMD ["python", "logic/main.py"]
+CMD ["gunicorn", "-b", "0.0.0.0:5000", "logic.main:app"]
