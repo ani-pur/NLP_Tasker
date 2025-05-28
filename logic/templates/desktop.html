@@ -2,160 +2,267 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Task Manager 1.0 (stable hopefully)</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <!-- Importing Honk Font -->
-    <link href="https://fonts.googleapis.com/css2?family=Honk&display=swap" rel="stylesheet">
-    <!-- Importing Roboto Font -->
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <title>Task Manager 1.0</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Honk&display=swap" rel="stylesheet">
     <style>
-        
-        /* Set background for the entire page */
         body {
-        font-family: 'Roboto', sans-serif;
-        background: url("/static/macOS_minimal.jpg") no-repeat center center fixed;
-        background-size: 2160px;
-        margin: 0;
-        padding: 0;
-        color: rgb(255, 255, 255);  /* Makes all text white */
-        height: 100vh; /* Ensures body takes full viewport height */
-        overflow: scroll; 
-        }
-
-        /* Container with an opaque background for text readability */
-        .container {
-            background-color: rgba(0, 0, 0, 0.247); /* Keeps background semi-transparent */
-            padding: 20px;
-            margin: 0 auto; /* Center horizontally */
-            border-radius: 8px;
-            position: absolute;
-            top: 0%;  /* Moves content closer to the top */
-            left: 50%;
-            transform: translateX(-50%);
-            width: 90%; /* Adjust width to prevent overflow */
-            max-width: 800px; /* Limits max width for readability */
-        }
-
-        .honk-text {
-            font-family: "Honk", system-ui;
-            font-optical-sizing: auto;
-            font-weight: 400;
-            font-style: normal;
-            font-variation-settings:
-                "MORF" 15,
-                "SHLN" 50;
-            font-size: 3rem; /* Larger than default h1 */
-        }
-        /* Existing styles */
-        ul#taskList {
-            list-style: none;
+            min-height: 100vh;
+            margin: 0;
             padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: url('/static/abstractminimal.jpg') no-repeat center center fixed;
+            background-size: cover;
+            font-family: 'Roboto', sans-serif;
+        }
+        .glass-container {
+            background: rgba(0, 0, 0, 0.25);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
+            border-radius: 32px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            padding: 40px 32px;
+            max-width: 1000px;
+            width: 90%;
+            margin: 40px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .honk-text {
+            font-family: 'Honk', system-ui, sans-serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: #fff;
+            margin-bottom: 0.5em;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        .logout-link {
+            position: absolute;
+            left: 40px;
+            top: 40px;
+            color: #4f8cff;
+            background: none;
+            border: none;
+            font-size: 1.1rem;
+            font-weight: 500;
+            text-decoration: underline;
+            cursor: pointer;
+            padding: 0;
+            z-index: 10;
+        }
+        .logout-link:hover {
+            color: #6ed0fa;
+        }
+        h2, h3 {
+            color: #fff;
+            margin-top: 1.5em;
+            margin-bottom: 0.5em;
+            font-weight: 400;
+        }
+        ul#taskList {
+            width: 100%;
+            max-width: 800px;
+            padding: 0;
+            margin: 0 0 1.5em 0;
+            list-style: none;
         }
         ul#taskList li {
-            margin-bottom: 10px;
+            background: rgba(255,255,255,0.18);
+            border-radius: 18px;
+            margin-bottom: 14px;
+            padding: 16px 18px;
+            color: #222;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: background 0.2s;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
         }
-        .task-title:hover {
-            text-decoration: underline;
+        ul#taskList li:hover {
+            background: rgba(255,255,255,0.28);
         }
-        form div {
-            margin-bottom: 10px;
+        details summary {
+            cursor: pointer;
+            font-weight: 500;
+            color: #222;
+        }
+        form {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            align-items: center;
         }
         form label {
-            display: block;
-            margin-bottom: 5px;
+            color: #fff;
+            font-size: 1rem;
+            margin-bottom: 8px;
+            font-weight: 400;
+            width: 100%;
+            text-align: left;
         }
-        form input[type="text"],
-        form input[type="number"],
-        form input[type="date"],
+        form input,
         form select,
         form textarea {
-            width: 80%;
-            padding: 8px;
-            box-sizing: border-box;
-            background-color: rgba(0, 0, 0, 0.701); /* Makes text boxes transparent */
-            color: white;                  /* Makes text inside them white */
-            border: 1px solid rgb(255, 255, 255);       /* Optional: white border for visibility */
-            text-align: center;
+            width: 100%;
+            min-width: 0;
+            max-width: 100%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: none;
+            background: rgba(255,255,255,0.18);
+            color: #222;
+            font-size: 1rem;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+            outline: none;
+            transition: background 0.2s;
             display: block;
             margin: 0 auto;
-
         }
-
-        #time_fields .inline-field {
-            display: block;
-            width: 80%;
+        form input[type="color"] {
+            padding: 2px 4px;
+            height: 40px;
+            width: 48px;
+            min-width: 48px;
+            max-width: 48px;
+            background: none;
+            border: none;
+            flex-shrink: 0;
         }
-        
-        form select, 
-        form select option {
-            background-color: rgba(0,0,0,0.7);
-            color: gray;
+        .color-row {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 0;
+            max-width: 100%;
+        }
+        .color-row label {
+            margin-bottom: 0;
+            width: auto;
+            text-align: left;
+            flex: 0 0 auto;
+        }
+        .color-row input[type="color"] {
+            flex: 0 0 auto;
+        }
+        form input:focus, form select:focus, form textarea:focus {
+            background: rgba(255,255,255,0.28);
+        }
+        .checkbox-row {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 0;
+        }
+        .checkbox-row label {
+            margin-bottom: 0;
+            width: auto;
+            text-align: left;
+        }
+        .checkbox-row input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            margin: 0;
+        }
+        #time_fields {
+            width: 100%;
+        }
+        button[type="submit"] {
+            background: linear-gradient(90deg, #4f8cff 0%, #6ed0fa 100%);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 0;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: background 0.2s;
+            width: 100%;
+            max-width: 800px;
+        }
+        button[type="submit"]:hover {
+            background: linear-gradient(90deg, #6ed0fa 0%, #4f8cff 100%);
+        }
+        @media (max-width: 600px) {
+            .glass-container {
+                padding: 18px 6px;
+                max-width: 98vw;
+            }
+            h1 {
+                font-size: 2rem;
+            }
+            form {
+                max-width: 100%;
+            }
+            ul#taskList, ul#taskList li {
+                max-width: 100%;
+            }
+            button[type="submit"] {
+                max-width: 100%;
+            }
         }
     </style>
 </head>
 <body>
-    
-    <div class="container">
+    <div class="glass-container" style="position:relative;">
+        <a href="{{ url_for('logout') }}" class="logout-link">Logout</a>
         <h1 class="honk-text">Welcome, {{ username }}!</h1>
-        <a href="{{ url_for('logout') }}">Logout</a>
         <h2>Your Tasks</h2>
         <ul id="taskList"></ul>
-
         <h3>Add New Task</h3>
         <form id="taskForm" autocomplete="off">
-            <div>
-                <label for="task_name"></label>
-                <input type="text" id="task_name" placeholder="Task Name" required>
-            </div>
-            <div>
-                <label for="all_day">All Day Task:
+            <label for="task_name">Task Name</label>
+            <input type="text" id="task_name" placeholder="" required>
+            <div class="checkbox-row">
                 <input type="checkbox" id="all_day" name="all_day">
-            </label>
+                <label for="all_day">All Day Task</label>
             </div>
             <div id="time_fields">
-                <label>Task Time:</label>
+                <label for="task_time">Task Time</label>
                 <input type="time" id="task_time" placeholder="HH MM AM/PM" required>
             </div>
-            <div>
-                <label for="task_description">Task Description:</label>
-                <textarea id="task_description" placeholder="Task Description" style="height: 150px; resize: both;"></textarea>
-            </div>
-            <div>
-                <label for="color">Task Color:</label>
+            <label for="task_description">Task Description</label>
+            <textarea id="task_description" placeholder="Task Description" style="resize: vertical;"></textarea>
+            <div class="color-row">
+                <label for="color">Task Color</label>
                 <input type="color" id="color" value="#000000">
             </div>
-            <div>
-                <label for="due_date">Due Date:</label>
-                <input type="date" id="due_date" required>
-            </div>
-            <div>
-                <label for="status">Priority:</label>
-                <select name="status" id="status">
-                    <option value="1">1. URGENT</option>
-                    <option value="2">2. HIGH</option>
-                    <option value="3">3. MEDIUM</option>
-                    <option value="4">4. LOW</option>
-                </select>
-            </div>
+            <label for="due_date">Due Date</label>
+            <input type="date" id="due_date" required>
+            <label for="status">Priority</label>
+            <select name="status" id="status">
+                <option value="1">1. URGENT</option>
+                <option value="2">2. HIGH</option>
+                <option value="3">3. MEDIUM</option>
+                <option value="4">4. LOW</option>
+            </select>
             <button type="submit">Add Task</button>
         </form>
     </div>
-
     <script>
         document.getElementById('all_day').addEventListener('change', function() {
-        const timeFields = document.getElementById('time_fields');
-        const taskTimeInput = document.getElementById('task_time');
-        if (this.checked) {
-            timeFields.style.display = 'none';
-            taskTimeInput.required = false;  // Remove required attribute when "All Day" is checked.
-        } else {
-            timeFields.style.display = 'block';
-            taskTimeInput.required = true;   // Re-add required attribute when unchecked.
-        }
-    });
-
-
+            const timeFields = document.getElementById('time_fields');
+            const taskTimeInput = document.getElementById('task_time');
+            if (this.checked) {
+                timeFields.style.display = 'none';
+                taskTimeInput.required = false;
+            } else {
+                timeFields.style.display = 'block';
+                taskTimeInput.required = true;
+            }
+        });
         async function loadTasks() {
             const response = await fetch('/tasks');
             const tasks = await response.json();
@@ -166,38 +273,27 @@
                 li.innerHTML = `
                     <details>
                         <summary>
-                            <strong class="task-title" style="color: ${task.color};">${task.task_name}</strong> (Due: ${formatDateForDisplay(task.due_date)}) - ${task.status}
+                            <strong style="color: ${task.color};">${task.task_name}</strong> (Due: ${formatDateForDisplay(task.due_date)}) - ${task.status}
                         </summary>
-                        <div style="margin-left: 20px;">
-                            <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%;">
-                                <tr>
-                                    <th style="text-align: left;">Time</th>
-                                    <td>${task.task_time ? task.task_time : "N/A"}</td>
-                                </tr>
-                                <tr>
-                                    <th style="text-align: left;">Description</th>
-                                    <td>${task.task_description ? task.task_description : "No description provided"}</td>
-                                </tr>
-                                <tr>
-                                    <th style="text-align: left;">Color</th>
-                                    <td><span style="background-color: ${task.color}; padding: 0 10px;">${task.color}</span></td>
-                                </tr>
-                            </table>
-                            <button onclick="deleteTask(${task.id})">Delete</button>
+                        <div style="margin-left: 10px;">
+                            <div style="margin: 8px 0; color: #222;">
+                                <div><b>Time:</b> ${task.task_time ? task.task_time : "N/A"}</div>
+                                <div><b>Description:</b> ${task.task_description ? task.task_description : "No description provided"}</div>
+                                <div><b>Color:</b> <span style="background-color: ${task.color}; padding: 0 10px; border-radius: 6px;">${task.color}</span></div>
+                            </div>
+                            <button onclick="deleteTask(${task.id})" style="background: #ff4f4f; color: #fff; border-radius: 8px; border: none; padding: 6px 16px; margin-top: 8px; cursor: pointer;">Delete</button>
                         </div>
                     </details>
                 `;
                 taskList.appendChild(li);
             });
         }
-
         function formatDateForDisplay(storedDate) {
             const [month, day, year] = storedDate.split('/');
-            const date = new Date(`20${year}`, month - 1, day); // convert to full Date
-            const options = { day: '2-digit', month: 'short' }; // e.g., 06 Apr
+            const date = new Date(`20${year}`, month - 1, day);
+            const options = { day: '2-digit', month: 'short' };
             return date.toLocaleDateString('en-US', options);
-            }
-
+        }
         async function deleteTask(taskId) {
             const response = await fetch('/tasks/' + taskId, {
                 method: 'DELETE'
@@ -208,19 +304,15 @@
                 alert('Failed to delete task');
             }
         }
-
         document.getElementById('taskForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
             let taskTime = "";
             const isAllDay = document.getElementById('all_day').checked;
             if (isAllDay) {
                 taskTime = "all day";
             } else {
-                // Use the value from the time picker field directly
                 taskTime = document.getElementById('task_time').value;
             }
-            
             const taskData = {
                 task_name: document.getElementById('task_name').value,
                 task_time: taskTime,
@@ -229,7 +321,6 @@
                 due_date: document.getElementById('due_date').value,
                 status: document.getElementById('status').value
             };
-
             const response = await fetch('/tasks', {
                 method: 'POST',
                 headers: {
@@ -237,7 +328,6 @@
                 },
                 body: JSON.stringify(taskData)
             });
-
             if (response.ok) {
                 document.getElementById('taskForm').reset();
                 document.getElementById('time_fields').style.display = 'block';
@@ -246,8 +336,6 @@
                 alert('Failed to add task');
             }
         });
-
-        // Load tasks when the page loads.
         loadTasks();
     </script>
 </body>
