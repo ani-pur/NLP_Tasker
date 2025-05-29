@@ -248,23 +248,23 @@
       }
       .section {
         padding: 10px 4px;
-      }
+    }
     }
   </style>
 </head>
 <body>
   <header>
-    <h1>Welcome, {{ username }}!</h1>
+  <h1>Welcome, {{ username }}!</h1>
     <a href="{{ url_for('logout') }}">Logout</a>
   </header>
   <main>
     <section class="section">
-      <h2>Your Tasks</h2>
-      <ul id="taskList"></ul>
+  <h2>Your Tasks</h2>
+  <ul id="taskList"></ul>
     </section>
     <section class="section">
       <h3>Add New Task</h3>
-      <form id="taskForm">
+  <form id="taskForm">
         <label for="task_name">Task Name</label>
         <input type="text" id="task_name" placeholder="" required>
         <div class="checkbox-row">
@@ -272,8 +272,8 @@
           <label for="all_day">All Day Task</label>
         </div>
         <div id="time_fields">
-          <label for="task_time">Task Time</label>
-          <input type="time" id="task_time" placeholder="HH MM AM/PM" required>
+    <label for="task_time">Task Time</label>
+    <input type="time" id="task_time" placeholder="HH MM AM/PM" required>
         </div>
         <label for="task_description">Task Description</label>
         <textarea id="task_description" placeholder="Task Description" style="resize: vertical;"></textarea>
@@ -282,7 +282,7 @@
           <input type="color" id="color" value="#000000">
         </div>
         <label for="due_date">Due Date</label>
-        <input type="date" id="due_date" required>
+    <input type="date" id="due_date" required>
         <label for="status">Priority</label>
         <select name="status" id="status">
           <option value="1">1. URGENT</option>
@@ -290,8 +290,8 @@
           <option value="3">3. MEDIUM</option>
           <option value="4">4. LOW</option>
         </select>
-        <button type="submit">Add Task</button>
-      </form>
+    <button type="submit">Add Task</button>
+  </form>
     </section>
   </main>
   <script>

@@ -10,25 +10,30 @@
       justify-content: center;
       align-items: center;
       min-height: 100vh;
-      background-color: #f2f2f2;
+      background-color: #030303ef;
       margin: 0;
       font-family: Arial, sans-serif;
     }
     .login-container {
-      background-color: #fff;
+      background-color: #00000000;
       padding: 2rem;
       border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.329);
       text-align: center;
       width: 90%;
       max-width: 400px;
+    }
+    .login-container h1 {
+      color:aliceblue;
+      
     }
     input[type="password"] {
       width: 70%;
       padding: 10px;
       margin: 10px 0;
-      border: 1px solid #ccc;
+      border: 1px solid #cccccc;
       border-radius: 4px;
+      background-color: #2d2d2d;
     }
     button {
       padding: 10px 20px;
@@ -49,7 +54,7 @@
 </head>
 <body>
   <div class="login-container">
-    <h1>Task Manager Login</h1>
+    <h1>Tasker 2.0!</h1>
     {% if error %}
       <p class="error">{{ error }}</p>
     {% endif %}
