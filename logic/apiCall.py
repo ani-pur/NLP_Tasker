@@ -10,16 +10,29 @@ from textwrap import dedent
 client = OpenAI(api_key="")
 # !! REMEMBER TO REMOVE !!
 
-sysPrompt="""Extract the following fields from the user's input:
+sysPrompt="""You are an information extraction engine.
 
-        - task_name [required]: A clear and concise title for the task. Preserve only specific details (e.g., meeting person/place, subject, action, time)
-        - task_time [optional]: only return in 12hr format (like "4:32 PM"). Use user's current time if input mentions relative terms (like "in 2 hours", "this evening"). Else return null
-        - task_description [optional]: Paraphrase extra details if provided, return null if none.
-        - due_date [required]: Parse any mentioned absolute date, if relative ("tomorrow", "next Friday"), use the appended user metadata (current day and date) to resolve into DD Mon YYYY (like "17 Jul 2023", "27 Feb 2024", "11 Jan 2025")
-        - priority [optional]: default to 4(low) if not mentioned; events like exams, assignment submissions, university coursework are HIGH PRIORITY (1 or 2 depending on user wording). Must be an integer >= 1 and <= 4
-        - color [optional]: default to #FDB927 unless user has mentioned 'EXAM/UNIVERSITY' related terms [return RED] (ALWAYS RETURN AS HEX)
-        
-        Respond with valid JSON containing ONLY THESE FIELDS"""
+Instructions:
+- Extract ONLY these fields from the user input as a JSON object:
+
+    1. task_name [required]: Task title. Paraphrase if longer than 8 words. 
+    2. task_time [optional]: 12-hour format (e.g., "4:32 PM"). If input uses relative phrases (e.g., "in 2 hours"), calculate the specific time using the provided user metadata. Else, null.
+    3. task_description [optional]: preserve ALL detail.
+    4. due_date [required]: Always resolve to an absolute date. If input uses relative date/time ("in 5 hours", "tomorrow"), use the appended metadata (see below) to calculate. Format: 'DD Mon YYYY' (e.g., "01 Jul 2025").
+    5. priority [optional]: Integer 1-4. Default to 4 if not mentioned. Exams/university assignments = high priority (1).
+    6. color [optional]: Return hex value. Default #FDB927 if not given.
+
+- The user's current date/time is appended after "[USER TIMEZONE METADATA]" at the end of the input. Example:
+    [USER TIMEZONE METADATA]
+    current date: 2025-06-30
+    current time: 11:55 PM
+    current day: Monday
+
+- Always use this metadata to resolve any relative time/due date.
+
+- Return valid JSON containing ONLY the fields above. If a field is not provided or cannot be determined, return null for that field.
+
+- Never guess the current time/date — always use the metadata provided."""
 
 # construct user metadata that is passed to api
 def initializeUserTzData():
@@ -32,6 +45,7 @@ def initializeUserTzData():
               "current time: ":strTime,
               "current day: ":strDay }
     
+    print(str(metadata))
     return str(metadata)
 
 
@@ -62,7 +76,7 @@ def postRequest(userInput) -> str:
 
             instructions=dedent(sysPrompt),
 
-            input= stringInput + "[USER TIMEZONE METADATA] \n" + userTzData
+            input= stringInput + " \n [USER TIMEZONE METADATA] \n" + userTzData
             
     )
 
