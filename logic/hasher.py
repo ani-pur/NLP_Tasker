@@ -39,13 +39,24 @@ def hasher():
 
 
 def delProfile():
-    name = str(input("enter name of profile to delete: "))
+
     with dbConnect() as conn:
         with conn.cursor() as cur:
             try:
+                
+                cur.execute("SELECT * FROM users;")
+                rows = cur.fetchall()
+                for i in rows: 
+                    print('\n',i,'\n')
+                
+                name = str(input("enter name of profile to delete: "))
+
                 cur.execute(
                     "DELETE FROM users WHERE USERNAME = %s ;"
                 ,(name,))
+
+                conn.commit()
+
                 cur.execute("SELECT * FROM users;")
                 rows = cur.fetchall()
                 for i in rows: 
