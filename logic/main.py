@@ -61,10 +61,11 @@ def handle_tasks():
         return jsonify({'error': 'Not authenticated'}), 401
     username = session['username']
     if request.method == 'GET':
-        taskList = tasks.get_all_tasks(username)
+        sort_order='default'
+        taskList = tasks.get_all_tasks(username, sort_order)
         return jsonify(taskList)
     elif request.method == 'POST':
-        task_data = request.get_json()          # task ingest from desktop.html i believe
+        task_data = request.get_json()          # task ingest from desktop.html 
         descriptionLenCheck = task_data.get('task_description', '')
         if len(descriptionLenCheck) > 200 or len(descriptionLenCheck)<10:
             return jsonify({'error': 'Description too long (max 200 characters)'}), 410
