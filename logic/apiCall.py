@@ -8,8 +8,7 @@ import os
 
 
 #hardcoded key for testing
-api_key=os.environ.get('API_KEY')
-client = OpenAI(api_key)
+client = OpenAI()
 # !! REMEMBER TO REMOVE !!
 
 sysPrompt="""You are an information extraction engine.
