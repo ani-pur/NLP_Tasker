@@ -6,7 +6,7 @@ import os
 # connect to db
 def dbConnect():
     return psycopg2.connect(
-        dbname = os.environ.get('POSTRGES_DB'),
+        dbname = os.environ.get('POSTGRES_DB'),
         user = os.environ.get('POSTGRES_USER'),
         password = os.environ.get('POSTGRES_PASSWORD'),
         host = os.environ.get('POSTGRES_HOST'),
