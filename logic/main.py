@@ -6,7 +6,7 @@ import secrets
 
 
 app = Flask(__name__)
-app.secret_key = secrets.token_hex()  # Replace in prod
+app.secret_key = secrets.token_hex()  # Replace 
 
 # LOGIN ROUTE
 @app.route('/login', methods=['GET', 'POST'])
@@ -19,7 +19,7 @@ def login():
             session['username'] = user
             # add logging here
             print("!! USER FOUND: ",user)
-            api.warmupCall()                                #  [ WARMUP ]
+            api.warmupCall()                # [WARMUP]
             return redirect(url_for('index'))
         
         else:
@@ -28,8 +28,7 @@ def login():
             print("!! FAILED LOGIN FROM IP: ",ipAddr)
     return render_template('login.html', error=error)
 
-# Detects if the incoming request is from a mobile device by checking the User-Agent header for common mobile keywords.
-
+# Detects if the incoming request is from a mobile device by checking the user-agent header for mobile keywords
 def is_mobile():        
     user_agent = request.headers.get('User-Agent', '').lower()
     mobile_keywords = ['iphone', 'android', 'mobile']
@@ -50,7 +49,7 @@ def index():
     
     # Automatically choose template based on device type.
     if is_mobile():
-        return render_template('mobile.html', username=session['username'])
+        return render_template('mobile_1.html', username=session['username'])
     return render_template('desktop.html', username=session['username'])
 
 
@@ -94,4 +93,4 @@ def delete_task(task_id):
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0')
+    app.run(debug=False, host='0.0.0.0')
