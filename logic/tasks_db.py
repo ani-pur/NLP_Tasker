@@ -60,7 +60,7 @@ def get_all_tasks(username, sort_order):
                 
                 elif sort_order=='reverse':
                     cur.execute(
-                            "SELECT * FROM tasks WHERE username = %s ORDER BY due_date DESC;",(username,)
+                            "SELECT * FROM tasks WHERE username = %s ORDER BY due_date DESC, task_time DESC;",(username,)
                         )
             except psycopg2.Error as e:
                 print("DB error: ",e)
