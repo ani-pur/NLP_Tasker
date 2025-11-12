@@ -58,7 +58,7 @@ def get_all_tasks(username, sort_order):
                     rows = cur.fetchall()
                     return rows
                 
-                elif sort_order=='reverse':
+                elif sort_order=='custom':     # use custom in main
                     cur.execute(
                             "SELECT * FROM tasks WHERE username = %s ORDER BY due_date DESC, task_time DESC;",(username,)
                         )
