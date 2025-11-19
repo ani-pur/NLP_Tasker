@@ -20,7 +20,7 @@ def parse_api_response(jsonInput: str) -> dict:
     return parsedDict
 
 # add task to db
-def add_task(username: str, jsonInput: str):
+def add_task(username: str, jsonInput: str, task_data: dict):		# added task_data parameter for logging
         sendToDb = parse_api_response(jsonInput)
         task_name = sendToDb.get('task_name')
         task_time = sendToDb.get('task_time')
@@ -28,6 +28,7 @@ def add_task(username: str, jsonInput: str):
         due_date = sendToDb.get('due_date')
         priority = sendToDb.get('priority')
         color = sendToDb.get('color')
+        userInput = task_data.get('task_description')		#initial freeform user input, grabbed from desktop.html ingest - sorry for horrible naming lol
         with dbConnect() as conn:
             with conn.cursor() as cur:
                 try: 
@@ -41,6 +42,9 @@ def add_task(username: str, jsonInput: str):
                          "color) VALUES (%s, %s, %s, %s, %s, %s, %s)",
                          (username, task_name, task_time, task_description, due_date, priority, color)
                     )
+                    cur.execute(
+			"INSERT INTO sftdata (username, user_input, api_response) VALUES (%s, %s, %s)",(username, userInput, jsonInput)
+		    )
                     conn.commit()
                 except psycopg2.Error as e:
                     print("DB error: ",e)

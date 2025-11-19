@@ -75,7 +75,7 @@ def handle_tasks():
         # api call, response JSON from api call to be passed to tasks module
         apiResponse = api.postRequest(task_data)
 
-        new_task = tasks.add_task(username, apiResponse)
+        new_task = tasks.add_task(username, apiResponse, task_data)
         return jsonify(new_task), 201
 
 @app.route('/tasks/<int:task_id>', methods=['DELETE'])

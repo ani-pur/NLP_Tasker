@@ -69,7 +69,7 @@ def warmupCall():
 
 
 # pass to api
-def postRequest(userInput) -> str:  
+def postRequest(userInput: dict) -> str:  
     # userInput is dict
     stringInput = str(userInput["task_description"])     
     start_time=time.time()
