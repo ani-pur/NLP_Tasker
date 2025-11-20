@@ -7,7 +7,7 @@ import os
 
 
 app = Flask(__name__)
-app.secret_key = os.environ["FLASK_SECRET_KEY"] 
+app.secret_key = os.environ.get('FLASK_SECRET_KEY')
 
 # LOGIN ROUTE
 @app.route('/login', methods=['GET', 'POST'])
