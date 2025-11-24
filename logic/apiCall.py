@@ -10,7 +10,7 @@ import os
 # hardcoded key for testing
 #api_key=""
 api_key=os.environ.get('API_KEY')
-client = OpenAI(api_key=api_key)
+client = AsyncOpenAI(api_key=api_key)
 # !! REPLACE WITH ENV VARS !!
 
 sysPrompt="""You are an information extraction engine.
