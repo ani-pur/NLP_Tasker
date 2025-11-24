@@ -4,10 +4,12 @@ from logic import tasks_db as tasks     # ^
 from logic import apiCall as api        # ^
 import secrets    
 import os
+from datetime import timedelta
 
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_SECRET_KEY')
+app.permanent_session_lifetime = timedelta(hours=2)
 
 # LOGIN ROUTE
 @app.route('/login', methods=['GET', 'POST'])
@@ -17,10 +19,11 @@ def login():
         input_pass = request.form.get('password', '').strip()
         user = hasher.verify_login(input_pass)
         if user:
+            session.permanent = True
             session['username'] = user
             # add logging here
             print("!! USER FOUND: ",user)
-            api.warmupCall()                # [WARMUP]
+            api.warmupCall_async()              # [WARMUP]
             return redirect(url_for('index'))
         
         else:
@@ -48,7 +51,10 @@ def index():
     if 'username' not in session:
         return redirect(url_for('login'))
     
-    
+    rootHit=session['username']
+    print(f'{rootHit} hit /')
+    api.warmupCall_async() 
+
     # Automatically choose template based on device type.
     if is_mobile():
         return render_template('mobile_1.html', username=session['username'])
@@ -85,6 +91,7 @@ def delete_task(task_id):
     if 'username' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
     username = session['username']
+
     success = tasks.delete_task(username, task_id)
     if success:
         return jsonify({'message': 'Task deleted successfully.'})

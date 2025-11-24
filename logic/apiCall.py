@@ -5,6 +5,7 @@ from openai import OpenAI
 import time
 from textwrap import dedent
 import os
+import threading
 
 
 # hardcoded key for testing
@@ -69,7 +70,9 @@ def warmupCall():
     warmupClock = warmup_endTime - warmup_startTime
     print('api WARMUP time: ',warmupClock)
 
-
+def warmupCall_async():
+    t = threading.Thread(target=warmupCall, daemon=True)
+    t.start()
 
 # pass to api
 def postRequest(userInput: dict) -> str:  
