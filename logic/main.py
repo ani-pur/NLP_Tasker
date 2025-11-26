@@ -44,7 +44,7 @@ def logout():
     return redirect(url_for('login'))
 
 
-# root route
+
 @app.route('/')
 def index():
     print(f"Handling request in PID={os.getpid()}")
