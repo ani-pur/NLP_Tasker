@@ -8,11 +8,10 @@ import os
 import threading
 
 
-# hardcoded key for testing
-#api_key=""
+
 api_key=os.environ.get('API_KEY')
 client = OpenAI(api_key=api_key)
-# !! REPLACE WITH ENV VARS !!
+
 
 sysPrompt="""You are an information extraction engine.
 
@@ -76,7 +75,6 @@ def warmupCall_async():
 
 # pass to api
 def postRequest(userInput: dict) -> str:  
-    # userInput is dict
     stringInput = str(userInput["task_description"])     
     start_time=time.time()
     userTzData=initializeUserTzData()
