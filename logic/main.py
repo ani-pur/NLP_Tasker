@@ -1,7 +1,8 @@
+
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
-from logic import hasher                # 'from logic import' if not running locally
-from logic import tasks_db as tasks     # ^
-from logic import apiCall as api        # ^
+from logic import hasher                
+from logic import tasks_db as tasks     
+from logic import apiCall as api        
 import secrets    
 import os
 from datetime import timedelta
@@ -21,14 +22,13 @@ def login():
         if user:
             session.permanent = True
             session['username'] = user
-            # add logging here
             print("!! USER FOUND: ",user)
            # api.warmupCall_async()              # [WARMUP]
             return redirect(url_for('index'))
         
         else:
             error = "Invalid password. Please try again."
-            ipAddr=request.remote_addr
+            # ipAddr=request.remote_addr        # get from header: CF-Connecting-IP; current method will always return cf edge ip     
             print("!! FAILED LOGIN FROM IP: ",ipAddr)
     return render_template('login.html', error=error)
 
