@@ -1,15 +1,19 @@
 Author: Anirudh Purohit
 
-This is a simple locally-hosted Flask app for managing tasks.
-It uses the OpenAI API to turn user input into structured tasks -> saves them to a local database -> (if linked) syncs them with Google Calendar.
+## What is Tasker?
 
+Tasker is a self-hosted, AI powered task manager built with Flask and PostgreSQL.
+It takes freeform, natural language input (like “finish physics lab tomorrow at 5”) and uses an LLM to convert it into structured, categorized task objects. 
+
+### Coming soon:  
+- **Google calendar sync and notifications** (~late december)
  
 ## Deployment and Architecture:
 
 - Containerized with Docker
 - Reverse proxied through Cloudflare using [Cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)
-- UI auto-switches between mobile and desktop based on User-Agent headers
 
+The application is fully stateless and runs in its own container, with all persistent data stored in a separate PostgreSQL container. This separation makes deployments safer, prevents data loss during rebuilds, and keeps environments reproducible. Deployment is secured through a Cloudflare Tunnel, and a lightweight CI/CD pipeline automates building and releasing updates. 
 
 ## Screenshots (v1, old):
 ![image](https://github.com/user-attachments/assets/2e90706c-0b1d-4adc-93f3-25b578a86598)
