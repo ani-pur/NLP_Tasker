@@ -13,7 +13,7 @@ def dbConnect():
     )
 
 
-# json to dict so python can keep shit moving
+# json to dict 
 def parse_api_response(jsonInput: str) -> dict:
     parsedDict = json.loads(jsonInput)
     return parsedDict
@@ -27,7 +27,7 @@ def add_task(username: str, jsonInput: str, task_data: dict):		# added task_data
         due_date = sendToDb.get('due_date')
         priority = sendToDb.get('priority')
         color = sendToDb.get('color')
-        userInput = task_data.get('task_description')		#initial freeform user input, grabbed from desktop.html ingest - horrible naming lol
+        userInput = task_data.get('task_description')		#freeform user input
         with dbConnect() as conn:
             with conn.cursor() as cur:
                 try: 
