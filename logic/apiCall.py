@@ -57,8 +57,8 @@ def initializeUserTzData():
 def warmupCall():
     warmup_startTime=time.time()
     emptyResponse = client.responses.create(
-        model="gpt-5-nano-2025-08-07",
-        instructions="warmup request to handle cold-start latency, respond with 'warmed up' ",
+        model="gpt-5-mini-2025-08-07",
+        instructions="warmup ping to handle cold-start latency, respond with 'warmed up' ",
         input="  ",
         text={ "verbosity": "low" },
         reasoning={ "effort": "minimal" }

@@ -29,7 +29,8 @@ def login():
         else:
             error = "Invalid password. Please try again."
             # ipAddr=request.remote_addr        # get from header: CF-Connecting-IP; current method will always return cf edge ip     
-            print("!! FAILED LOGIN FROM IP: ",ipAddr)
+            # print("!! FAILED LOGIN FROM IP: ",ipAddr)
+            print("[!] login attempted")        # will fix all this later i've got exams lol
     return render_template('login.html', error=error)
 
 # Detects if the incoming request is from a mobile device by checking the user-agent header for mobile keywords
