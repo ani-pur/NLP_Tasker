@@ -34,9 +34,9 @@ Instructions:
 
 - Always use this metadata to resolve any relative time/due date.
 
-- Return valid JSON containing ONLY the fields above. If a field is not provided or cannot be determined, return null for that field.
+- Return valid JSON containing ONLY the fields above. 
 
-- Never guess the current time/date — always use the metadata provided."""
+- Never guess the current time/date, always use the metadata provided."""
 
 # construct user metadata that is passed to api
 def initializeUserTzData():
