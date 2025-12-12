@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Login - Tasker</title>
+  <title>Login - Tasker </title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
@@ -14,7 +14,6 @@
       margin: 0;
       font-family: Arial, sans-serif;
     }
-
     .login-container {
       background-color: #00000000;
       padding: 2rem;
@@ -24,11 +23,11 @@
       width: 90%;
       max-width: 400px;
     }
-
     .login-container h1 {
       color: aliceblue;
     }
 
+    /* Shared input styling */
     input[type="text"],
     input[type="password"] {
       width: 70%;
@@ -52,27 +51,15 @@
       border-radius: 4px;
       cursor: pointer;
     }
-
     button:hover {
       background-color: #0056b3;
     }
-
     .error {
       color: red;
       margin-bottom: 10px;
     }
-
-    /* keep username hidden but autofill-detectable */
-    .hidden-autofill {
-      position: absolute;
-      opacity: 0;
-      height: 0;
-      width: 0;
-      pointer-events: none;
-    }
   </style>
 </head>
-
 <body>
   <div class="login-container">
     <h1>Tasker 2.5!</h1>
@@ -81,17 +68,16 @@
       <p class="error">{{ error }}</p>
     {% endif %}
 
-    <form method="POST" action="{{ url_for('login') }}" autocomplete="on">
-
-      <!-- Hidden username for browser autofill -->
+    <form method="POST" action="{{ url_for('login') }}">
+      <!-- Username field (placebo, but autofill-friendly) -->
       <input
         type="text"
         name="username"
+        placeholder="Enter Username"
         autocomplete="username"
-        class="hidden-autofill"
       >
 
-      <!-- Actual password input -->
+      <!-- Real password field -->
       <input
         type="password"
         name="password"
