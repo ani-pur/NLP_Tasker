@@ -5,10 +5,12 @@ FROM python:3.11
 WORKDIR /localtodo
 
 # Copy project files into the container
-COPY . .
+COPY . requirements.txt .
 
 # Install dependencies from requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
 
 # Expose Flask's default port
 EXPOSE 5000
