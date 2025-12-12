@@ -5,7 +5,7 @@ FROM python:3.11
 WORKDIR /localtodo
 
 # Copy project files into the container
-COPY . requirements.txt .
+COPY requirements.txt .
 
 # Install dependencies from requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
