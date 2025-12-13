@@ -20,7 +20,7 @@ Instructions:
 
     1. task_name [required]: Task title. Summary from user input.
     2. task_time [optional]: 12-hour format (e.g., "4:32 PM"). If input uses relative phrases (e.g., "in 2 hours"), calculate the specific time using the provided user metadata. "Midnight" ALWAYS resolves to 11:59pm. Else, null.
-    3. task_description: Preserve ALL semantics from user input. EXCEPT color, due date, priority 
+    3. task_description: Preserve ALL detail from user input EXCEPT color, due date, priority. 
     4. due_date [required]: Always resolve to an absolute date. If input uses relative date/time ("in 5 hours", "tomorrow"), use the appended metadata (provided below) to calculate. Format: 'DD Mon YYYY' (e.g., "01 Jul 2025").
     5. priority [optional]: Integer 1-4. Default to 4 if not mentioned.
     6. color [required]: Return only hex values. Parse from input for any colors and check against provided hex table below titled "COLOR:HEX". Default/fallback: #FFFFFF.  
