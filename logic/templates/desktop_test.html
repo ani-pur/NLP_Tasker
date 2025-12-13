@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Tasker 2.5!</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #0e1116;
+      --panel: #151a21;
+      --panel-soft: #1b212b;
+      --text: #e6e9ef;
+      --muted: #9aa3b2;
+      --accent: #4f8cff;
+      --danger: #ff5c5c;
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: 'Roboto', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    /* Top bar */
+    header {
+      height: 64px;
+      padding: 0 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--panel);
+      border-bottom: 1px solid #222;
+    }
+
+    .brand {
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+
+    .user {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 0.95rem;
+    }
+
+    .user a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    /* Main layout */
+    main {
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: 24px;
+      padding: 24px;
+    }
+
+    section {
+      background: var(--panel);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+
+    h2, h3 {
+      margin: 0 0 16px 0;
+      font-weight: 500;
+    }
+
+    /* Task list */
+    ul#taskList {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .task-card {
+      background: var(--panel-soft);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: background 0.15s ease;
+    }
+
+    .task-card:hover {
+      background: #222836;
+    }
+
+    .task-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .task-title {
+      font-weight: 600;
+      font-size: 1rem;
+    }
+
+    .task-due {
+      font-size: 0.85rem;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .task-desc {
+      font-size: 0.95rem;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .task-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 4px;
+    }
+
+    .delete-btn {
+      background: transparent;
+      border: 1px solid var(--danger);
+      color: var(--danger);
+      padding: 6px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+
+    .delete-btn:hover {
+      background: var(--danger);
+      color: #fff;
+    }
+
+    /* Form */
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      resize: vertical;
+      background: var(--panel-soft);
+      border: none;
+      border-radius: var(--radius);
+      padding: 12px;
+      color: var(--text);
+      font-size: 1rem;
+      outline: none;
+    }
+
+    textarea::placeholder {
+      color: var(--muted);
+    }
+
+    button[type="submit"] {
+      margin-top: 12px;
+      width: 100%;
+      padding: 12px;
+      background: var(--accent);
+      border: none;
+      border-radius: var(--radius);
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: background 0.15s ease, transform 0.05s ease;
+    }
+    
+    /* hover */
+    button[type="submit"]:hover {
+      background: #3f7cff;
+    }
+    
+    /* click / active */
+    button[type="submit"]:active {
+      background: #356de0;
+      transform: translateY(1px);
+    }
+
+
+    /* Responsive fallback */
+    @media (max-width: 900px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="brand">Tasker 2.5!</div>
+    <div class="user">
+      <span>{{ username }}</span>
+      <a href="{{ url_for('logout') }}">Logout</a>
+    </div>
+  </header>
+
+  <main>
+    <section>
+      <h2>Your Tasks</h2>
+      <ul id="taskList"></ul>
+    </section>
+
+    <section>
+      <h3>Add Task</h3>
+      <form id="taskForm">
+        <textarea
+          id="task_description"
+          placeholder="Describe task"
+          maxlength="200"
+        ></textarea>
+        <button type="submit">Add Task</button>
+      </form>
+    </section>
+  </main>
+
+  <script>
+    async function loadTasks() {
+      const response = await fetch('/tasks');
+      const tasks = await response.json();
+      const taskList = document.getElementById('taskList');
+      taskList.innerHTML = '';
+
+      tasks.forEach(task => {
+        const [
+          id,
+          __,
+          task_name,
+          task_time,
+          task_description,
+          due_date,
+          priority,
+          color
+        ] = task;
+
+        const dueDateDisplay = due_date
+          ? due_date.replace(/ 00:00:00.*$/, '')
+          : "No due date";
+
+        const li = document.createElement('li');
+        li.className = 'task-card';
+        li.innerHTML = `
+          <div class="task-header">
+            <span class="task-title" style="color:${color};">${task_name}</span>
+            <span class="task-due">${dueDateDisplay}${task_time ? ' • ' + task_time : ''}</span>
+          </div>
+          <div class="task-desc">${task_description}</div>
+          <div class="task-actions">
+            <button class="delete-btn" onclick="deleteTask(${id})">Delete</button>
+          </div>
+        `;
+        taskList.appendChild(li);
+      });
+    }
+
+    async function deleteTask(taskId) {
+      const response = await fetch('/tasks/' + taskId, { method: 'DELETE' });
+      if (response.ok) loadTasks();
+      else alert('Failed to delete task');
+    }
+
+    document.getElementById('taskForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const description = document.getElementById('task_description').value;
+
+      if (description.length < 10 || description.length > 200) {
+        alert('Task description must be 10–200 characters');
+        return;
+      }
+
+      const response = await fetch('/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task_description: description })
+      });
+
+      if (response.ok) {
+        document.getElementById('taskForm').reset();
+        loadTasks();
+      } else {
+        alert('Failed to add task');
+      }
+    });
+
+    loadTasks();
+  </script>
+</body>
+</html>

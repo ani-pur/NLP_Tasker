@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Login - Task Manager</title>
+  <title>Login - Tasker </title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
@@ -24,9 +24,11 @@
       max-width: 400px;
     }
     .login-container h1 {
-      color:aliceblue;
-      
+      color: aliceblue;
     }
+
+    /* Shared input styling */
+    input[type="text"],
     input[type="password"] {
       width: 70%;
       padding: 10px;
@@ -34,7 +36,13 @@
       border: 1px solid #cccccc;
       border-radius: 4px;
       background-color: #2d2d2d;
+      color: white;
     }
+
+    input::placeholder {
+      color: #b0b0b0;
+    }
+
     button {
       padding: 10px 20px;
       background-color: #007BFF;
@@ -54,12 +62,30 @@
 </head>
 <body>
   <div class="login-container">
-    <h1>Tasker 2.0!</h1>
+    <h1>Tasker 2.5!</h1>
+
     {% if error %}
       <p class="error">{{ error }}</p>
     {% endif %}
+
     <form method="POST" action="{{ url_for('login') }}">
-      <input type="password" name="password" placeholder="Enter Password" required>
+      <!-- Username field (placebo, but autofill-friendly) -->
+      <input
+        type="text"
+        name="username"
+        placeholder="Enter Username"
+        autocomplete="username"
+      >
+
+      <!-- Real password field -->
+      <input
+        type="password"
+        name="password"
+        placeholder="Enter Password"
+        autocomplete="current-password"
+        required
+      >
+
       <br>
       <button type="submit">Login</button>
     </form>

@@ -4,3 +4,8 @@
 .gitignore
 .gitattributes
 README.md
+.git
+__pycache__
+*.pyc
+*.log
+.env
