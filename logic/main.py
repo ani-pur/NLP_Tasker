@@ -12,6 +12,12 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_SECRET_KEY')
 app.permanent_session_lifetime = timedelta(hours=2)
 
+def fetch_real_ip():
+    cf_ip = request.headers.get('CF-Connecting-IP')
+    if cf_ip:
+        return cf_ip
+    return None 
+        
 # LOGIN ROUTE
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -28,9 +34,10 @@ def login():
         
         else:
             error = "Invalid password. Please try again."
-            # ipAddr=request.remote_addr        # get from header: CF-Connecting-IP; current method will always return cf edge ip     
-            # print("!! FAILED LOGIN FROM IP: ",ipAddr)
-            print("[!] login attempted")        # will fix all this later i've got exams lol
+            ipAddr= fetch_real_ip()       
+            if ipAddr is not None:
+                print("[!] FAILED LOGIN FROM IP: ",ipAddr)
+            print("<!> FAILED LOGIN, Unable to fetch real ip")
     return render_template('dual_login.html', error=error)
 
 # Detects if the incoming request is from a mobile device by checking the user-agent header for mobile keywords
