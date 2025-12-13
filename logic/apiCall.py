@@ -18,14 +18,22 @@ sysPrompt="""You are an information extraction engine.
 Instructions:
 - Extract ONLY these fields from the user input as a JSON object:
 
-    1. task_name [required]: Task title. Paraphrase from user input
+    1. task_name [required]: Task title. Summary from user input.
     2. task_time [optional]: 12-hour format (e.g., "4:32 PM"). If input uses relative phrases (e.g., "in 2 hours"), calculate the specific time using the provided user metadata. "Midnight" ALWAYS resolves to 11:59pm. Else, null.
-    3. task_description: preserve ALL detail from user input.
-    4. due_date [required]: Always resolve to an absolute date. If input uses relative date/time ("in 5 hours", "tomorrow"), use the appended metadata (see below) to calculate. Format: 'DD Mon YYYY' (e.g., "01 Jul 2025").
-    5. priority [optional]: Integer 1-4. Default to 4 if not mentioned. Exams/university assignments = high priority (1).
-    6. color [optional]: Return hex value. Default #FFFFFF if not given. Blue: #0000ff, Red: #f05656, Green: #93C47D, Pink: #ffc0cb, Orange: #ff7f00
+    3. task_description: Preserve ALL semantics from user input. EXCEPT color, due date, priority 
+    4. due_date [required]: Always resolve to an absolute date. If input uses relative date/time ("in 5 hours", "tomorrow"), use the appended metadata (provided below) to calculate. Format: 'DD Mon YYYY' (e.g., "01 Jul 2025").
+    5. priority [optional]: Integer 1-4. Default to 4 if not mentioned.
+    6. color [required]: Return only hex values. Parse from input for any colors and check against provided hex table below titled "COLOR:HEX". Default/fallback: #FFFFFF.  
 
+- COLOR:HEX
+Blue: #87CEEB, 
+Red: #f05656, 
+Green: #6CE5A9, 
+Pink: #E89BEE, 
+Orange: #ff7f00, 
+Purple: #A96CE5
 
+    
 - The user's current date/time is appended after "[USER TIMEZONE METADATA]" at the end of the input. Example:
     [USER TIMEZONE METADATA]
     current date: 2025-06-30
@@ -80,7 +88,7 @@ def postRequest(userInput: dict) -> str:
     userTzData=initializeUserTzData()
     response = client.responses.create(
 
-            model="gpt-5-nano-2025-08-07",
+            model="gpt-5-mini-2025-08-07",
 
             instructions=dedent(sysPrompt),
 
