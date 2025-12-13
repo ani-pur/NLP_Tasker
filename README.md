@@ -7,6 +7,7 @@ It takes freeform, natural language input (like “finish physics lab tomorrow a
 
 ### Coming soon:  
 - **Google calendar sync and notifications** (~late december)
+
  
 ## Deployment and Architecture:
 
@@ -15,17 +16,23 @@ It takes freeform, natural language input (like “finish physics lab tomorrow a
 
 The application is fully stateless and runs in its own container, with all persistent data stored in a separate PostgreSQL container. This separation makes deployments safer, prevents data loss during rebuilds, and keeps environments reproducible. Deployment is secured through a Cloudflare Tunnel, and a lightweight CI/CD pipeline automates building and releasing updates. 
 
-## Screenshots (v1, old):
-![image](https://github.com/user-attachments/assets/2e90706c-0b1d-4adc-93f3-25b578a86598)
+## Screenshots
 
-![image](https://github.com/user-attachments/assets/4fb92ee7-39b6-47af-83cd-d63723697f12)
+### v2.5: 
+![image](https://github.com/user-attachments/assets/66556575-bee7-4b09-98e0-b67db0a33c8a)
+![image](https://github.com/user-attachments/assets/55734e9b-5c38-485b-a88c-95a4fb73b7f9)
 
-![image](https://github.com/user-attachments/assets/7e854af8-19e0-4eac-9da6-5c2b17352d7f)
-
-## UPDATED Screenshots (v2):
+### v2:
 ![image](https://github.com/user-attachments/assets/5c4302be-927e-46ac-89e5-09f6022c153f)
 ![image](https://github.com/user-attachments/assets/fd7f6fba-d2ff-4913-ba9e-83ac3624ab72)
 ![image](https://github.com/user-attachments/assets/f40bc4ea-1a7f-4ae4-8b64-8a0797b81df4)
+
+### v1:
+![image](https://github.com/user-attachments/assets/2e90706c-0b1d-4adc-93f3-25b578a86598)
+![image](https://github.com/user-attachments/assets/4fb92ee7-39b6-47af-83cd-d63723697f12)
+![image](https://github.com/user-attachments/assets/7e854af8-19e0-4eac-9da6-5c2b17352d7f)
+
+
 
 
 
