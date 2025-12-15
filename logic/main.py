@@ -38,8 +38,8 @@ def login():
             if ipAddr is not None:
                 print("[!] FAILED LOGIN FROM IP: ",ipAddr)
             else:
-                ipv4=requests.remote_addr
-                print("<!> FAILED LOGIN, IPV4: ",ipv4)        # 
+                ipv4=request.remote_addr
+                print("<!> FAILED LOGIN, IPV4: ",ipv4)        # hotfix for testing
                     
     return render_template('dual_login.html', error=error)
 
