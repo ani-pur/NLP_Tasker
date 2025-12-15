@@ -13,7 +13,7 @@ app.secret_key = os.environ.get('FLASK_SECRET_KEY')
 app.permanent_session_lifetime = timedelta(hours=2)
 
 def fetch_real_ip():
-    cf_ip = request.headers.get('CF-Connecting-IP')
+    cf_ip = request.headers.get('CF-Connecting-IP')        # usually ipv6
     if cf_ip:
         return cf_ip
     return None 
@@ -37,7 +37,10 @@ def login():
             ipAddr= fetch_real_ip()       
             if ipAddr is not None:
                 print("[!] FAILED LOGIN FROM IP: ",ipAddr)
-            print("<!> FAILED LOGIN, Unable to fetch real ip")
+            else:
+                ipv4=requests.remote_addr
+                print("<!> FAILED LOGIN, IPV4: ",ipv4)        # 
+                    
     return render_template('dual_login.html', error=error)
 
 # Detects if the incoming request is from a mobile device by checking the user-agent header for mobile keywords
