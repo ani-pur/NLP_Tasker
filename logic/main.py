@@ -69,7 +69,7 @@ def index():
     # Automatically choose template based on device type.
     if is_mobile():
         return render_template('mobile_1.html', username=session['username'])
-    return render_template('desktop_test.html', username=session['username'])
+    return render_template('desktop_new.html', username=session['username'])
 
 
 
