@@ -10,10 +10,10 @@ from datetime import timedelta
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_SECRET_KEY')
-app.permanent_session_lifetime = timedelta(hours=2)
+app.permanent_session_lifetime = timedelta(hours=24)
 
 def fetch_real_ip():
-    cf_ip = request.headers.get('CF-Connecting-IP')
+    cf_ip = request.headers.get('CF-Connecting-IP')        # usually ipv6
     if cf_ip:
         return cf_ip
     return None 
@@ -29,7 +29,6 @@ def login():
             session.permanent = True
             session['username'] = user
             print("!! USER FOUND: ",user)
-           # api.warmupCall_async()              # [WARMUP]
             return redirect(url_for('index'))
         
         else:
@@ -37,8 +36,12 @@ def login():
             ipAddr= fetch_real_ip()       
             if ipAddr is not None:
                 print("[!] FAILED LOGIN FROM IP: ",ipAddr)
-            print("<!> FAILED LOGIN, Unable to fetch real ip")
+            else:
+                ipv4=request.remote_addr
+                print("<!> FAILED LOGIN, IPV4: ",ipv4)        # hotfix for testing
+                    
     return render_template('dual_login.html', error=error)
+
 
 # Detects if the incoming request is from a mobile device by checking the user-agent header for mobile keywords
 def is_mobile():        
@@ -52,21 +55,42 @@ def logout():
     return redirect(url_for('login'))
 
 
-
 @app.route('/')
 def index():
     print(f"Handling request in PID={os.getpid()}")
+
     if 'username' not in session:
         return redirect(url_for('login'))
-    
-    rootHit=session['username']
-    print(f'{rootHit} hit /')
-    api.warmupCall_async() 
 
-    # Automatically choose template based on device type.
+    rootHit = session['username']
+    print(f'{rootHit} hit /')
+
+    # API warmup 
+    api.warmupCall_async()
+
+    # Mobile UI
     if is_mobile():
         return render_template('mobile_1.html', username=session['username'])
-    return render_template('desktop_test.html', username=session['username'])
+
+    # UI switching 
+    ui_version = session.get('ui_version', 3)  # default = v3
+
+    if ui_version == 2:
+        return render_template('desktop_v2.html', username=session['username'])
+
+    return render_template('desktop_v3.html', username=session['username'])
+
+
+# UI SWITCHING 
+@app.route('/switch/<int:switch_id>', methods=['GET'])
+def switch_ui(switch_id):
+    if 'username' not in session:
+        return redirect(url_for('login'))
+
+    if switch_id in (2, 3):
+        session['ui_version'] = switch_id
+
+    return redirect(url_for('index'))
 
 
 
@@ -105,7 +129,6 @@ def delete_task(task_id):
         return jsonify({'message': 'Task deleted successfully.'})
     else:
         return jsonify({'error': 'Task not found.'}), 404
-
 
 
 

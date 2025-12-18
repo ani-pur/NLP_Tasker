@@ -42,9 +42,7 @@
             text-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
         .logout-link {
-            position: absolute;
-            left: 40px;
-            top: 40px;
+            position: static;
             color: #4f8cff;
             background: none;
             border: none;
@@ -174,6 +172,13 @@
             height: 18px;
             margin: 0;
         }
+        .session-actions {
+            position: absolute;
+            top: 40px;
+            left: 40px;
+            display: flex;
+            gap: 14px;
+        }
         #time_fields {
             width: 100%;
         }
@@ -218,7 +223,11 @@
 </head>
 <body>
     <div class="glass-container" style="position:relative;">
-        <a href="{{ url_for('logout') }}" class="logout-link">Logout</a>
+
+        <div class="session-actions">
+            <a href="/switch/3" class="logout-link">NewUI</a>
+            <a href="{{ url_for('logout') }}" class="logout-link">Logout</a>
+        </div>
         <h1 class="honk-text">Welcome, {{ username }}!</h1>
         <div style="margin-bottom: 1em; text-align: center;">
             <label for="bgSelector" style="color: white; font-weight: 500;">Choose Background:</label>
