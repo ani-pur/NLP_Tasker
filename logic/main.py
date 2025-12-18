@@ -10,7 +10,7 @@ from datetime import timedelta
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_SECRET_KEY')
-app.permanent_session_lifetime = timedelta(hours=2)
+app.permanent_session_lifetime = timedelta(hours=24)
 
 def fetch_real_ip():
     cf_ip = request.headers.get('CF-Connecting-IP')        # usually ipv6
@@ -29,7 +29,6 @@ def login():
             session.permanent = True
             session['username'] = user
             print("!! USER FOUND: ",user)
-           # api.warmupCall_async()              # [WARMUP]
             return redirect(url_for('index'))
         
         else:
@@ -42,6 +41,7 @@ def login():
                 print("<!> FAILED LOGIN, IPV4: ",ipv4)        # hotfix for testing
                     
     return render_template('dual_login.html', error=error)
+
 
 # Detects if the incoming request is from a mobile device by checking the user-agent header for mobile keywords
 def is_mobile():        
@@ -64,13 +64,28 @@ def index():
     
     rootHit=session['username']
     print(f'{rootHit} hit /')
-    api.warmupCall_async() 
+    # [API WARMUP CALL]
+    api.warmupCall_async()          
 
     # Automatically choose template based on device type.
     if is_mobile():
         return render_template('mobile_1.html', username=session['username'])
-    return render_template('desktop_new.html', username=session['username'])
+    return redirect(url_for('switch'))    
 
+@app.route('/switch/<int:switch_id>', methods=['GET'])
+def switch_ui(switch_id):
+    if 'username' not in session:
+        return redirect(url_for('login'))
+
+    if switch_id == 2:
+        # desktop_v2
+        return render_template('desktop_v2.html', username=session['username'])
+    elif switch_id == 3:
+        # desktop_v3
+        return render_template('desktop_v3.html', username=session['username'])
+
+    # default to new
+    return render_template('desktop_v3.html', username=session['username'])
 
 
 @app.route('/tasks', methods=['GET', 'POST'])
@@ -109,8 +124,7 @@ def delete_task(task_id):
     else:
         return jsonify({'error': 'Task not found.'}), 404
 
-
-
+@app.route('')
 
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0')
