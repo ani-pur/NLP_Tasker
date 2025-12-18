@@ -72,19 +72,16 @@ def index():
         return render_template('mobile_1.html', username=session['username'])
     return redirect(url_for('switch_ui'))    
 
-@app.route('/switch/<int:switch_id>', methods=['GET'])
+@app.route('/switch', defaults={'switch_id': 3})
+@app.route('/switch/<int:switch_id>')
 def switch_ui(switch_id):
     if 'username' not in session:
         return redirect(url_for('login'))
 
     if switch_id == 2:
-        # desktop_v2
         return render_template('desktop_v2.html', username=session['username'])
-    elif switch_id == 3:
-        # desktop_v3
-        return render_template('desktop_v3.html', username=session['username'])
 
-    # default to new
+    # default: v3
     return render_template('desktop_v3.html', username=session['username'])
 
 
