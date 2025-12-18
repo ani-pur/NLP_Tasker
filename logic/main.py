@@ -55,34 +55,43 @@ def logout():
     return redirect(url_for('login'))
 
 
-
 @app.route('/')
 def index():
     print(f"Handling request in PID={os.getpid()}")
+
     if 'username' not in session:
         return redirect(url_for('login'))
-    
-    rootHit=session['username']
-    print(f'{rootHit} hit /')
-    # [API WARMUP CALL]
-    api.warmupCall_async()          
 
-    # Automatically choose template based on device type.
+    rootHit = session['username']
+    print(f'{rootHit} hit /')
+
+    # API warmup 
+    api.warmupCall_async()
+
+    # Mobile UI
     if is_mobile():
         return render_template('mobile_1.html', username=session['username'])
-    return redirect(url_for('switch_ui'))    
 
-@app.route('/switch', defaults={'switch_id': 3})
-@app.route('/switch/<int:switch_id>')
+    # UI switching 
+    ui_version = session.get('ui_version', 3)  # default = v3
+
+    if ui_version == 2:
+        return render_template('desktop_v2.html', username=session['username'])
+
+    return render_template('desktop_v3.html', username=session['username'])
+
+
+# UI SWITCHING 
+@app.route('/switch/<int:switch_id>', methods=['GET'])
 def switch_ui(switch_id):
     if 'username' not in session:
         return redirect(url_for('login'))
 
-    if switch_id == 2:
-        return render_template('desktop_v2.html', username=session['username'])
+    if switch_id in (2, 3):
+        session['ui_version'] = switch_id
 
-    # default: v3
-    return render_template('desktop_v3.html', username=session['username'])
+    return redirect(url_for('index'))
+
 
 
 @app.route('/tasks', methods=['GET', 'POST'])
