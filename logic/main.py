@@ -70,7 +70,7 @@ def index():
     # Automatically choose template based on device type.
     if is_mobile():
         return render_template('mobile_1.html', username=session['username'])
-    return redirect(url_for('switch'))    
+    return redirect(url_for('switch_ui'))    
 
 @app.route('/switch/<int:switch_id>', methods=['GET'])
 def switch_ui(switch_id):
