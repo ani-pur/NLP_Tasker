@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Login - Tasker </title>
+  <title>Request Access - Tasker</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
@@ -14,6 +14,7 @@
       margin: 0;
       font-family: Arial, sans-serif;
     }
+
     .login-container {
       background-color: #00000000;
       padding: 2rem;
@@ -23,13 +24,10 @@
       width: 90%;
       max-width: 400px;
     }
-    .login-container h1 {
-      color: aliceblue;
-    }
 
-    /* Shared input styling */
     input[type="text"],
-    input[type="password"] {
+    input[type="password"],
+    input[type="email"] {
       width: 70%;
       padding: 10px;
       margin: 10px 0;
@@ -51,62 +49,57 @@
       border-radius: 4px;
       cursor: pointer;
     }
+
     button:hover {
       background-color: #0056b3;
     }
-    .error {
-      color: red;
-      margin-bottom: 10px;
-    }
+
     .logout-link {
+      display: inline-block;
+      margin-top: 18px;
       color: #4f8cff;
-      background: none;
-      border: none;
       font-size: 1rem;
       font-weight: 500;
       text-decoration: underline;
       cursor: pointer;
-      padding: 0;
     }
 
     .logout-link:hover {
       color: #6ed0fa;
     }
-
   </style>
 </head>
+
 <body>
   <div class="login-container">
-    <h1>Tasker 2.5!</h1>
 
-    {% if error %}
-      <p class="error">{{ error }}</p>
-    {% endif %}
-
-    <form method="POST" action="{{ url_for('login') }}">
-      <!-- Username field (placebo, but autofill-friendly) -->
+    <form method="POST" action="{{ url_for('signup') }}">
       <input
         type="text"
         name="username"
         placeholder="Enter Username"
-        autocomplete="username"
+        required
       >
 
-      <!-- Real password field -->
       <input
         type="password"
         name="password"
         placeholder="Enter Password"
-        autocomplete="current-password"
         required
       >
 
-      <br>
-      <button type="submit">Login</button>
-      <br><br>
-      <a href="{{ url_for('signup') }}" class="logout-link">Sign up</a>
+      <input
+        type="email"
+        name="email"
+        placeholder="Email (optional)"
+      >
 
+      <br>
+      <button type="submit">Request Access</button>
     </form>
+
+    <a href="{{ url_for('login') }}" class="logout-link">Back to Login</a>
+
   </div>
 </body>
 </html>
