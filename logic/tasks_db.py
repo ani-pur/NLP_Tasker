@@ -86,4 +86,24 @@ def delete_task(username, task_id):
 
 
 
+
 # ADD: edit_task(username, task_id)
+
+
+# add pending signup request
+def add_pending_approval(username: str, password_hash: str, email: str | None = None):
+    with dbConnect() as conn:
+        with conn.cursor() as cur:
+            try:
+                cur.execute(
+                    "INSERT INTO pendingapprovals (username, password_hash, email) "
+                    "VALUES (%s, %s, %s)",
+                    (username, password_hash, email)
+                )
+                conn.commit()
+                return True
+
+            except psycopg2.Error as e:
+                print("DB error (pendingapprovals): ", e)
+                conn.rollback()
+                return False

@@ -42,6 +42,36 @@ def login():
                     
     return render_template('dual_login.html', error=error)
 
+@app.route('/signup', methods=['GET','POST'])
+def signup():
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '').strip()
+        email = request.form.get('email', '').strip()
+
+        if not username or not password:
+            return render_template('signup.html',error='Username and password are required')
+
+        if len(username) < 3 or len(username) > 50:
+            return render_template(
+                'signup.html',
+                error='Username must be between 3 and 50 characters')
+
+        if email and '@' not in email:
+            return render_template(
+                'signup.html',
+                error='Invalid email address'
+            )
+
+        hashedPass = hasher.hash_password(password)
+        success = tasks.add_pending_approval(username, hashedPass, email)
+        if not success:
+            return render_template('signup.html',error='Username already exists or request failed')
+
+        return redirect(url_for('login'))
+
+    return render_template('signup.html')    
+
 
 # Detects if the incoming request is from a mobile device by checking the user-agent header for mobile keywords
 def is_mobile():        

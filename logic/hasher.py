@@ -37,6 +37,8 @@ def hasher():
 
     return hashedPass
 
+def hash_password(password: string):
+    return wz.generate_password_hash(password)
 
 def delProfile():
 
