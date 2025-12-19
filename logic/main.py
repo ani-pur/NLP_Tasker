@@ -83,7 +83,9 @@ def signup():
 
         hashedPass = hasher.hash_password(password)
         success = tasks.add_pending_approval(username, hashedPass, email)
+        print('[++] Approval Request received and written to db')
         if not success:
+            print('[!] signup dbwrite fail')
             return render_template('signup.html',error='Username already exists or request failed')
 
         return redirect(url_for('login'))
