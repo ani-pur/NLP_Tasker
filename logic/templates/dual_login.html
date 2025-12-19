@@ -58,6 +58,21 @@
       color: red;
       margin-bottom: 10px;
     }
+    .logout-link {
+      color: #4f8cff;
+      background: none;
+      border: none;
+      font-size: 1rem;
+      font-weight: 500;
+      text-decoration: underline;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .logout-link:hover {
+      color: #6ed0fa;
+    }
+
   </style>
 </head>
 <body>
@@ -88,6 +103,10 @@
 
       <br>
       <button type="submit">Login</button>
+      <br><br>
+      <br><br>
+      <a href="{{ url_for('signup') }}" class="logout-link">Sign up</a>
+
     </form>
   </div>
 </body>
