@@ -42,6 +42,8 @@ def login():
                     
     return render_template('dual_login.html', error=error)
 
+
+# needs lots of cleanup, will do later
 @app.route('/signup', methods=['GET','POST'])
 def signup():
     if request.method == 'POST':
@@ -50,14 +52,30 @@ def signup():
         email = request.form.get('email', '').strip()
 
         if not username or not password:
+            print('[!] ACCREQ - username fault')
+            ipAddr=fetch_real_ip()
+            if ipAddr is None:
+                ipv4=request.remote_addr
+                print(ipv4,'\n')
             return render_template('signup.html',error='Username and password are required')
 
         if len(username) < 3 or len(username) > 50:
+            print('[!] ACCREQ - fault')
+            ipAddr=fetch_real_ip()
+            if ipAddr is None:
+                ipv4=request.remote_addr
+                print(ipv4,'\n')
+
             return render_template(
                 'signup.html',
                 error='Username must be between 3 and 50 characters')
 
         if email and '@' not in email:
+            print('[!] ACCREQ - username fault')
+            ipAddr=fetch_real_ip()
+            if ipAddr is None:
+                ipv4=request.remote_addr
+                print(ipv4,'\n')
             return render_template(
                 'signup.html',
                 error='Invalid email address'
