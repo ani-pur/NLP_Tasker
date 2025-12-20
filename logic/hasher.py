@@ -98,12 +98,14 @@ def merge_approve():
                         choice_2 = str(input('Approve? y/n: '))
                         if choice_2 == 'y':
                             index=i[0]  # index of row
-                            cur.execute("INSERT INTO users (username, pwhash) SELECT username, password_hash FROM PendingApprovals WHERE id = {index}")
+                            cur.execute(f"INSERT INTO users (username, pwhash) SELECT username, password_hash FROM PendingApprovals WHERE id = {index}")
+                            conn.commit()
+                            cur.execute(f"DELETE FROM pendingapprovals WHERE id = {index};")
                             conn.commit()
                         elif choice_2 == 'n':
                             index=i[0]
-                            cur.execute("DELETE FROM pendingapprovals WHERE id = {index};")
-                            print("Deleted {index}")
+                            cur.execute(f"DELETE FROM pendingapprovals WHERE id = {index};")
+                            print(f"Deleted {index}")
                             conn.commit()
                         else:
                             print("[!] y: yes \t n: no")
