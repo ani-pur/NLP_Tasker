@@ -2,12 +2,14 @@ Author: Anirudh Purohit
 
 ## What is Tasker?
 
-Tasker is a self-hosted, AI powered task manager built with Flask and PostgreSQL.
+Tasker is a task manager built with Flask and PostgreSQL.
 It takes freeform, natural language input (like “finish physics lab tomorrow at 5”) and uses an LLM to convert it into structured, categorized task objects. 
 
 ### Coming soon:  
 - **Google calendar sync and notifications** (~late december)
 
+### Known bugs:
+- Tasks on the same day may be sorted wrong on the dashboard (fix in progress)
  
 ## Deployment and Architecture:
 

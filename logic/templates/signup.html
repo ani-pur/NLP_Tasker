@@ -67,6 +67,53 @@
     .logout-link:hover {
       color: #6ed0fa;
     }
+
+    /* Info tooltip */
+    .info-wrapper {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      position: relative;
+    }
+    
+    .info-icon {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #555;
+      color: #fff;
+      font-size: 11px;
+      font-weight: bold;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: default;
+    }
+    
+    .info-tooltip {
+      position: absolute;
+      bottom: 130%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e1e1e;
+      color: #ddd;
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      line-height: 1.35;
+      width: 240px;
+      text-align: left;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.4);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s ease;
+      z-index: 10;
+    }
+    
+    .info-wrapper:hover .info-tooltip {
+      opacity: 1;
+    }
+
   </style>
 </head>
 
@@ -91,11 +138,21 @@
       <input
         type="email"
         name="email"
-        placeholder="Email (optional)"
+        placeholder="Email"
+        required
       >
 
       <br>
-      <button type="submit">Request Access</button>
+      <div class="info-wrapper">
+        <button type="submit">Request Access</button>
+
+        <div class="info-icon">i</div>
+        <div class="info-tooltip">
+          Email is used only for account status communication and feedback requests.<br><br>
+          Credentials are private and never visible to the admin.<br> Save them to your browser for convenient and safe access.
+
+        </div>
+      </div>
     </form>
 
     <a href="{{ url_for('login') }}" class="logout-link">Back to Login</a>
