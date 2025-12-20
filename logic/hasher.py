@@ -99,6 +99,7 @@ def merge_approve():
                         if choice_2 == 'y':
                             index=i[0]  # index of row
                             cur.execute(f"INSERT INTO users (username, pwhash) SELECT username, password_hash FROM PendingApprovals WHERE id = {index}")
+                            print(f'Merged {index}')
                             conn.commit()
                             cur.execute(f"DELETE FROM pendingapprovals WHERE id = {index};")
                             conn.commit()
