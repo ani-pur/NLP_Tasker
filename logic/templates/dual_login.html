@@ -27,6 +27,15 @@
       color: aliceblue;
     }
 
+    .tagline {
+      margin-top: -6px;
+      margin-bottom: 18px;
+      font-size: 0.85rem;
+      color: #9aa3b2;
+      font-weight: 400;
+      opacity: 0.85;
+    }
+
     /* Shared input styling */
     input[type="text"],
     input[type="password"] {
@@ -78,6 +87,9 @@
 <body>
   <div class="login-container">
     <h1>Tasker 2.5!</h1>
+    <div class="tagline">Natural language task creation with built-in calendar reminders.</div>
+    
+
 
     {% if error %}
       <p class="error">{{ error }}</p>
