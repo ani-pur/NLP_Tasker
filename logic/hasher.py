@@ -72,6 +72,8 @@ def delProfile():
 def merge_approve():
     print("\n Options: \n \t 1: List pending profiles \n \t 2: Approve and merge manually \n \t 3: Approve and merge all \n \t 4. Exit \n")
     choice = int(input('1/2/3: '))
+
+    # List pending profiles
     if choice == 1:
         with dbConnect() as conn:
             with conn.cursor() as cur:
@@ -82,8 +84,9 @@ def merge_approve():
                         print('\n',i,'\n')
                 except psycopg2.Error as e:
                     print("DB error: ",e)
+        merge_approve()
     
-    #incomplete 
+    # Approve and merge manually, iterate through rows
     elif choice == 2:
         with dbConnect() as conn:
             with conn.cursor() as cur:
@@ -94,14 +97,20 @@ def merge_approve():
                         print('\n',i,'\n')
                         choice_2 = str(input('Approve? y/n: '))
                         if choice_2 == 'y':
-                            print(" *add handling* ")   # incomplete
+                            index=i[0]  # index of row
+                            cur.execute("INSERT INTO users (username, pwhash) SELECT username, password_hash FROM PendingApprovals WHERE id = {index}")
+                            conn.commit()
                         elif choice_2 == 'n':
-                            print(" *add handling* ")   # incomplete
+                            index=i[0]
+                            cur.execute("DELETE FROM pendingapprovals WHERE id = {index};")
+                            print("Deleted {index}")
+                            conn.commit()
                         else:
                             print("[!] y: yes \t n: no")
                 except psycopg2.Error as e:
                     print("DB error: ",e)
 
+    # Approve and merge all
     elif choice == 3:
         print("[!] MERGE ALL [!] \n Are you sure? \n y/n: ")
         confirmation = str(input())
@@ -119,9 +128,12 @@ def merge_approve():
                         print("DB error: ", e)
         elif confirmation == 'n':
             merge_approve()
+
+    # Exit to previous menu        
     elif choice == 4: 
         return None
     
+    # Trash input default case
     else: 
         merge_approve()
 
