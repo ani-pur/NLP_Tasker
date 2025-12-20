@@ -18,7 +18,7 @@ def dbConnect():
 
 
 
-# run user password through hasher and save name:hash pair in db
+# create profile
 def hasher():     
     
     name = str(input("enter name: "))
@@ -31,6 +31,7 @@ def hasher():
                 cur.execute(
                     "INSERT INTO users VALUES (%s, %s)",(name,hashedPass)
                 )
+                conn.commit()
 
             except psycopg2.Error as e:
                 print("DB error: ",e)
@@ -67,6 +68,64 @@ def delProfile():
             except psycopg2.Error as e:
                 print("DB error: ",e)
 
+# approve pending profiles
+def merge_approve():
+    print("\n Options: \n \t 1: List pending profiles \n \t 2: Approve and merge manually \n \t 3: Approve and merge all \n \t 4. Exit \n")
+    choice = int(input('1/2/3: '))
+    if choice == 1:
+        with dbConnect() as conn:
+            with conn.cursor() as cur:
+                try:
+                    cur.execute("SELECT * FROM PendingApprovals;")
+                    dbResponse = cur.fetchall()
+                    for i in dbResponse:
+                        print('\n',i,'\n')
+                except psycopg2.Error as e:
+                    print("DB error: ",e)
+    
+    #incomplete 
+    elif choice == 2:
+        with dbConnect() as conn:
+            with conn.cursor() as cur:
+                try:
+                    cur.execute("SELECT * FROM PendingApprovals;")
+                    dbResponse = cur.fetchall()
+                    for i in dbResponse:
+                        print('\n',i,'\n')
+                        choice_2 = str(input('Approve? y/n: '))
+                        if choice_2 == 'y':
+                            print(" *add handling* ")   # incomplete
+                        elif choice_2 == 'n':
+                            print(" *add handling* ")   # incomplete
+                        else:
+                            print("[!] y: yes \t n: no")
+                except psycopg2.Error as e:
+                    print("DB error: ",e)
+
+    elif choice == 3:
+        print("[!] MERGE ALL [!] \n Are you sure? \n y/n: ")
+        confirmation = str(input())
+        if confirmation == 'y':
+            with dbConnect() as conn:
+                with conn.cursor() as cur:
+                    try:
+                        cur.execute("SELECT * FROM PendingApprovals;")
+                        print('\n MERGING INTO TABLE [USERS] \n')
+                        cur.execute(" INSERT INTO users (username, pwhash) SELECT username, password_hash FROM PendingApprovals ON CONFLICT (username) DO NOTHING;")
+                        print('\n Merged. \n')
+                        conn.commit()
+
+                    except psycopg2.Error as e:
+                        print("DB error: ", e)
+        elif confirmation == 'n':
+            merge_approve()
+    elif choice == 4: 
+        return None
+    
+    else: 
+        merge_approve()
+
+
 
 def displayProfiles():
     with dbConnect() as conn:
@@ -101,7 +160,7 @@ def verify_login(input_pass):
 # menu for CRUD operations
 def crudOps():
     while True:
-        menuInp = int(input(" 1. create profile \n 2. delete profile \n 3. display profiles \n 4. exit \n"))
+        menuInp = int(input(" 1. create profile \n 2. delete profile \n 3. display profiles \n 4. Approve accounts \n 5. exit \n"))
         if menuInp==1:
             hasher()
 
@@ -111,11 +170,12 @@ def crudOps():
         elif menuInp==3:
             displayProfiles()
         
-        elif menuInp==5:
-            input_pass=str(input("enter password to crosscheck: "))
-            verify_login(input_pass)
         elif menuInp==4:
+            merge_approve()
+        
+        elif menuInp==5:
             break
+        
 
 
 

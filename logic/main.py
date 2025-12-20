@@ -1,9 +1,8 @@
-
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
-from logic import hasher                
-from logic import tasks_db as tasks     
-from logic import apiCall as api        
-import secrets    
+from logic import hasher
+from logic import tasks_db as tasks
+from logic import apiCall as api
+import secrets
 import os
 from datetime import timedelta
 
@@ -16,8 +15,8 @@ def fetch_real_ip():
     cf_ip = request.headers.get('CF-Connecting-IP')        # usually ipv6
     if cf_ip:
         return cf_ip
-    return None 
-        
+    return None
+
 # LOGIN ROUTE
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -30,16 +29,16 @@ def login():
             session['username'] = user
             print("!! USER FOUND: ",user)
             return redirect(url_for('index'))
-        
+
         else:
             error = "Invalid password. Please try again."
-            ipAddr= fetch_real_ip()       
+            ipAddr= fetch_real_ip()
             if ipAddr is not None:
                 print("[!] FAILED LOGIN FROM IP: ",ipAddr)
             else:
                 ipv4=request.remote_addr
                 print("<!> FAILED LOGIN, IPV4: ",ipv4)        # hotfix for testing
-                    
+
     return render_template('dual_login.html', error=error)
 
 
@@ -57,6 +56,8 @@ def signup():
             if ipAddr is None:
                 ipv4=request.remote_addr
                 print(ipv4,'\n')
+            else:
+                print(ipAddr)
             return render_template('signup.html',error='Username and password are required')
 
         if len(username) < 3 or len(username) > 50:
@@ -65,6 +66,8 @@ def signup():
             if ipAddr is None:
                 ipv4=request.remote_addr
                 print(ipv4,'\n')
+            else:
+                print(ipAddr)
 
             return render_template(
                 'signup.html',
@@ -76,6 +79,9 @@ def signup():
             if ipAddr is None:
                 ipv4=request.remote_addr
                 print(ipv4,'\n')
+            else:
+                print(ipAddr)
+
             return render_template(
                 'signup.html',
                 error='Invalid email address'
@@ -83,6 +89,13 @@ def signup():
 
         hashedPass = hasher.hash_password(password)
         success = tasks.add_pending_approval(username, hashedPass, email)
+        ipAddr=fetch_real_ip()
+            if ipAddr is None:
+                ipv4=request.remote_addr
+                print(ipv4,'\n')
+            else:
+                print(ipAddr,'\n')
+
         print('[++] Approval Request received and written to db')
         if not success:
             print('[!] signup dbwrite fail')
@@ -90,11 +103,11 @@ def signup():
 
         return redirect(url_for('login'))
 
-    return render_template('signup.html')    
+    return render_template('signup.html')
 
 
 # Detects if the incoming request is from a mobile device by checking the user-agent header for mobile keywords
-def is_mobile():        
+def is_mobile():
     user_agent = request.headers.get('User-Agent', '').lower()
     mobile_keywords = ['iphone', 'android', 'mobile']
     return any(keyword in user_agent for keyword in mobile_keywords)  #bless python
@@ -115,14 +128,14 @@ def index():
     rootHit = session['username']
     print(f'{rootHit} hit /')
 
-    # API warmup 
+    # API warmup
     api.warmupCall_async()
 
     # Mobile UI
     if is_mobile():
         return render_template('mobile_1.html', username=session['username'])
 
-    # UI switching 
+    # UI switching
     ui_version = session.get('ui_version', 3)  # default = v3
 
     if ui_version == 2:
@@ -131,7 +144,7 @@ def index():
     return render_template('desktop_v3.html', username=session['username'])
 
 
-# UI SWITCHING 
+# UI SWITCHING
 @app.route('/switch/<int:switch_id>', methods=['GET'])
 def switch_ui(switch_id):
     if 'username' not in session:
@@ -154,14 +167,14 @@ def handle_tasks():
         taskList = tasks.get_all_tasks(username, sort_order)
         return jsonify(taskList)
     elif request.method == 'POST':
-        task_data = request.get_json()          # task ingest from desktop.html 
+        task_data = request.get_json()          # task ingest from desktop.html
         descriptionLenCheck = task_data.get('task_description', '')
         if len(descriptionLenCheck) > 200 or len(descriptionLenCheck)<10:
             return jsonify({'error': 'Description too long (max 200 characters)'}), 410
         if not task_data:
             return jsonify({'error': 'Invalid task data'}), 400
-        
-        
+
+
         # api call, response JSON from api call to be passed to tasks module
         apiResponse = api.postRequest(task_data)
 
