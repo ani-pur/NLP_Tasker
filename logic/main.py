@@ -90,11 +90,11 @@ def signup():
         hashedPass = hasher.hash_password(password)
         success = tasks.add_pending_approval(username, hashedPass, email)
         ipAddr=fetch_real_ip()
-            if ipAddr is None:
-                ipv4=request.remote_addr
-                print(ipv4,'\n')
-            else:
-                print(ipAddr,'\n')
+        if ipAddr is None:
+            ipv4=request.remote_addr
+            print(ipv4,'\n')
+        else:
+            print(ipAddr,'\n')
 
         print('[++] Approval Request received and written to db')
         if not success:
