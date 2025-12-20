@@ -8,6 +8,8 @@ It takes freeform, natural language input (like “finish physics lab tomorrow a
 ### Coming soon:  
 - **Google calendar sync and notifications** (~late december)
 
+### Known bugs:
+- Tasks on the same day may be sorted wrong on the dashboard (fix in progress)
  
 ## Deployment and Architecture:
 
