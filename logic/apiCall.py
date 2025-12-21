@@ -46,20 +46,6 @@ Purple: #A96CE5
 
 - Never guess the current time/date, always use the metadata provided."""
 
-# construct user metadata that is passed to api
-def initializeUserTzData():
-    todaysDate = str(date.today())
-    timeRn = datetime.now()
-    strTime = timeRn.strftime(" %I:%M %p ")
-    strDay = timeRn.strftime(" %A ")
-
-    metadata = { "todaysDate (yyyy/mm/dd): ":todaysDate,
-              "current time: ":strTime,
-              "current day: ":strDay }
-    
-    print(str(metadata))
-    return str(metadata)
-
 
 
 def warmupCall():
@@ -85,14 +71,16 @@ def warmupCall_async():
 def postRequest(userInput: dict) -> str:  
     stringInput = str(userInput["task_description"])     
     start_time=time.time()
-    userTzData=initializeUserTzData()
+    userTzData=userInput.get("user_tz_metadata")
+    # DEBUG PRINTS
+    print("[DEBUG] USER_TZ_METADATA: ",str(userTzData))
     response = client.responses.create(
 
             model="gpt-5-mini-2025-08-07",
 
             instructions=dedent(sysPrompt),
 
-            input= stringInput + " \n [USER TIMEZONE METADATA] \n" + userTzData,
+            input= stringInput + " \n [USER TIMEZONE METADATA] \n" + str(userTzData),
 
             text={ "verbosity": "low" },
             
