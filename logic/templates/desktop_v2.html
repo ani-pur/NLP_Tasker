@@ -251,6 +251,28 @@
     </div>
     <script>
 
+        
+        /* ---------- USER TZ METADATA (MATCHES v3) ---------- */
+        function buildUserTzMetadata() {
+            const now = new Date();
+
+            const todaysDate = now.toLocaleDateString('en-CA');
+            const strTime = now.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+            });
+            const strDay = now.toLocaleDateString('en-US', {
+            weekday: 'long'
+            });
+
+            return {
+            "todaysDate (yyyy/mm/dd): ": todaysDate,
+            "current time: ": ` ${strTime} `,
+            "current day: ": ` ${strDay} `
+            };
+        }
+
 
         function setBackground(imageUrl) {
             const body = document.body;
@@ -333,36 +355,35 @@
             }
         }
 
-        document.getElementById('taskForm').addEventListener('submit', async function(e) {
+        document.getElementById('taskForm').addEventListener('submit', async e => {
             e.preventDefault();
 
             const description = document.getElementById('task_description').value;
 
-            if (description.length > 200) {
-                alert('Description too long (max 200 characters)')
+            if (description.length < 10 || description.length > 200) {
+                alert('Task description must be 10–200 characters');
                 return;
             }
 
             const taskData = {
-
                 task_description: description,
-
+                user_tz_metadata: buildUserTzMetadata()
             };
+
             const response = await fetch('/tasks', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(taskData)
             });
+
             if (response.ok) {
                 document.getElementById('taskForm').reset();
-            
                 loadTasks();
             } else {
                 alert('Failed to add task');
             }
         });
+
 
         loadTasks();
     </script>
