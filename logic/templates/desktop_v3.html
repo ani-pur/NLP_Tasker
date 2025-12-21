@@ -29,7 +29,6 @@
       color: var(--text);
     }
 
-    /* Top bar */
     header {
       height: 64px;
       padding: 0 24px;
@@ -57,7 +56,6 @@
       text-decoration: none;
     }
 
-    /* Main layout */
     main {
       display: grid;
       grid-template-columns: 1fr 360px;
@@ -76,7 +74,6 @@
       font-weight: 500;
     }
 
-    /* Task list */
     ul#taskList {
       list-style: none;
       padding: 0;
@@ -145,7 +142,6 @@
       color: #fff;
     }
 
-    /* Form */
     textarea {
       width: 100%;
       min-height: 120px;
@@ -176,20 +172,16 @@
       font-size: 1rem;
       transition: background 0.15s ease, transform 0.05s ease;
     }
-    
-    /* hover */
+
     button[type="submit"]:hover {
       background: #3f7cff;
     }
-    
-    /* click / active */
+
     button[type="submit"]:active {
       background: #356de0;
       transform: translateY(1px);
     }
 
-
-    /* Responsive fallback */
     @media (max-width: 900px) {
       main {
         grid-template-columns: 1fr;
@@ -203,13 +195,7 @@
     <div class="brand">Tasker 2.5!</div>
     <div class="user">
       <span>{{ username }}</span>
-      
       <a href="/switch/2">OldUI</a>
-
-      <a href="https://github.com/ani-pur/NLP_Tasker/blob/main/README.md" target="_blank" rel="noopener">
-        README
-      </a>
-
       <a href="{{ url_for('logout') }}">Logout</a>
     </div>
   </header>
@@ -234,6 +220,27 @@
   </main>
 
   <script>
+    /* ---------- USER TZ METADATA ---------- */
+    function buildUserTzMetadata() {
+      const now = new Date();
+
+      const todaysDate = now.toLocaleDateString('en-CA');
+      const strTime = now.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+      const strDay = now.toLocaleDateString('en-US', {
+        weekday: 'long'
+      });
+
+      return {
+        "todaysDate (yyyy/mm/dd): ": todaysDate,
+        "current time: ": ` ${strTime} `,
+        "current day: ": ` ${strDay} `
+      };
+    }
+
     async function loadTasks() {
       const response = await fetch('/tasks');
       const tasks = await response.json();
@@ -290,7 +297,10 @@
       const response = await fetch('/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ task_description: description })
+        body: JSON.stringify({
+          task_description: description,
+          user_tz_metadata: buildUserTzMetadata()
+        })
       });
 
       if (response.ok) {

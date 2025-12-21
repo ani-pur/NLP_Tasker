@@ -274,6 +274,29 @@
   </main>
   <script>
 
+    function buildUserTzMetadata() {
+    const now = new Date();
+
+    const todaysDate = now.toLocaleDateString('en-CA'); // YYYY-MM-DD
+
+    const strTime = now.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+
+    const strDay = now.toLocaleDateString('en-US', {
+      weekday: 'long'
+    });
+
+    return {
+      "todaysDate (yyyy/mm/dd): ": todaysDate,
+      "current time: ": ` ${strTime} `,
+      "current day: ": ` ${strDay} `
+    };
+  }
+
+
     async function loadTasks() {
         const response = await fetch('/tasks');
         const tasks = await response.json();
@@ -346,6 +369,7 @@
         const taskData = {
 
             task_description: description,
+            user_tz_metadata: buildUserTzMetadata()
 
         };
         const response = await fetch('/tasks', {
