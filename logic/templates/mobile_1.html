@@ -359,6 +359,12 @@
         }
     }
 
+    document.getElementById('reloadTasks').addEventListener('click', function (e) {
+        e.preventDefault();
+        loadTasks();
+      });
+
+    
     document.getElementById('taskForm').addEventListener('submit', async function(e) {
         e.preventDefault();
 
