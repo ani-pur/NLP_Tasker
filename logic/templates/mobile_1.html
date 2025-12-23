@@ -259,7 +259,10 @@
   </header>
   <main>
     <section class="section">
-  <h2>Your Tasks</h2>
+  <h2>
+    Your Tasks
+    <a href="#" id="reloadTasks">Reload</a>
+  </h2>
   <ul id="taskList"></ul>
     </section>
     <section class="section">
@@ -356,6 +359,12 @@
         }
     }
 
+    document.getElementById('reloadTasks').addEventListener('click', function (e) {
+        e.preventDefault();
+        loadTasks();
+      });
+
+    
     document.getElementById('taskForm').addEventListener('submit', async function(e) {
         e.preventDefault();
 

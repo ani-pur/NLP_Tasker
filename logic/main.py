@@ -9,7 +9,7 @@ from datetime import timedelta
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_SECRET_KEY')
-app.permanent_session_lifetime = timedelta(hours=24)
+app.permanent_session_lifetime = timedelta(weeks=1)
 
 def fetch_real_ip():
     cf_ip = request.headers.get('CF-Connecting-IP')        # usually ipv6
