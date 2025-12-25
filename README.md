@@ -5,7 +5,7 @@ Author: Anirudh Purohit
 Tasker takes freeform, natural language input (like “finish physics lab tomorrow at 5”) and uses an LLM to convert it into structured, categorized task objects. 
 
 ### Coming soon:  
-- **Google calendar sync and notifications** (~late december)
+- **Google calendar sync and notifications** (~ late January)
 
 ### Known bugs:
 - Tasks on the same day may be sorted wrong on the dashboard (fix in progress)
