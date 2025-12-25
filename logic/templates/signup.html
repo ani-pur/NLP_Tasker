@@ -190,12 +190,19 @@
     const form = document.querySelector("form");
     const toast = document.getElementById("toast");
 
-    form.addEventListener("submit", () => {
-      toast.classList.add("show");
-
-      setTimeout(() => {
-        toast.classList.remove("show");
-      }, 4000);
+    form.addEventListener("submit",async (e) => {
+      e.preventDefault();
+      const res = await fetch("/signup", {
+        method: "POST", 
+        body: new FormData(form)
+      });
+      if (res.ok) {
+        toast.classList.add("show");
+      
+        setTimeout(() => {
+          toast.classList.remove("show");
+        }, 4000);
+      }
     });
   </script>
   
