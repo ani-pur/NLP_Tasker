@@ -101,7 +101,7 @@ def signup():
             print('[!] signup dbwrite fail')
             return render_template('signup.html',error='Username already exists or request failed')
 
-        return redirect(url_for('login'))
+        #return redirect(url_for('login'))
 
     return render_template('signup.html')
 
