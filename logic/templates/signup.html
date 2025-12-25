@@ -113,6 +113,30 @@
     .info-wrapper:hover .info-tooltip {
       opacity: 1;
     }
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e1e1e;
+      color: #eaeaea;
+      padding: 12px 18px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.45);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+      z-index: 1000;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(-6px);
+    }
+    
+
+    
 
   </style>
 </head>
@@ -158,5 +182,29 @@
     <a href="{{ url_for('login') }}" class="logout-link">Back to Login</a>
 
   </div>
+    <div id="toast" class="toast">
+    Request submitted. You’ll be notified by email when access is granted or denied.
+  </div>
+
+  <script>
+    const form = document.querySelector("form");
+    const toast = document.getElementById("toast");
+
+    form.addEventListener("submit",async (e) => {
+      e.preventDefault();
+      const res = await fetch("/signup", {
+        method: "POST", 
+        body: new FormData(form)
+      });
+      if (res.ok) {
+        toast.classList.add("show");
+      
+        setTimeout(() => {
+          toast.classList.remove("show");
+        }, 15000);
+      }
+    });
+  </script>
+  
 </body>
 </html>
