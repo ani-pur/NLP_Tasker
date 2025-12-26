@@ -4,12 +4,19 @@ from logic import tasks_db as tasks
 from logic import apiCall as api
 import secrets
 import os
-from datetime import timedelta
+from datetime import timedelta,datetime
 
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_SECRET_KEY')
 app.permanent_session_lifetime = timedelta(weeks=1)
+
+
+def currentTime():
+    # returns current local time formatted for logs as: [HH:MM:SS AM/PM]
+    return f"[{datetime.now().strftime('%I:%M:%S %p')}]"
+
+    
 
 def fetch_real_ip():
     cf_ip = request.headers.get('CF-Connecting-IP')        # usually ipv6
@@ -27,17 +34,17 @@ def login():
         if user:
             session.permanent = True
             session['username'] = user
-            print("!! USER FOUND: ",user)
+            print(currentTime(),"[!] USER LOGGED IN: ",user)
             return redirect(url_for('index'))
 
         else:
             error = "Invalid password. Please try again."
             ipAddr= fetch_real_ip()
             if ipAddr is not None:
-                print("[!] FAILED LOGIN FROM IP: ",ipAddr)
+                print(currentTime(),"[!] FAILED LOGIN FROM IP: ",ipAddr)
             else:
                 ipv4=request.remote_addr
-                print("<!> FAILED LOGIN, IPV4: ",ipv4)        # hotfix for testing
+                print(currentTime(),"<!> FAILED LOGIN, IPV4: ",ipv4)        # hotfix for testing
 
     return render_template('dual_login.html', error=error)
 
@@ -51,55 +58,33 @@ def signup():
         email = request.form.get('email', '').strip()
 
         if not username or not password:
-            print('[!] ACCREQ - username fault')
-            ipAddr=fetch_real_ip()
-            if ipAddr is None:
-                ipv4=request.remote_addr
-                print(ipv4,'\n')
-            else:
-                print(ipAddr)
             return render_template('signup.html',error='Username and password are required')
 
         if len(username) < 3 or len(username) > 50:
-            print('[!] ACCREQ - fault')
-            ipAddr=fetch_real_ip()
-            if ipAddr is None:
-                ipv4=request.remote_addr
-                print(ipv4,'\n')
-            else:
-                print(ipAddr)
-
             return render_template(
                 'signup.html',
                 error='Username must be between 3 and 50 characters')
 
         if email and '@' not in email:
-            print('[!] ACCREQ - username fault')
-            ipAddr=fetch_real_ip()
-            if ipAddr is None:
-                ipv4=request.remote_addr
-                print(ipv4,'\n')
-            else:
-                print(ipAddr)
-
             return render_template(
                 'signup.html',
-                error='Invalid email address'
-            )
+                error='Invalid email address')
 
         hashedPass = hasher.hash_password(password)
         success = tasks.add_pending_approval(username, hashedPass, email)
         ipAddr=fetch_real_ip()
         if ipAddr is None:
             ipv4=request.remote_addr
-            print(ipv4,'\n')
+            print(ipv4,end=" ")
         else:
-            print(ipAddr,'\n')
+            print(ipAddr,end=" ")
 
-        print('[++] Approval Request received and written to db')
+        
         if not success:
             print('[!] signup dbwrite fail')
             return render_template('signup.html',error='Username already exists or request failed')
+        
+        print(currentTime(),'[++] Approval Request received and written to db')
 
         return jsonify({"ok": True}), 200
 
@@ -120,13 +105,13 @@ def logout():
 
 @app.route('/')
 def index():
-    print(f"Handling request in PID={os.getpid()}")
+    print(currentTime(),f"Handling request in PID={os.getpid()}")
 
     if 'username' not in session:
         return redirect(url_for('login'))
 
     rootHit = session['username']
-    print(f'{rootHit} hit /')
+    print(currentTime(),f'{rootHit} hit /')
 
     # API warmup
     api.warmupCall_async()
