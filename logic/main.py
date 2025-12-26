@@ -84,7 +84,7 @@ def signup():
             print('[!] signup dbwrite fail')
             return render_template('signup.html',error='Username already exists or request failed')
         
-        print('[++] Approval Request received and written to db')
+        print(currentTime(),'[++] Approval Request received and written to db')
 
         return jsonify({"ok": True}), 200
 
@@ -105,7 +105,7 @@ def logout():
 
 @app.route('/')
 def index():
-    print(f"Handling request in PID={os.getpid()}")
+    print(currentTime(),f"Handling request in PID={os.getpid()}")
 
     if 'username' not in session:
         return redirect(url_for('login'))
