@@ -164,7 +164,7 @@ def verify_login(input_pass):
                     #print(dbResponse)
                     for i in dbResponse:
                         if wz.check_password_hash(i[1],input_pass):
-                            print("MATCH FOUND: ",i[0])
+                            #print("MATCH FOUND: ",i[0])
                             return str(i[0])
                         
 
