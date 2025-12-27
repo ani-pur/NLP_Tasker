@@ -61,7 +61,7 @@ def warmupCall():
     
     warmup_endTime=time.time()
     warmupClock = warmup_endTime - warmup_startTime
-    print('\t api WARMUP: ',warmupClock)
+    print('\t      api WARMUP: ',warmupClock)
 
 def warmupCall_async():
     t = threading.Thread(target=warmupCall, daemon=True)
@@ -73,7 +73,7 @@ def postRequest(userInput: dict) -> str:
     start_time=time.time()
     userTzData=userInput.get("user_tz_metadata")
     # DEBUG PRINTS
-    print("\n [DEBUG] USER_TZ_METADATA: ",str(userTzData),'\n')
+    # print("\n [DEBUG] USER_TZ_METADATA: ",str(userTzData),'\n')
     response = client.responses.create(
 
             model="gpt-5-mini-2025-08-07",
@@ -90,7 +90,7 @@ def postRequest(userInput: dict) -> str:
 
     end_time=time.time()
     internalClock = end_time-start_time
-    print('api RESPONSE: ',internalClock)
+    print('\t     api RESPONSE: ',internalClock)
     # print('api RESPONSE JSON: ',response.output_text)
 
     return response.output_text
