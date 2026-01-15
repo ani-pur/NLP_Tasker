@@ -16,7 +16,7 @@ client = OpenAI(api_key=api_key)
 sysPrompt="""You are an information extraction engine.
 
 Instructions:
-- Extract ONLY these fields from the user input as a JSON object:
+- Extract ONLY these fields from the user input as a pretty JSON object:
 
     1. task_name [required]: Paraphrase a short task title from user input.
     2. task_time [optional]: 12-hour format (e.g., "4:32 PM"). If input uses relative phrases (e.g., "in 2 hours"), calculate the specific time using the provided user metadata. "Midnight" ALWAYS resolves to 11:59pm. Else, null.
