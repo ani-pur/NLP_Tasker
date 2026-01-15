@@ -110,7 +110,8 @@ if notify_admin:
         HTML_ADMIN_NOTIFY
             .replace("${username}", recipientUsername)
             .replace("${email}", recipientAddress),
-        subtype="html"
+        subtype="html",
+        cte="base64",
     )
 else:
     msg["Subject"] = "Tasker access granted"
