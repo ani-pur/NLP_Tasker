@@ -5,6 +5,8 @@ from logic import apiCall as api
 import secrets
 import os
 from datetime import timedelta,datetime
+import subprocess
+import sys
 
 
 app = Flask(__name__)
@@ -85,6 +87,12 @@ def signup():
             return render_template('signup.html',error='Username already exists or request failed')
         
         print(currentTime(),'[++] Approval Request received and written to db')
+        
+        # run notifier script, couldn't be asked to integrate as function; will do someday
+        subprocess.run(
+            [sys.executable, "emailHandler.py", "--notifyAdmin", username, email],
+            check=True
+        )
 
         return jsonify({"ok": True}), 200
 
