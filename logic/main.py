@@ -89,10 +89,19 @@ def signup():
         print(currentTime(),'[++] Approval Request received and written to db')
         
         # run notifier script, couldn't be asked to integrate as function; will do someday
-        subprocess.run(
-            [sys.executable, "emailHandler.py", "--notifyAdmin", username, email],
-            check=True
-        )
+        try:
+            r = subprocess.run(
+                [sys.executable, "emailHandler.py", "--notifyAdmin", username, email],
+                check=True,
+                capture_output=True,
+                text=True
+            )
+            print("email stdout:", r.stdout)
+            print("email stderr:", r.stderr)
+        except subprocess.CalledProcessError as e:
+            print("email failed with", e.returncode)
+            print("stdout:\n", e.stdout)
+            print("stderr:\n", e.stderr)
 
         return jsonify({"ok": True}), 200
 
