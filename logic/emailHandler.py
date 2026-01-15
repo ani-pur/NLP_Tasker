@@ -108,7 +108,7 @@ msg["X-Tasker-Notification-ID"] = notif_uuid
 
 if notify_admin:
     # (3) Subject unique ONLY by username
-    msg["Subject"] = f"Tasker: account request received -- {recipientUsername}"
+    msg["Subject"] = f"Tasker: account request received - {recipientUsername}"
     msg["From"] = FROM_ADDR
     msg["To"] = ADMIN_ADDR
 
