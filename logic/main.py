@@ -97,7 +97,6 @@ def signup():
                 text=True
             )
             print("email stdout:", r.stdout)
-            print("email stderr:", r.stderr)
         except subprocess.CalledProcessError as e:
             print("email failed with", e.returncode)
             print("stdout:\n", e.stdout)
