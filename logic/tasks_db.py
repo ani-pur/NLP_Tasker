@@ -19,34 +19,38 @@ def parse_api_response(jsonInput: str) -> dict:
     return parsedDict
 
 # add task to db
-def add_task(username: str, jsonInput: str, task_data: dict):		# added task_data parameter for logging
-        sendToDb = parse_api_response(jsonInput)
-        task_name = sendToDb.get('task_name')
-        task_time = sendToDb.get('task_time')
-        task_description = sendToDb.get('task_description')
-        due_date = sendToDb.get('due_date')
-        priority = sendToDb.get('priority')
-        color = sendToDb.get('color')
-        userInput = task_data.get('task_description')		#freeform user input
-        with dbConnect() as conn:
-            with conn.cursor() as cur:
-                try: 
-                    cur.execute(
-                         "INSERT INTO tasks (username, " \
-                         "task_name, " \
-                         "task_time, " \
-                         "task_description, " \
-                         "due_date, " \
-                         "priority, " \
-                         "color) VALUES (%s, %s, %s, %s, %s, %s, %s)",
-                         (username, task_name, task_time, task_description, due_date, priority, color)
-                    )
-                    cur.execute(
-			"INSERT INTO sftdata (username, user_input, api_response) VALUES (%s, %s, %s)",(username, userInput, jsonInput)
-		    )
-                    conn.commit()
-                except psycopg2.Error as e:
-                    print("DB error: ",e)
+def add_task(username: str, jsonInput: str, task_data: dict):# added task_data and user_tz_metadata parameter for logging
+    sendToDb = parse_api_response(jsonInput)
+    task_name = sendToDb.get('task_name')
+    task_time = sendToDb.get('task_time')
+    task_description = sendToDb.get('task_description')
+    due_date = sendToDb.get('due_date')
+    priority = sendToDb.get('priority')
+    color = sendToDb.get('color')
+    userInput = task_data.get('task_description')
+    user_tz_metadata = str(task_data.get('user_tz_metadata', ''))	# user task submission timestamp
+    # debug
+    print("[DEBUG] tasks_db tz status: ",user_tz_metadata)
+    
+    with dbConnect() as conn:
+        with conn.cursor() as cur:
+            try: 
+                cur.execute(
+                     "INSERT INTO tasks (username, " \
+                     "task_name, " \
+                     "task_time, " \
+                     "task_description, " \
+                     "due_date, " \
+                     "priority, " \
+                     "color) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                     (username, task_name, task_time, task_description, due_date, priority, color)
+                )
+                cur.execute(
+        "INSERT INTO sftdata (username, user_input, api_response, user_tz_metadata) VALUES (%s, %s, %s, %s)",(username, userInput, jsonInput, user_tz_metadata)
+        )
+                conn.commit()
+            except psycopg2.Error as e:
+                print("DB error: ",e)
 
 
 # fetch tasks from db
