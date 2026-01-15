@@ -19,7 +19,7 @@ def parse_api_response(jsonInput: str) -> dict:
     return parsedDict
 
 # add task to db
-def add_task(username: str, jsonInput: str, task_data: dict):		# added task_data parameter for logging
+def add_task(username: str, jsonInput: str, task_data: dict):		# added task_data and user_tz_metadata parameter for logging
         sendToDb = parse_api_response(jsonInput)
         task_name = sendToDb.get('task_name')
         task_time = sendToDb.get('task_time')
@@ -28,6 +28,7 @@ def add_task(username: str, jsonInput: str, task_data: dict):		# added task_data
         priority = sendToDb.get('priority')
         color = sendToDb.get('color')
         userInput = task_data.get('task_description')		#freeform user input
+		user_tz_metadata = task_data.get('user_tz_metadata', '')	# user task submission timestamp  
         with dbConnect() as conn:
             with conn.cursor() as cur:
                 try: 
@@ -42,7 +43,7 @@ def add_task(username: str, jsonInput: str, task_data: dict):		# added task_data
                          (username, task_name, task_time, task_description, due_date, priority, color)
                     )
                     cur.execute(
-			"INSERT INTO sftdata (username, user_input, api_response) VALUES (%s, %s, %s)",(username, userInput, jsonInput)
+			"INSERT INTO sftdata (username, user_input, api_response, user_tz_metadata) VALUES (%s, %s, %s, %s)",(username, userInput, jsonInput, user_tz_metadata)
 		    )
                     conn.commit()
                 except psycopg2.Error as e:
