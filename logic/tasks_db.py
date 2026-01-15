@@ -29,6 +29,9 @@ def add_task(username: str, jsonInput: str, task_data: dict):# added task_data a
     color = sendToDb.get('color')
     userInput = task_data.get('task_description')
     user_tz_metadata = str(task_data.get('user_tz_metadata', ''))	# user task submission timestamp
+    # debug
+    print("[DEBUG] tasks_db tz status: ",user_tz_metadata)
+    
     with dbConnect() as conn:
         with conn.cursor() as cur:
             try: 
