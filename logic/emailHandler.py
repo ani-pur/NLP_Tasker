@@ -78,7 +78,7 @@ recipientAddress = args[1]
 
 
 
-SMTP_HOST = os.getenv("smtp.gmail.com")
+SMTP_HOST = "smtp.gmail.com"
 SMTP_PORT = "587"
 
 SMTP_USER = os.getenv("TASKER_SMTP_USER")         
