@@ -91,7 +91,7 @@ def signup():
         # run notifier script, couldn't be asked to integrate as function; will do someday
         try:
             r = subprocess.run(
-                [sys.executable, "emailHandler.py", "--notifyAdmin", username, email],
+                [sys.executable, "logic/emailHandler.py", "--notifyAdmin", username, email],
                 check=True,
                 capture_output=True,
                 text=True
