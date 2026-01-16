@@ -96,7 +96,7 @@ if not SMTP_USER or not SMTP_PASS:
 
 # ---- Thread breakers (1,4) ----
 notif_uuid = uuid.uuid4().hex
-
+short_id = notif_uuid[:4].upper()
 # build message
 msg = EmailMessage()
 
@@ -108,7 +108,7 @@ msg["X-Tasker-Notification-ID"] = notif_uuid
 
 if notify_admin:
     # (3) Subject unique ONLY by username
-    msg["Subject"] = f"Tasker: account request received - {recipientUsername}"
+    msg["Subject"] = f"Tasker: account request received - {recipientUsername} [{short_id}]"
     msg["From"] = FROM_ADDR
     msg["To"] = ADMIN_ADDR
 
@@ -128,7 +128,7 @@ if notify_admin:
 
 else:
     # (3) Subject unique ONLY by username
-    msg["Subject"] = f"Tasker access granted — {recipientUsername}"
+    msg["Subject"] = f"Tasker access granted — {recipientUsername} [{short_id}]"
     msg["From"] = FROM_ADDR
     msg["To"] = recipientAddress
 

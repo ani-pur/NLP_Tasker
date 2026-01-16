@@ -7,7 +7,7 @@ import os
 from datetime import timedelta,datetime
 import subprocess
 import sys
-
+import json
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_SECRET_KEY')
@@ -25,6 +25,22 @@ def fetch_real_ip():
     if cf_ip:
         return cf_ip
     return None
+
+def discord_ping(username, email):
+    subprocess.Popen(
+        [
+            "curl",
+            "-s",
+            "-H", "Content-Type: application/json",
+            "-d", json.dumps({
+                "content": f"[!] Account request: [{username}] [{email}]"
+            }),
+            os.environ.get("DISCORD_WEBHOOK_URL"),
+        ],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    print("\t webhook triggered")
 
 # LOGIN ROUTE
 @app.route('/login', methods=['GET', 'POST'])
@@ -87,14 +103,12 @@ def signup():
             return render_template('signup.html',error='Username already exists or request failed')
         
         print(currentTime(),'[++] Approval Request received and written to db')
-        
+        discord_ping(username, email)        # trigger webhook
         # run notifier script, couldn't be asked to integrate as function; will do someday
         try:
-            r = subprocess.run(
+            r = subprocess.Popen(
                 [sys.executable, "logic/emailHandler.py", "--notifyAdmin", username, email],
-                check=True,
-                capture_output=True,
-                text=True
+                
             )
             print("email stdout:", r.stdout)
         except subprocess.CalledProcessError as e:
