@@ -108,9 +108,7 @@ def signup():
         try:
             r = subprocess.Popen(
                 [sys.executable, "logic/emailHandler.py", "--notifyAdmin", username, email],
-                check=True,
-                capture_output=True,
-                text=True
+                
             )
             print("email stdout:", r.stdout)
         except subprocess.CalledProcessError as e:
