@@ -60,7 +60,7 @@ def get_all_tasks(username, sort_order):
             try: 
                 if sort_order=='default':
                     cur.execute(
-                        "SELECT * FROM tasks WHERE username = %s ORDER BY due_date ASC, task_time DESC;",(username,)
+                        "SELECT * FROM tasks WHERE username = %s ORDER BY due_date ASC, task_time ASC;",(username,)
                     )
                     rows = cur.fetchall()
                     return rows
