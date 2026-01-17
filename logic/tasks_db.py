@@ -63,17 +63,43 @@ def get_all_tasks(username, sort_order):
             try: 
                 if sort_order=='default':
                     cur.execute(
-                        "SELECT * FROM tasks_testing WHERE username = %s ORDER BY due_date ASC, task_time ASC NULLS LAST;",(username,)
+                        "SELECT "
+                        "id, "
+                        "username, "
+                        "task_name, "
+                        "to_char(task_time, 'HH12:MI AM') AS task_time, "
+                        "task_description, "
+                        "due_date, "
+                        "priority, "
+                        "color "
+                        "FROM tasks_testing "
+                        "WHERE username = %s "
+                        "ORDER BY due_date ASC, task_time ASC NULLS LAST;",
+                        (username,)
                     )
                     rows = cur.fetchall()
                     return rows
+
                 
                 elif sort_order=='custom':     
                     cur.execute(
-                            "SELECT * FROM tasks_testing WHERE username = %s ORDER BY due_date ASC, task_time ASC NULLS LAST;",(username,)
-                        )
+                        "SELECT "
+                        "id, "
+                        "username, "
+                        "task_name, "
+                        "to_char(task_time, 'HH12:MI AM') AS task_time, "
+                        "task_description, "
+                        "due_date, "
+                        "priority, "
+                        "color "
+                        "FROM tasks_testing "
+                        "WHERE username = %s "
+                        "ORDER BY due_date ASC, task_time ASC NULLS LAST;",
+                        (username,)
+                    )
                     rows = cur.fetchall()
                     return rows
+
             except psycopg2.Error as e:
                 print("DB error: ",e)
 
