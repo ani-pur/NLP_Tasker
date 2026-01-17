@@ -36,15 +36,18 @@ def add_task(username: str, jsonInput: str, task_data: dict):# added task_data a
         with conn.cursor() as cur:
             try: 
                 cur.execute(
-                     "INSERT INTO tasks (username, " \
-                     "task_name, " \
-                     "task_time, " \
-                     "task_description, " \
-                     "due_date, " \
-                     "priority, " \
-                     "color) VALUES (%s, %s, %s, %s, %s, %s, %s)",
-                     (username, task_name, task_time, task_description, due_date, priority, color)
+                    "INSERT INTO tasks (username, "
+                    "task_name, "
+                    "task_time, "
+                    "task_description, "
+                    "due_date, "
+                    "priority, "
+                    "color) VALUES (%s, %s, "
+                    "to_timestamp(NULLIF(btrim(%s), ''), 'HH12:MI AM')::time, "
+                    "%s, %s, %s, %s)",
+                    (username, task_name, task_time, task_description, due_date, priority, color)
                 )
+
                 cur.execute(
         "INSERT INTO sftdata (username, user_input, api_response, user_tz_metadata) VALUES (%s, %s, %s, %s)",(username, userInput, jsonInput, user_tz_metadata)
         )
@@ -60,17 +63,43 @@ def get_all_tasks(username, sort_order):
             try: 
                 if sort_order=='default':
                     cur.execute(
-                        "SELECT * FROM tasks WHERE username = %s ORDER BY due_date ASC, task_time DESC;",(username,)
+                        "SELECT "
+                        "id, "
+                        "username, "
+                        "task_name, "
+                        "to_char(task_time, 'HH12:MI AM') AS task_time, "
+                        "task_description, "
+                        "due_date, "
+                        "priority, "
+                        "color "
+                        "FROM tasks "
+                        "WHERE username = %s "
+                        "ORDER BY due_date ASC, tasks.task_time ASC NULLS LAST;",
+                        (username,)
                     )
                     rows = cur.fetchall()
                     return rows
+
                 
                 elif sort_order=='custom':     
                     cur.execute(
-                            "SELECT * FROM tasks WHERE username = %s ORDER BY due_date ASC, task_time DESC;",(username,)
-                        )
+                        "SELECT "
+                        "id, "
+                        "username, "
+                        "task_name, "
+                        "to_char(task_time, 'HH12:MI AM') AS task_time, "
+                        "task_description, "
+                        "due_date, "
+                        "priority, "
+                        "color "
+                        "FROM tasks "
+                        "WHERE username = %s "
+                        "ORDER BY due_date ASC, tasks.task_time ASC NULLS LAST;",
+                        (username,)
+                    )
                     rows = cur.fetchall()
                     return rows
+
             except psycopg2.Error as e:
                 print("DB error: ",e)
 

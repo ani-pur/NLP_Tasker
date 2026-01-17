@@ -8,7 +8,7 @@ Tasker takes freeform, natural language input (like “finish physics lab tomorr
 - **Google calendar sync and notifications** (~ late January)
 
 ### Known bugs:
-- Tasks on the same day may be sorted wrong on the dashboard (fix in progress)
+- ~~Tasks on the same day may be sorted wrong on the dashboard~~ fixed january 17th
  
 ## Deployment and Architecture:
 
