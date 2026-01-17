@@ -2,26 +2,38 @@ Author: Anirudh Purohit
 
 ## What is Tasker?
 
-Tasker takes freeform, natural language input (like “finish physics lab tomorrow at 5”) and uses an LLM to convert it into structured, categorized task objects. 
+Tasker is built for people who want to write tasks normally. No forms, no strict formatting. Just type what you need to do and Tasker will figure out the rest.
+
+Tasks are automatically sorted, support colors, and stay in sync across devices. Tasker offers multiple desktop layouts and keeps you logged in securely for convenience. A mobile webapp is coming soon. Until then, you can bookmark the site and add it to your phone's home screen for quick access.
+
+Signup is simple, usage is streamlined, data is safe. 
 
 ### Coming soon:  
-- **Google calendar sync and notifications** (~ late January)
+- **Google calendar sync and notifications**
+- **PWA Manifest (mobile webapp)**
 
 ### Known bugs:
 - ~~Tasks on the same day may be sorted wrong on the dashboard~~ fixed january 17th
  
 ## Deployment and Architecture:
 
-- Containerized with Docker
 - Reverse proxied through Cloudflare using [Cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)
 
-The application is fully stateless and runs in its own container, with all persistent data stored in a separate PostgreSQL container. This separation makes deployments safer, prevents data loss during rebuilds, and keeps environments reproducible. Deployment is secured through a Cloudflare Tunnel, and a lightweight CI/CD pipeline automates building and releasing updates. 
+Tasker is deployed as a stateless, containerized application with a separate PostgreSQL container for persistent storage.
+
+Production traffic is routed through a Cloudflare reverse proxy using Cloudflared, allowing global access without directly exposing the host server.
+
+The application runs on personal infrastructure hosted on a repurposed machine and includes isolated testing environments with restricted access. Deployment and management are handled through custom scripts and a lightweight CI/CD pipeline, with further automation planned using GitHub Actions.
 
 ## Screenshots
 
 ### v2.5: 
-![image](https://github.com/user-attachments/assets/66556575-bee7-4b09-98e0-b67db0a33c8a)
-![image](https://github.com/user-attachments/assets/55734e9b-5c38-485b-a88c-95a4fb73b7f9)
+
+<img width="1201" height="641" alt="image" src="https://github.com/user-attachments/assets/e2404639-82d1-474b-9dec-298cf2283c07" />
+
+![image](https://github.com/user-attachments/assets/b00314c3-bf7d-4219-b73b-92e99021844c)
+
+
 
 ### v2:
 ![image](https://github.com/user-attachments/assets/5c4302be-927e-46ac-89e5-09f6022c153f)
