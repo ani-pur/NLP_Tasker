@@ -36,7 +36,7 @@ def add_task(username: str, jsonInput: str, task_data: dict):# added task_data a
         with conn.cursor() as cur:
             try: 
                 cur.execute(
-                    "INSERT INTO tasks_testing (username, "
+                    "INSERT INTO tasks (username, "
                     "task_name, "
                     "task_time, "
                     "task_description, "
@@ -72,9 +72,9 @@ def get_all_tasks(username, sort_order):
                         "due_date, "
                         "priority, "
                         "color "
-                        "FROM tasks_testing "
+                        "FROM tasks "
                         "WHERE username = %s "
-                        "ORDER BY due_date ASC, tasks_testing.task_time ASC NULLS LAST;",
+                        "ORDER BY due_date ASC, tasks.task_time ASC NULLS LAST;",
                         (username,)
                     )
                     rows = cur.fetchall()
@@ -92,9 +92,9 @@ def get_all_tasks(username, sort_order):
                         "due_date, "
                         "priority, "
                         "color "
-                        "FROM tasks_testing "
+                        "FROM tasks "
                         "WHERE username = %s "
-                        "ORDER BY due_date ASC, tasks_testing.task_time ASC NULLS LAST;",
+                        "ORDER BY due_date ASC, tasks.task_time ASC NULLS LAST;",
                         (username,)
                     )
                     rows = cur.fetchall()
@@ -110,7 +110,7 @@ def delete_task(username, task_id):
         with conn.cursor() as cur:
             try:
                 cur.execute(
-                    "DELETE FROM tasks_testing WHERE username = %s AND id = %s ",(username,task_id)
+                    "DELETE FROM tasks WHERE username = %s AND id = %s ",(username,task_id)
                 )
                 conn.commit()
                 return True
