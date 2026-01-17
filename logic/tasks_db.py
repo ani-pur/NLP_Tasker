@@ -74,7 +74,7 @@ def get_all_tasks(username, sort_order):
                         "color "
                         "FROM tasks_testing "
                         "WHERE username = %s "
-                        "ORDER BY due_date ASC, task_time ASC NULLS LAST;",
+                        "ORDER BY due_date ASC, tasks_testing.task_time ASC NULLS LAST;",
                         (username,)
                     )
                     rows = cur.fetchall()
@@ -94,7 +94,7 @@ def get_all_tasks(username, sort_order):
                         "color "
                         "FROM tasks_testing "
                         "WHERE username = %s "
-                        "ORDER BY due_date ASC, task_time ASC NULLS LAST;",
+                        "ORDER BY due_date ASC, tasks_testing.task_time ASC NULLS LAST;",
                         (username,)
                     )
                     rows = cur.fetchall()
