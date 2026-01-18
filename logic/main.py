@@ -96,7 +96,6 @@ def signup():
 
         
         if not success:
-            print('[!] signup dbwrite fail')
             return jsonify({
                 "ok": False,
                 "error": "Username already exists or request failed"
