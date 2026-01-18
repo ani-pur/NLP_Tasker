@@ -4,13 +4,13 @@ Author: Anirudh Purohit
 
 Tasker is built for people who want to write tasks normally. No forms, no strict formatting. Just type what you need to do and Tasker will figure out the rest.
 
-Tasks are automatically sorted, support colors, and stay in sync across devices. Tasker offers multiple desktop layouts and keeps you logged in securely for convenience. A mobile webapp is coming soon. Until then, you can bookmark the site and add it to your phone's home screen for quick access.
+Tasks are automatically sorted, support colors, and stay in sync across devices. Tasker offers multiple desktop UI's and a mobile webapp is coming soon. Until then, you can bookmark the site and add it to your phone's home screen for quick access.
 
-Signup is simple, usage is streamlined, data is safe. 
+Signup is simple, usage is streamlined, data is safe, privacy is upheld. 
 
 ### Coming soon:  
 - **Google calendar sync and notifications**
-- **PWA Manifest (mobile webapp)**
+- **PWA Manifest & service worker (mobile webapp)**
 
 ### Known bugs:
 - ~~Tasks on the same day may be sorted wrong on the dashboard~~ fixed january 17th
