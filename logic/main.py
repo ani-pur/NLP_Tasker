@@ -77,17 +77,13 @@ def signup():
         email = request.form.get('email', '').strip()
 
         if not username or not password:
-            return render_template('signup.html',error='Username and password are required')
+            return jsonify({"ok": False, "error": "Username and password are required"}), 400
 
         if len(username) < 3 or len(username) > 50:
-            return render_template(
-                'signup.html',
-                error='Username must be between 3 and 50 characters')
+            return jsonify({"ok": False, "error": "Username must be between 3 and 50 characters"}), 400
 
         if email and '@' not in email:
-            return render_template(
-                'signup.html',
-                error='Invalid email address')
+            return jsonify({"ok": False, "error": "Invalid email address"}), 400
 
         hashedPass = hasher.hash_password(password)
         success = tasks.add_pending_approval(username, hashedPass, email)
@@ -101,7 +97,10 @@ def signup():
         
         if not success:
             print('[!] signup dbwrite fail')
-            return render_template('signup.html',error='Username already exists or request failed')
+            return jsonify({
+                "ok": False,
+                "error": "Username already exists or request failed"
+            }), 409
         
         print(currentTime(),'[++] Approval Request received and written to db')
         discord_ping(username, email)        # trigger webhook
