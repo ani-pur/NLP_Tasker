@@ -137,6 +137,7 @@ def add_pending_approval(username: str, password_hash: str, email: str | None = 
                 return True
 
             except psycopg2.Error as e:
+                print('[!] signup dbwrite fail')
                 print("DB error (pendingapprovals): ", e)
                 conn.rollback()
                 return False
