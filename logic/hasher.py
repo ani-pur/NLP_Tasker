@@ -155,21 +155,23 @@ def displayProfiles():
 
 
 # AUTHENTICATE LOGIN
-def verify_login(input_pass):
-        with dbConnect() as conn:
-            with conn.cursor() as cur:
-                try:
-                    cur.execute("SELECT * FROM users;")
-                    dbResponse = cur.fetchall()
-                    #print(dbResponse)
-                    for i in dbResponse:
-                        if wz.check_password_hash(i[1],input_pass):
-                            #print("MATCH FOUND: ",i[0])
-                            return str(i[0])
-                        
+def verify_login(username, input_pass):
+    with dbConnect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT username, pwhash FROM users WHERE username = %s;",
+                (username,)
+            )
+            row = cur.fetchone()
 
-                except psycopg2.Error as e:
-                    print("DB error: ",e)
+            if row is None:
+                return None  # user doesn't exist
+
+            if wz.check_password_hash(row[1], input_pass):
+                return row[0]  # username
+
+            return None
+
                 
     
 # menu for CRUD operations
