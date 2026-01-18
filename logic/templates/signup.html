@@ -134,6 +134,13 @@
       opacity: 1;
       transform: translateX(-50%) translateY(-6px);
     }
+
+    .error {
+      color: #ff5c5c;
+      margin-bottom: 10px;
+      font-size: 0.95rem;
+    }
+
     
 
     
@@ -143,6 +150,8 @@
 
 <body>
   <div class="login-container">
+    <div id="error" class="error" style="display:none;"></div>
+
 
     <form method="POST" action="{{ url_for('signup') }}">
       <input
@@ -187,24 +196,43 @@
   </div>
 
   <script>
-    const form = document.querySelector("form");
-    const toast = document.getElementById("toast");
-
-    form.addEventListener("submit",async (e) => {
-      e.preventDefault();
-      const res = await fetch("/signup", {
-        method: "POST", 
-        body: new FormData(form)
+      const form = document.querySelector("form");
+      const toast = document.getElementById("toast");
+      const errorBox = document.getElementById("error");
+    
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+    
+        // Clear old error each submit
+        errorBox.textContent = "";
+        errorBox.style.display = "none";
+    
+        const res = await fetch("/signup", {
+          method: "POST",
+          body: new FormData(form)
+        });
+    
+        // We expect JSON from the backend for BOTH success + error
+        let data;
+        try {
+          data = await res.json();
+        } catch (err) {
+          data = { ok: false, error: "Unexpected server response." };
+        }
+    
+        if (res.ok && data.ok) {
+          // Success -> show toast, hide any error, optionally reset form
+          toast.classList.add("show");
+          setTimeout(() => toast.classList.remove("show"), 15000);
+          form.reset();
+        } else {
+          // Failure -> show error message, do NOT toast
+          errorBox.textContent = data.error || "Request failed. Try again.";
+          errorBox.style.display = "block";
+        }
       });
-      if (res.ok) {
-        toast.classList.add("show");
-      
-        setTimeout(() => {
-          toast.classList.remove("show");
-        }, 15000);
-      }
-    });
-  </script>
+</script>
+
   
 </body>
 </html>
