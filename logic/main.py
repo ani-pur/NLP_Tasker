@@ -48,7 +48,8 @@ def login():
     error = None
     if request.method == 'POST':
         input_pass = request.form.get('password', '').strip()
-        user = hasher.verify_login(input_pass)
+        input_username = request.form.get('username', '').strip()
+        user = hasher.verify_login(input_username, input_pass)
         if user:
             session.permanent = True
             session['username'] = user
