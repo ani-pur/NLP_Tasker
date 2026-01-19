@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_from_directory, make_response
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_from_directory
 from logic import hasher
 from logic import tasks_db as tasks
 from logic import apiCall as api
@@ -46,20 +46,15 @@ def discord_ping(username, email):
 # PWA ENDPOINTS 
 @app.get("/pwa/manifest.webmanifest")
 def pwa_manifest():
-    resp = make_response(
-        send_from_directory("static", "manifest.webmanifest")
-    )
-    resp.headers["Content-Type"] = "application/manifest+json; charset=utf-8"
-    resp.headers["Cache-Control"] = "no-store"
-    return resp
+    return send_from_directory("static","manifest.webmanifest")
 
+@app.get("/pwa/icon-192.png")
+def pwa_icon_192():
+    return send_from_directory("static", "icon-192.png")
 
-@app.get("/pwa/icons/<path:filename>")
-def pwa_icons(filename):
-    resp = make_response(
-        send_from_directory("static/icons", filename)
-    )
-    return resp
+@app.get("/pwa/icon-512.png")
+def pwa_icon_512():
+    return send_from_directory("static", "icon-512.png")
 
 # LOGIN ROUTE
 @app.route('/login', methods=['GET', 'POST'])
