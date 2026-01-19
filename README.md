@@ -2,11 +2,13 @@ Author: Anirudh Purohit
 
 ## What is Tasker?
 
-Tasker is built for people who want to write tasks normally. No forms, no strict formatting. Just type what you need to do and Tasker will figure out the rest.
+Tasker lets you write tasks the way you think. No forms, no rigid structure. Just type naturally, and Tasker handles the details for you. It understands dates, times, and context written in plain language, so you can focus on what matters instead of how to enter it.
 
-Tasks are automatically sorted, support colors, and stay in sync across devices. Tasker offers multiple desktop UI's and a mobile webapp.
+For example, typing “submit project by Friday evening,  red” automatically schedules the task with the correct date, time, and color.
 
-Signup is simple, usage is streamlined, data is safe, privacy is upheld. 
+Tasks are automatically sorted, support color organization, and stay in sync across devices. Tasker offers multiple desktop UIs along with a mobile webapp experience.
+
+Signup is simple, usage is streamlined.
 
 ### Coming soon:  
 - **Google calendar sync and notifications**
