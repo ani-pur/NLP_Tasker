@@ -226,6 +226,10 @@
 
   <script>
     /* ---------- USER TZ METADATA ---------- */
+    
+    let addTaskCooldown = false;
+    const ADD_TASK_COOLDOWN_MS = 3000; 
+    
     function buildUserTzMetadata() {
       const now = new Date();
 
@@ -289,9 +293,16 @@
       if (response.ok) loadTasks();
       else alert('Failed to delete task');
     }
-
+    
+    
     document.getElementById('taskForm').addEventListener('submit', async e => {
       e.preventDefault();
+
+
+      if (addTaskCooldown) return;
+      addTaskCooldown = true;
+      setTimeout(() => { addTaskCooldown = false; }, ADD_TASK_COOLDOWN_MS);
+      
       const description = document.getElementById('task_description').value;
 
       if (description.length < 10 || description.length > 200) {
