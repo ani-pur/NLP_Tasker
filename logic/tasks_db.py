@@ -1,7 +1,7 @@
 import psycopg2 
 import json
 import os
-
+import re
 
 def dbConnect():
     return psycopg2.connect(
@@ -15,8 +15,20 @@ def dbConnect():
 
 # json to dict 
 def parse_api_response(jsonInput: str) -> dict:
-    parsedDict = json.loads(jsonInput)
-    return parsedDict
+    if not jsonInput or not jsonInput.strip():
+        raise ValueError("Empty API response")
+
+    # Extract the first JSON object from the response (helps when changing models, some models respond with sum bullshit before/after the expected json, others are smarter and return just a simple json)
+    match = re.search(r"\{.*\}", jsonInput, re.DOTALL)
+    if not match:
+        raise ValueError(f"No JSON object found in API response: {jsonInput!r}")
+
+    cleaned = match.group(0)
+
+    try:
+        return json.loads(cleaned)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Invalid JSON after sanitization: {cleaned!r}") from e
 
 # add task to db
 def add_task(username: str, jsonInput: str, task_data: dict):# added task_data and user_tz_metadata parameter for logging
