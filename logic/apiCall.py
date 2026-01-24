@@ -54,7 +54,7 @@ def warmupCall():
         model="gpt-4.1-mini-2025-04-14",
         instructions="warmup ping to handle cold-start latency, respond with 'warmed up' ",
         input="  ",
-        text={ "verbosity": "low" },
+        #text={ "verbosity": "low" },
        # reasoning={ "effort": "minimal" }
 
     )
@@ -82,7 +82,7 @@ def postRequest(userInput: dict) -> str:
 
             input= stringInput + " \n [USER TIMEZONE METADATA] \n" + str(userTzData),
 
-            text={ "verbosity": "low" },
+            #text={ "verbosity": "low" },
             
            # reasoning={ "effort": "minimal" }
             
