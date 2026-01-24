@@ -27,11 +27,16 @@ Instructions:
 
 - COLOR:HEX
 Blue: #87CEEB, 
+Dark Blue: #00008B,
 Red: #f05656, 
+Dark Red: #800020,
 Green: #6CE5A9, 
-Pink: #E89BEE, 
+Pink: #F8C8DC, 
 Orange: #ff7f00, 
-Purple: #A96CE5
+Purple: #A96CE5,
+Yellow: #FDDA0D,
+Dark Yellow: DAA520
+
 
     
 - The user's current date/time is appended after "[USER TIMEZONE METADATA]" at the end of the input. Example:
