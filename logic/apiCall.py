@@ -51,11 +51,11 @@ Purple: #A96CE5
 def warmupCall():
     warmup_startTime=time.time()
     emptyResponse = client.responses.create(
-        model="gpt-5-mini-2025-08-07",
+        model="gpt-4.1-mini-2025-04-14",
         instructions="warmup ping to handle cold-start latency, respond with 'warmed up' ",
         input="  ",
         text={ "verbosity": "low" },
-        reasoning={ "effort": "minimal" }
+       # reasoning={ "effort": "minimal" }
 
     )
     
@@ -76,7 +76,7 @@ def postRequest(userInput: dict) -> str:
     # print("\n [DEBUG] USER_TZ_METADATA: ",str(userTzData),'\n')
     response = client.responses.create(
 
-            model="gpt-5-mini-2025-08-07",
+            model="gpt-4.1-mini-2025-04-14",
 
             instructions=dedent(sysPrompt),
 
@@ -84,7 +84,7 @@ def postRequest(userInput: dict) -> str:
 
             text={ "verbosity": "low" },
             
-            reasoning={ "effort": "minimal" }
+           # reasoning={ "effort": "minimal" }
             
     )
 
