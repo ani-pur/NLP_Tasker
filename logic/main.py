@@ -149,7 +149,19 @@ def logout():
 @app.route('/')
 def index():
     print(currentTime(),f"Handling request in PID={os.getpid()}")
+    print("\t \t  REQUEST INFO: ",end="")
+    ipAddr = fetch_real_ip()
+    if ipAddr is None:        # testing hotfix, shouldn't affect prod
+        ipAddr=request.remote_addr
 
+    print(
+        f"{currentTime()} INDEX HIT | "
+        f"IP={ipAddr} | "
+        f"UA={request.headers.get('User-Agent')} | "
+        f"Referer={request.headers.get('Referer')} | "
+        f"Accept={request.headers.get('Accept')}"
+    )
+    
     if 'username' not in session:
         return redirect(url_for('login'))
 
