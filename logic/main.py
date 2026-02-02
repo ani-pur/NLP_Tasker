@@ -154,17 +154,18 @@ def index():
     print(currentTime(),f"Handling request in PID={os.getpid()}")
 
     if 'username' not in session:
-            ipAddr = fetch_real_ip()
-            if ipAddr is None:        # testing hotfix, shouldn't affect prod
-                ipAddr=request.remote_addr
-            log_block = (
-                f"{LOG_PAD}IP: {ipAddr}\n"
-                f"{LOG_PAD}User-Agent: {request.headers.get('User-Agent')}\n"
-                f"{LOG_PAD}Referer: {request.headers.get('Referer')}\n"
-                f"{LOG_PAD}Accept: {request.headers.get('Accept')}"
-            )
         
-            print(log_block)    
+        ipAddr = fetch_real_ip()
+        if ipAddr is None:        # testing hotfix, shouldn't affect prod
+            ipAddr=request.remote_addr
+        log_block = (
+            f"{LOG_PAD}IP: {ipAddr}\n"
+            f"{LOG_PAD}User-Agent: {request.headers.get('User-Agent')}\n"
+            f"{LOG_PAD}Referer: {request.headers.get('Referer')}\n"
+            f"{LOG_PAD}Accept: {request.headers.get('Accept')}"
+        )
+    
+        print(log_block)    
         return redirect(url_for('login'))
 
     rootHit = session['username']
