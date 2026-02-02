@@ -12,6 +12,7 @@ import threading
 api_key=os.environ.get('API_KEY')
 client = OpenAI(api_key=api_key)
 
+LOG_PAD = "\t\t"        # to pad logs so they're actually readable lol
 
 sysPrompt="""You are an information extraction engine.
 
@@ -66,7 +67,7 @@ def warmupCall():
     
     warmup_endTime=time.time()
     warmupClock = warmup_endTime - warmup_startTime
-    print('\t      api WARMUP: ',warmupClock)
+    print(LOG_PAD,'api WARMUP: ',warmupClock)
 
 def warmupCall_async():
     t = threading.Thread(target=warmupCall, daemon=True)
