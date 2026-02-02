@@ -18,7 +18,8 @@ LOG_PAD = "\t\t"        # to pad logs so they're actually readable lol
 
 def currentTime():
     # returns current local time formatted for logs as: [HH:MM:SS AM/PM]
-    return f"[{datetime.now().strftime('%I:%M:%S %p')}]"
+    return f"[{datetime.now().strftime('%a %b %d %Y %I:%M:%S %p')}]"
+
 
     
 
@@ -151,19 +152,19 @@ def logout():
 @app.route('/')
 def index():
     print(currentTime(),f"Handling request in PID={os.getpid()}")
-    ipAddr = fetch_real_ip()
-    if ipAddr is None:        # testing hotfix, shouldn't affect prod
-        ipAddr=request.remote_addr
-    log_block = (
-        f"{LOG_PAD}IP: {ipAddr}\n"
-        f"{LOG_PAD}User-Agent: {request.headers.get('User-Agent')}\n"
-        f"{LOG_PAD}Referer: {request.headers.get('Referer')}\n"
-        f"{LOG_PAD}Accept: {request.headers.get('Accept')}"
-    )
 
-    print(log_block)
-    
     if 'username' not in session:
+            ipAddr = fetch_real_ip()
+            if ipAddr is None:        # testing hotfix, shouldn't affect prod
+                ipAddr=request.remote_addr
+            log_block = (
+                f"{LOG_PAD}IP: {ipAddr}\n"
+                f"{LOG_PAD}User-Agent: {request.headers.get('User-Agent')}\n"
+                f"{LOG_PAD}Referer: {request.headers.get('Referer')}\n"
+                f"{LOG_PAD}Accept: {request.headers.get('Accept')}"
+            )
+        
+            print(log_block)    
         return redirect(url_for('login'))
 
     rootHit = session['username']
