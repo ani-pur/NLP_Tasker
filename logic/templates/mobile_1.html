@@ -284,7 +284,7 @@
     <section class="section">
       <div class="section-head">
         <h2 class="nabla-title nabla-tasks">
-          Your Tasks <a href="#" id="reloadTasks">Reload</a>
+          Your Tasks 
         </h2>
 
       
@@ -364,10 +364,6 @@
       if (res.ok) loadTasks();
     }
 
-    document.getElementById('reloadTasks').onclick = e => {
-      e.preventDefault();
-      loadTasks();
-    };
 
     document.getElementById('taskForm').addEventListener('submit', async e => {
       e.preventDefault();
