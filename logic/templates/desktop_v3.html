@@ -425,14 +425,28 @@
       }
     }
     
-    renderClock(false);
-    
-    // update exactly on minute boundaries
-    const msToNextMinute = 60000 - (Date.now() % 60000);
+  renderClock(false);
+
+  function scheduleNextClockTick(){
+    const now = Date.now();
+    const msToNextMinute = 60000 - (now % 60000);
+
+    // tiny buffer so we update just AFTER the minute flips
+    const bufferMs = 80;
+
     setTimeout(() => {
       renderClock(true);
-      setInterval(() => renderClock(true), 60000);
-    }, msToNextMinute);
+      scheduleNextClockTick();   // resync every time (no drift)
+    }, msToNextMinute + bufferMs);
+  }
+
+  scheduleNextClockTick();
+
+  // when tab becomes visible again, refresh immediately
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) renderClock(false);
+  });
+
 
 
     loadTasks();
