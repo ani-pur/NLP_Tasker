@@ -8,10 +8,19 @@
   <title>Tasker – Mobile</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Nabla&display=swap" rel="stylesheet">
 
+  <script>
+  (function () {
+    const ua = navigator.userAgent || "";
+    const platform = navigator.platform || "";
+    const isIOS = /iPad|iPhone|iPod/.test(ua) || (platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    if (isIOS) document.documentElement.classList.add("ios");
+  })();
+  </script>
 
+  
   <style>
     :root {
       --bg: #0e1116;
@@ -23,6 +32,7 @@
       --accent-pressed: #356de0;
       --danger: #ff5c5c;
       --radius: 16px;
+      --display-font: "Nabla";
     }
 
     * { box-sizing: border-box; }
@@ -32,7 +42,7 @@
       padding: 0;
       height: 100%;
       background: var(--bg);
-      font-family: 'Roboto', system-ui, sans-serif;
+      font-family: 'Outfit', system-ui, sans-serif;
       color: var(--text);
     }
 
@@ -256,10 +266,21 @@
     }
 
     .nabla-title{
-      font-family: "Nabla", system-ui, sans-serif;
+      font-family: var(--display-font), system-ui, sans-serif;
       font-weight: 400;
       letter-spacing: 0.02em;
       line-height: 1;
+    }
+    
+    /* iOS fallback (Nabla/colrv1 support can be flaky) */
+    html.ios{ --display-font: "Outfit"; }
+    html.ios .nabla-title{
+      font-weight: 800;
+      letter-spacing: 0.01em;
+      background: linear-gradient(90deg, #7CFFCB, #4F8CFF, #FF6BFF);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
     }
     
     .nabla-welcome{
@@ -284,7 +305,7 @@
     <section class="section">
       <div class="section-head">
         <h2 class="nabla-title nabla-tasks">
-          Your Tasks <a href="#" id="reloadTasks">Reload</a>
+          Your Tasks 
         </h2>
 
       
@@ -301,7 +322,7 @@
     <section class="section">
       <h3>Add Task</h3>
       <form id="taskForm">
-        <textarea id="task_description" placeholder="Describe task"></textarea>
+        <textarea id="task_description"></textarea>
         <button type="submit" id="addTaskBtn">Add Task</button>
       </form>
     </section>
@@ -312,6 +333,29 @@
     let addTaskCooldown = false;
     const ADD_TASK_COOLDOWN_MS = 3000; 
 
+    const taskExamples = [
+      'quiz at the end of class on wednesday 3:30pm purple',
+      'project phase 1 deadline friday midnight blue',
+      'watch lecture tonight yellow',
+      'revamp resume by end of next week; make sure to expand on all the tasker points; green',
+      'unload bottom half of dishwasher by 11:15 am',
+      'pls give ani internship within 3 months bright red',
+      'touch grass tomorrow 2pm (non-negotiable) neon green',
+      'stop doomscrolling by 10:45pm. actual productivity arc begins. purple',
+      'submit assignment before it submits you. friday 11:59pm red',
+      'drink water in 631 minutes',
+      'follow @4nirudhh on ig in 5 min"
+    ];
+    
+    (function setRandomTaskPlaceholder(){
+      const box = document.getElementById("task_description");
+      if (!box) return;
+    
+      const ex = taskExamples[Math.floor(Math.random() * taskExamples.length)];
+    
+      // Show the example in quotes so it's obviously just an example
+      box.placeholder = `"${ex}"`;
+    })();
     
     function buildUserTzMetadata() {
       const now = new Date();
@@ -364,10 +408,7 @@
       if (res.ok) loadTasks();
     }
 
-    document.getElementById('reloadTasks').onclick = e => {
-      e.preventDefault();
-      loadTasks();
-    };
+
 
     document.getElementById('taskForm').addEventListener('submit', async e => {
       e.preventDefault();
