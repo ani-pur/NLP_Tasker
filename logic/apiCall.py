@@ -67,7 +67,8 @@ def warmupCall():
     
     warmup_endTime=time.time()
     warmupClock = warmup_endTime - warmup_startTime
-    print(LOG_PAD,'api WARMUP: ',warmupClock)
+    print(LOG_PAD,'api WARMUP and RESPONSE: ',warmupClock, emptyResponse.output_text)
+    
 
 def warmupCall_async():
     t = threading.Thread(target=warmupCall, daemon=True)
@@ -96,7 +97,7 @@ def postRequest(userInput: dict) -> str:
 
     end_time=time.time()
     internalClock = end_time-start_time
-    print('\t     api RESPONSE: ',internalClock)
+    print(LOG_PAD, 'api RESPONSE: ', internalClock)
     # print('api RESPONSE JSON: ',response.output_text)
 
     return response.output_text
