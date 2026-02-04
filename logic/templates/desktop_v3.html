@@ -28,6 +28,58 @@
       background: var(--bg);
       color: var(--text);
     }
+    .section-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin: 0 0 16px 0;
+    }
+    
+    .section-head h2{
+      margin:0;
+    }
+    
+    .clock-strip{
+      display:inline-flex;
+      align-items:center;
+      padding: 8px 12px;
+      border-radius: 12px;
+      background: rgba(255,255,255,.03);
+      border: 1px solid rgba(255,255,255,.08);
+      letter-spacing: .05em;
+      user-select:none;
+      white-space:nowrap;
+    }
+    
+    .clock-date{
+      color: var(--accent);
+      font-weight: 800;
+      font-size: 0.85rem;
+    }
+    
+    .clock-sep{
+      opacity:.35;
+      padding: 0 10px;
+      font-weight: 800;
+    }
+    
+    .clock-time{
+      color: var(--text);
+      opacity:.65;
+      font-weight: 700;
+      font-size: 0.8rem;
+      font-variant-numeric: tabular-nums;
+    }
+    
+    .clock-time.snap{
+      animation: snap 180ms ease-out;
+    }
+    
+    @keyframes snap{
+      0%   { opacity:0; transform: translateY(-4px) scale(1.08); }
+      100% { opacity:.65; transform: translateY(0) scale(1); }
+    }
+
 
     header {
       height: 64px;
@@ -207,7 +259,16 @@
 
   <main>
     <section>
-      <h2>Your Tasks</h2>
+      <div class="section-head">
+        <h2>Your Tasks</h2>
+      
+        <div class="clock-strip" id="clockStrip">
+          <span class="clock-date" id="clockDate"></span>
+          <span class="clock-sep">·</span>
+          <span class="clock-time" id="clockTime"></span>
+        </div>
+      </div>
+
       <ul id="taskList"></ul>
     </section>
 
@@ -326,6 +387,34 @@
         alert('Failed to add task');
       }
     });
+
+    function renderClock(animate=false){
+      const now = new Date();
+      const date = now.toLocaleDateString(undefined, { weekday:"short", month:"short", day:"numeric" }).toUpperCase();
+      const time = now.toLocaleTimeString(undefined, { hour:"2-digit", minute:"2-digit" });
+    
+      const elDate = document.getElementById("clockDate");
+      const elTime = document.getElementById("clockTime");
+    
+      elDate.textContent = date;
+      elTime.textContent = time;
+    
+      if (animate){
+        elTime.classList.remove("snap");
+        void elTime.offsetWidth; // retrigger
+        elTime.classList.add("snap");
+      }
+    }
+    
+    renderClock(false);
+    
+    // update exactly on minute boundaries
+    const msToNextMinute = 60000 - (Date.now() % 60000);
+    setTimeout(() => {
+      renderClock(true);
+      setInterval(() => renderClock(true), 60000);
+    }, msToNextMinute);
+
 
     loadTasks();
   </script>
