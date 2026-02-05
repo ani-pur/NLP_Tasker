@@ -236,6 +236,22 @@ def delete_task(task_id):
     else:
         return jsonify({'error': 'Task not found.'}), 404
 
+@app.errorhandler(404)
+def not_found(e):
+    bad_path = request.path
+    method = request.method
+    ip = fetch_real_ip() or request.remote_addr
+    print(f"{currentTime()} [404] {ip} {method} {bad_path}")
+    return ("Not Found", 404)
+
+@app.errorhandler(405)
+def method_not_allowed(e):
+    bad_path = request.path
+    method = request.method
+    ip = fetch_real_ip() or request.remote_addr
+    print(f"{currentTime()} [405] {ip} {method} {bad_path}")
+    return ("Method Not Allowed", 405)
+
 
 
 if __name__ == '__main__':
