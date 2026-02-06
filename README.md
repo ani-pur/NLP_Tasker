@@ -4,14 +4,17 @@ Author: Anirudh Purohit
 
 Tasker lets you write tasks the way you think. No forms, no rigid structure. Just type naturally, and Tasker handles the details for you. It understands dates, times, and context written in plain language, so you can focus on what matters instead of how to enter it.
 
-For example, typing “submit project by Friday evening,  red” automatically schedules the task with the correct date, time, and color.
+Start with something simple like “submit project by Friday evening, red” 
+OR
+don’t even think about it and just yap. You can type rushed, shorthand input like “gym next monday 7am legs red” or “groceries in 2 hours yellow milk eggs chicken rice,” and Tasker will automatically piece together the correct date, time, color, and description for you.
 
 Tasks are automatically sorted, support color organization, and stay in sync across devices. Tasker offers multiple desktop UIs along with a mobile webapp experience.
 
 Signup is simple, usage is streamlined.
 
 ### Coming soon:  
-- **Google calendar sync and notifications**
+- Push notifications 
+- edit button to edit tasks lol 
 
 ### Known bugs:
 - ~~Tasks on the same day may be sorted wrong on the dashboard~~ fixed january 17th
