@@ -12,6 +12,15 @@ Tasks are automatically sorted, support color organization, and stay in sync acr
 
 Signup is simple, usage is streamlined.
 
+### ‼️ Mobile Install Guide:
+Step 1: Go to tasker in your preferred browser 
+
+Step 2: Click the share button (on ios) or the three dots (on android) and 'add to home screen'
+
+Step 3: Enable 'open as web app' (on ios) / agree to install prompt (on android)
+
+✅
+
 ### Coming soon:  
 - Push notifications 
 - edit button to edit tasks lol
