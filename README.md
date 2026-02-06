@@ -14,28 +14,32 @@ Signup is simple, usage is streamlined.
 
 ### Coming soon:  
 - Push notifications 
-- edit button to edit tasks lol 
+- edit button to edit tasks lol
+- sorting options (currently sorts earliest - latest due)
 
 ### Known bugs:
 - ~~Tasks on the same day may be sorted wrong on the dashboard~~ fixed january 17th
  
 ## Deployment and Architecture:
 
-- Reverse proxied through Cloudflare using [Cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)
+- Through Cloudflare using [Cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)
 
 Tasker is deployed as a stateless, containerized application with a separate PostgreSQL container for persistent storage.
 
-Production traffic is routed through a Cloudflare reverse proxy using Cloudflared, allowing global access without directly exposing the host server.
+Production traffic is routed through a Cloudflare reverse proxy, allowing global access without directly exposing the host server.
 
 The application runs on personal infrastructure hosted on a repurposed machine and includes isolated testing environments with restricted access. Deployment and management are handled through custom scripts and a lightweight CI/CD pipeline, with further automation planned using GitHub Actions.
 
 ## Screenshots
 
+
 ### v2.5: 
 
-<img width="1201" height="641" alt="image" src="https://github.com/user-attachments/assets/e2404639-82d1-474b-9dec-298cf2283c07" />
+<img width="1295" height="648" alt="image" src="https://github.com/user-attachments/assets/0061ffd6-6ec4-4754-aa3a-55544798b7ed" />
 
-![image](https://github.com/user-attachments/assets/b00314c3-bf7d-4219-b73b-92e99021844c)
+<img width="2543" height="554" alt="image" src="https://github.com/user-attachments/assets/916d0f39-2370-4fd8-adce-5174cc1dd014" />
+
+
 
 
 
