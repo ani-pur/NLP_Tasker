@@ -151,8 +151,6 @@ def logout():
 
 @app.route('/')
 def index():
-    print(currentTime(),f"Handling request in PID={os.getpid()}")
-
     if 'username' not in session:
         
         ipAddr = fetch_real_ip()
