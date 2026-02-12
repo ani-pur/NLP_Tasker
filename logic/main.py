@@ -158,12 +158,13 @@ def index():
             ipAddr=request.remote_addr
         log_block = (
             f"{LOG_PAD}IP: {ipAddr}\n"
+            f"{LOG_PAD}Full Path: {request.full_path}\n"
             f"{LOG_PAD}User-Agent: {request.headers.get('User-Agent')}\n"
             f"{LOG_PAD}Referer: {request.headers.get('Referer')}\n"
             f"{LOG_PAD}Accept: {request.headers.get('Accept')}"
         )
     
-        print(log_block)    
+        print(currentTime(),'\n',log_block)    
         return redirect(url_for('login'))
 
     rootHit = session['username']
