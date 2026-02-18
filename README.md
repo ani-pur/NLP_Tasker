@@ -29,15 +29,6 @@ Step 3: Enable 'open as web app' (on ios) / agree to install prompt (on android)
 ### Known bugs:
 - ~~Tasks on the same day may be sorted wrong on the dashboard~~ fixed january 17th
  
-## Deployment and Architecture:
-
-- Through Cloudflare using [Cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)
-
-Tasker is deployed as a stateless, containerized application with a separate PostgreSQL container for persistent storage.
-
-Production traffic is routed through a Cloudflare reverse proxy, allowing global access without directly exposing the host server.
-
-The application runs on personal infrastructure hosted on a repurposed machine and includes isolated testing environments with restricted access. Deployment and management are handled through custom scripts and a lightweight CI/CD pipeline, with further automation planned using GitHub Actions.
 
 ## Screenshots
 
