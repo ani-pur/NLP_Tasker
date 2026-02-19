@@ -15,5 +15,5 @@ COPY . .
 # Expose Flask's default port
 EXPOSE 5000
 
-# Command to run the app
-CMD ["gunicorn", "-b", "0.0.0.0:5000", "-w", "15", "logic.main:app"]
+# 4 workers * 20 threads = 80 concurrent connections max
+CMD ["gunicorn", "-b", "0.0.0.0:5000", "-w", "4", "--threads", "20", "--worker-class", "gthread", "logic.main:app"]
