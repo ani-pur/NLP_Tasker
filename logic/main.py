@@ -170,9 +170,6 @@ def index():
     rootHit = session['username']
     print(currentTime(),f'{rootHit} hit /')
 
-    # API warmup
-    api.warmupCall_async()
-
     # Mobile UI
     if is_mobile():
         return render_template('mobile_1.html', username=session['username'])
