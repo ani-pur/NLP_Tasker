@@ -7,6 +7,11 @@ from textwrap import dedent
 import os
 import threading
 
+def currentTime():
+    # returns current local time formatted for logs as: [HH:MM:SS AM/PM]
+    return f"[{datetime.now().strftime('%a %b %d %Y %I:%M:%S %p')}]"
+
+
 http_client=httpx.Client(limits=httpx.Limits(max_keepalive_connections=20, keepalive_expiry=120.0))
 
 api_key=os.environ.get('API_KEY')
@@ -67,7 +72,7 @@ def warmupCall():
     
     warmup_endTime=time.time()
     warmupClock = warmup_endTime - warmup_startTime
-    print(LOG_PAD,'api WARMUP and RESPONSE: ',warmupClock, emptyResponse.output_text)
+    print(currentTime(),'api WARMUP and RESPONSE: ',warmupClock, emptyResponse.output_text)
     
 def keep_warm_loop():
     while True:
