@@ -1,21 +1,29 @@
-"""
-DB connection pooling not yet implemented 
-Will add if/when project is refactored to FastAPI
-"""
 import psycopg2 
+from psycopg2.pool import ThreadedConnectionPool
+from contextlib import contextmanager
 import json
 import os
 import re
 
-def dbConnect():
-    return psycopg2.connect(
-        dbname = os.environ.get('POSTGRES_DB'),
-        user = os.environ.get('POSTGRES_USER'),
-        password = os.environ.get('POSTGRES_PASSWORD'),
-        host = os.environ.get('POSTGRES_HOST'),
-        port = os.environ.get('POSTGRES_PORT')
-    )
+# Initialize shared db connection pool (max 20 connections per worker)
+db_pool = ThreadedConnectionPool(
+    minconn=1,
+    maxconn=20, 
+    dbname=os.environ.get('POSTGRES_DB'),
+    user=os.environ.get('POSTGRES_USER'),
+    password=os.environ.get('POSTGRES_PASSWORD'),
+    host=os.environ.get('POSTGRES_HOST'),
+    port=os.environ.get('POSTGRES_PORT')
+)
 
+# checkout pool connection 
+@contextmanager
+def get_db_connection():
+    conn = db_pool.getconn()
+    try:
+        yield conn
+    finally:
+        db_pool.putconn(conn)
 
 # json to dict 
 def parse_api_response(jsonInput: str) -> dict:
@@ -48,7 +56,7 @@ def add_task(username: str, jsonInput: str, task_data: dict):# added task_data a
     # debug
     print("[DEBUG] tasks_db tz status: ",user_tz_metadata)
     
-    with dbConnect() as conn:
+    with get_db_connection() as conn:
         with conn.cursor() as cur:
             try: 
                 cur.execute(
@@ -70,11 +78,12 @@ def add_task(username: str, jsonInput: str, task_data: dict):# added task_data a
                 conn.commit()
             except psycopg2.Error as e:
                 print("DB error: ",e)
+                conn.rollback()
 
 
 # fetch tasks from db
 def get_all_tasks(username, sort_order):
-    with dbConnect() as conn:
+    with get_db_connection() as conn:
         with conn.cursor() as cur:
             try: 
                 if sort_order=='default':
@@ -118,11 +127,13 @@ def get_all_tasks(username, sort_order):
 
             except psycopg2.Error as e:
                 print("DB error: ",e)
+                conn.rollback()
+                
 
     
 # delete_task(username, task_id)
 def delete_task(username, task_id):
-    with dbConnect() as conn:
+    with get_db_connection() as conn:
         with conn.cursor() as cur:
             try:
                 cur.execute(
@@ -132,6 +143,8 @@ def delete_task(username, task_id):
                 return True
             except psycopg2.Error as e:
                 print("DB error: ",e)
+                conn.rollback()
+                
 
 
 
@@ -141,7 +154,7 @@ def delete_task(username, task_id):
 
 # add pending signup request
 def add_pending_approval(username: str, password_hash: str, email: str | None = None):
-    with dbConnect() as conn:
+    with get_db_connection() as conn:
         with conn.cursor() as cur:
             try:
                 cur.execute(
