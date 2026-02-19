@@ -72,7 +72,7 @@ def warmupCall():
     
     warmup_endTime=time.time()
     warmupClock = warmup_endTime - warmup_startTime
-    print(currentTime(),"WORKER PID: ",os.getpid(),'api WARMUP and RESPONSE: ',warmupClock, emptyResponse.output_text)
+    print(f"{currentTime()}, WORKER PID: [{os.getpid()}], api WARMUP and RESPONSE: {warmupClock} {emptyResponse.output_text}")
     
 def keep_warm_loop():
     while True:
