@@ -1,5 +1,5 @@
 # this program constructs user metadata that gets appended to user request to API
-
+import httpx
 from datetime import date,datetime
 from openai import OpenAI
 import time
@@ -7,10 +7,10 @@ from textwrap import dedent
 import os
 import threading
 
-
+http_client=httpx.Client(limits=httpx.Limits(max_keepalive_connections=20, keepalive_expiry=120.0))
 
 api_key=os.environ.get('API_KEY')
-client = OpenAI(api_key=api_key)
+client = OpenAI(api_key=api_key,http_client=http_client)
 
 LOG_PAD = "\t\t"        # to pad logs so they're actually readable lol
 
