@@ -69,10 +69,21 @@ def warmupCall():
     warmupClock = warmup_endTime - warmup_startTime
     print(LOG_PAD,'api WARMUP and RESPONSE: ',warmupClock, emptyResponse.output_text)
     
+def keep_warm_loop():
+    while True:
+        try:
+            warmupCall()
+        except Exception as e:
+            print(LOG_PAD, "Warmup ping failed:", e)
+        
+        # Sleep for 60 seconds before pinging again
+        time.sleep(60)
 
-def warmupCall_async():
-    t = threading.Thread(target=warmupCall, daemon=True)
-    t.start()
+# When Gunicorn forks a worker, it imports this file
+# This hopefully guarantees exactly ONE background thread is spawned PER WORKER
+# Each worker fires warmup call and hopefully all children threads per worker can share the warm socket
+warmup_thread = threading.Thread(target=keep_warm_loop, daemon=True)
+warmup_thread.start()
 
 # pass to api
 def postRequest(userInput: dict) -> str:  
