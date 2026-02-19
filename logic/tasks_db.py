@@ -1,3 +1,7 @@
+"""
+DB connection pooling not yet implemented 
+Will add if/when project is refactored to FastAPI
+"""
 import psycopg2 
 import json
 import os
