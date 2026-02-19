@@ -12,7 +12,7 @@ def currentTime():
     return f"[{datetime.now().strftime('%a %b %d %Y %I:%M:%S %p')}]"
 
 
-http_client=httpx.Client(limits=httpx.Limits(max_keepalive_connections=20, keepalive_expiry=120.0))
+http_client=httpx.Client(limits=httpx.Limits(max_keepalive_connections=20, keepalive_expiry=140.0)) # 20 second overhead for each warmup attempt
 
 api_key=os.environ.get('API_KEY')
 client = OpenAI(api_key=api_key,http_client=http_client)
@@ -70,11 +70,9 @@ def warmupCall():
 
     )
     
-    warmup_endTime=time.time()
-    warmupClock = warmup_endTime - warmup_startTime
-    if warmupClock !< 3:
-        print(f"{currentTime()}[PID {os.getpid()} warmup took greater than 3s")
-    
+    warmupClock = time.time() - warmup_startTime
+    if warmupClock >= 3:
+        print(f"{currentTime()} [PID {os.getpid()}] LATE WARMUP: {warmupClock:.2f}s")
     
 def keep_warm_loop():
     while True:
@@ -84,8 +82,8 @@ def keep_warm_loop():
         except Exception as e:
             print(LOG_PAD, "Warmup ping failed:", e)
         
-        # Sleep for 60 seconds before pinging again
-        time.sleep(60)
+        # Sleep for 120 seconds before pinging again
+        time.sleep(120)
 
 # When Gunicorn forks a worker, it imports this file
 # This hopefully guarantees exactly ONE background thread is spawned PER WORKER
