@@ -72,11 +72,14 @@ def warmupCall():
     
     warmup_endTime=time.time()
     warmupClock = warmup_endTime - warmup_startTime
-    print(f"{currentTime()}, WORKER PID: [{os.getpid()}], api WARMUP and RESPONSE: {warmupClock} {emptyResponse.output_text}")
+    if warmupClock !< 3:
+        print(f"{currentTime()}[PID {os.getpid()} warmup took greater than 3s")
+    
     
 def keep_warm_loop():
     while True:
         try:
+            print(f"warming PID [{os.getpid()}]")
             warmupCall()
         except Exception as e:
             print(LOG_PAD, "Warmup ping failed:", e)
