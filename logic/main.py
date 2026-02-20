@@ -5,6 +5,7 @@ from logic import apiCall as api
 import secrets
 import os
 from datetime import timedelta,datetime
+import threading
 import subprocess
 import sys
 import json
@@ -33,20 +34,23 @@ def fetch_real_ip():
     return None
 
 def discord_ping(username, email):
-    subprocess.Popen(
-        [
-            "curl",
-            "-s",
-            "-H", "Content-Type: application/json",
-            "-d", json.dumps({
-                "content": f"[!] Account request: [{username}] [{email}]"
-            }),
-            os.environ.get("DISCORD_WEBHOOK_URL"),
-        ],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
-    print("\t webhook triggered")
+    def _send():
+        url = os.environ.get("DISCORD_WEBHOOK_URL")
+        if not url:
+            return
+            
+        payload = json.dumps({"content": f"[!] Account request: [{username}] [{email}]"}).encode('utf-8')
+        req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
+        
+        try:
+            urllib.request.urlopen(req, timeout=5)
+        except Exception as e:
+            # Fails silently so it doesn't crash your app
+            print(f"\t [!] Webhook failed: {e}")
+
+    # daemon=True ensures the thread dies quietly if the main app shuts down
+    threading.Thread(target=_send, daemon=True).start()
+    print("\t webhook thread spawned")
 
 
 # PWA ENDPOINTS 
