@@ -1,127 +1,103 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <link rel="manifest" href="/pwa/manifest.webmanifest">
-  <meta name="theme-color" content="#0b0f19">
+    <meta charset="UTF-8">
+    <link rel="manifest" href="/pwa/manifest.webmanifest">
+    <meta name="theme-color" content="#111520">
+    <title>Login | Tasker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: { base: '#111520', accent: '#fcd34d' }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #111520; }
 
-  <title>Login - Tasker </title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      background-color: #030303ef;
-      margin: 0;
-      font-family: Arial, sans-serif;
-    }
-    .login-container {
-      background-color: #00000000;
-      padding: 2rem;
-      border-radius: 8px;
-      box-shadow: 0 0 30px rgba(0, 0, 0, 0.329);
-      text-align: center;
-      width: 90%;
-      max-width: 400px;
-    }
-    .login-container h1 {
-      color: aliceblue;
-    }
+        /* Ambient Parallax Background */
+        .dot-grid {
+            background-image: radial-gradient(rgba(252, 211, 77, 0.25) 1.5px, transparent 1.5px);
+            background-size: 24px 24px;
+            filter: drop-shadow(0 0 4px rgba(252, 211, 77, 0.4));
+            will-change: transform, background-position;
+            animation: grid-drift 20s linear infinite;
+        }
 
-    .tagline {
-      margin-top: -6px;
-      margin-bottom: 18px;
-      font-size: 0.85rem;
-      color: #9aa3b2;
-      font-weight: 400;
-      opacity: 0.85;
-    }
-
-    /* Shared input styling */
-    input[type="text"],
-    input[type="password"] {
-      width: 70%;
-      padding: 10px;
-      margin: 10px 0;
-      border: 1px solid #cccccc;
-      border-radius: 4px;
-      background-color: #2d2d2d;
-      color: white;
-    }
-
-    input::placeholder {
-      color: #b0b0b0;
-    }
-
-    button {
-      padding: 10px 20px;
-      background-color: #007BFF;
-      color: #fff;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #0056b3;
-    }
-    .error {
-      color: red;
-      margin-bottom: 10px;
-    }
-    .logout-link {
-      color: #4f8cff;
-      background: none;
-      border: none;
-      font-size: 1rem;
-      font-weight: 500;
-      text-decoration: underline;
-      cursor: pointer;
-      padding: 0;
-    }
-
-    .logout-link:hover {
-      color: #6ed0fa;
-    }
-
-  </style>
+        @keyframes grid-drift {
+            0% { background-position: 0 0; }
+            100% { background-position: 48px 48px; }
+        }
+    </style>
 </head>
-<body>
-  <div class="login-container">
-    <h1>Tasker 2.5!</h1>
-    <div class="tagline">Let Tasker remember it.</div>
-    
 
+<body class="text-slate-300 antialiased selection:bg-accent selection:text-base flex flex-col items-center justify-center min-h-screen py-12 relative overflow-x-hidden">
 
-    {% if error %}
-      <p class="error">{{ error }}</p>
-    {% endif %}
+    <div class="fixed inset-[-50px] pointer-events-none z-0 dot-grid [mask-image:radial-gradient(ellipse_at_center,black_30%,transparent_80%)]" id="parallax-grid"></div>
 
-    <form method="POST" action="{{ url_for('login') }}">
-      <!-- Username field (placebo, but autofill-friendly) -->
-      <input
-        type="text"
-        name="username"
-        placeholder="Enter Username"
-        autocomplete="username"
-      >
+    <div class="relative z-10 w-full max-w-sm mx-auto p-8 bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-2xl shadow-2xl">
+        
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-white tracking-tight mb-1">Tasker 2.5!</h1>
+            <p class="text-sm text-slate-400">Let Tasker remember it.</p>
+        </div>
 
-      <!-- Real password field -->
-      <input
-        type="password"
-        name="password"
-        placeholder="Enter Password"
-        autocomplete="current-password"
-        required
-      >
+        {% if error %}
+        <div class="text-red-400 text-sm mb-6 p-3 bg-red-400/10 border border-red-400/20 rounded-lg text-center">
+            {{ error }}
+        </div>
+        {% endif %}
 
-      <br>
-      <button type="submit">Login</button>
-      <br><br>
-      <a href="{{ url_for('signup') }}" class="logout-link">Sign up</a>
+        <form method="POST" action="{{ url_for('login') }}" class="space-y-4">
+            <div>
+                <input 
+                    type="text" 
+                    name="username" 
+                    placeholder="Username" 
+                    autocomplete="username"
+                    class="w-full bg-slate-950/50 border border-slate-800 focus:border-accent/50 focus:ring-1 focus:ring-accent/50 text-white px-4 py-3 rounded-lg outline-none transition placeholder:text-slate-600"
+                >
+            </div>
 
-    </form>
-  </div>
+            <div>
+                <input 
+                    type="password" 
+                    name="password" 
+                    placeholder="Password" 
+                    autocomplete="current-password"
+                    required
+                    class="w-full bg-slate-950/50 border border-slate-800 focus:border-accent/50 focus:ring-1 focus:ring-accent/50 text-white px-4 py-3 rounded-lg outline-none transition placeholder:text-slate-600"
+                >
+            </div>
+
+            <div class="pt-2">
+                <button type="submit" class="w-full bg-accent text-base font-semibold py-3 px-4 rounded-lg hover:bg-yellow-300 transition duration-200 shadow-[0_0_15px_rgba(252,211,77,0.15)] hover:shadow-[0_0_20px_rgba(252,211,77,0.3)]">
+                    Login
+                </button>
+            </div>
+        </form>
+
+        <div class="mt-6 text-center">
+            <a href="{{ url_for('signup') }}" class="text-sm font-medium text-slate-400 hover:text-white transition-colors duration-200">Sign up</a>
+        </div>
+    </div>
+
+    <script>
+        // Mouse tracking for parallax background
+        const grid = document.getElementById('parallax-grid');
+        if (window.matchMedia("(pointer: fine)").matches) {
+            document.addEventListener('mousemove', (e) => {
+                const xGrid = (e.clientX / window.innerWidth - 0.5) * 30;
+                const yGrid = (e.clientY / window.innerHeight - 0.5) * 30;
+                grid.style.transform = `translate(${xGrid * -1}px, ${yGrid * -1}px)`;
+            });
+        }
+    </script>
 </body>
 </html>

@@ -1,239 +1,154 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <link rel="manifest" href="/pwa/manifest.webmanifest">
-  <title>Request Access - Tasker</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      background-color: #030303ef;
-      margin: 0;
-      font-family: Arial, sans-serif;
-    }
-
-    .login-container {
-      background-color: #00000000;
-      padding: 2rem;
-      border-radius: 8px;
-      box-shadow: 0 0 30px rgba(0, 0, 0, 0.329);
-      text-align: center;
-      width: 90%;
-      max-width: 400px;
-    }
-
-    input[type="text"],
-    input[type="password"],
-    input[type="email"] {
-      width: 70%;
-      padding: 10px;
-      margin: 10px 0;
-      border: 1px solid #cccccc;
-      border-radius: 4px;
-      background-color: #2d2d2d;
-      color: white;
-    }
-
-    input::placeholder {
-      color: #b0b0b0;
-    }
-
-    button {
-      padding: 10px 20px;
-      background-color: #007BFF;
-      color: #fff;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background-color: #0056b3;
-    }
-
-    .logout-link {
-      display: inline-block;
-      margin-top: 18px;
-      color: #4f8cff;
-      font-size: 1rem;
-      font-weight: 500;
-      text-decoration: underline;
-      cursor: pointer;
-    }
-
-    .logout-link:hover {
-      color: #6ed0fa;
-    }
-
-    /* Info tooltip */
-    .info-wrapper {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      position: relative;
-    }
-    
-    .info-icon {
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      background: #555;
-      color: #fff;
-      font-size: 11px;
-      font-weight: bold;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      cursor: default;
-    }
-    
-    .info-tooltip {
-      position: absolute;
-      bottom: 130%;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #1e1e1e;
-      color: #ddd;
-      padding: 8px 10px;
-      border-radius: 6px;
-      font-size: 0.75rem;
-      line-height: 1.35;
-      width: 240px;
-      text-align: left;
-      box-shadow: 0 6px 18px rgba(0,0,0,0.4);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.15s ease;
-      z-index: 10;
-    }
-    
-    .info-wrapper:hover .info-tooltip {
-      opacity: 1;
-    }
-    .toast {
-      position: fixed;
-      bottom: 30px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #1e1e1e;
-      color: #eaeaea;
-      padding: 12px 18px;
-      border-radius: 8px;
-      font-size: 0.9rem;
-      box-shadow: 0 8px 25px rgba(0,0,0,0.45);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.25s ease, transform 0.25s ease;
-      z-index: 1000;
-    }
-
-    .toast.show {
-      opacity: 1;
-      transform: translateX(-50%) translateY(-6px);
-    }
-
-    .error {
-      color: #ff5c5c;
-      margin-bottom: 10px;
-      font-size: 0.95rem;
-    }
-
-    
-
-    
-
-  </style>
+    <meta charset="UTF-8">
+    <link rel="manifest" href="/pwa/manifest.webmanifest">
+    <title>Request Access | Tasker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: { base: '#111520', accent: '#fcd34d' }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #111520; }
+        .dot-grid {
+            background-image: radial-gradient(rgba(252, 211, 77, 0.25) 1.5px, transparent 1.5px);
+            background-size: 24px 24px;
+            filter: drop-shadow(0 0 4px rgba(252, 211, 77, 0.4));
+            will-change: transform, background-position;
+            animation: grid-drift 20s linear infinite;
+        }
+        @keyframes grid-drift {
+            0% { background-position: 0 0; }
+            100% { background-position: 48px 48px; }
+        }
+        .toast-box {
+            opacity: 0;
+            transform: translateX(-50%) translateY(10px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .toast-box.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+    </style>
 </head>
 
-<body>
-  <div class="login-container">
-    <div id="error" class="error" style="display:none;"></div>
+<body class="text-slate-300 antialiased selection:bg-accent selection:text-base flex flex-col items-center justify-center min-h-screen py-12 relative overflow-x-hidden">
 
+    <div class="fixed inset-[-50px] pointer-events-none z-0 dot-grid [mask-image:radial-gradient(ellipse_at_center,black_30%,transparent_80%)]" id="parallax-grid"></div>
 
-    <form method="POST" action="{{ url_for('signup') }}">
-      <input
-        type="text"
-        name="username"
-        placeholder="Enter Username"
-        required
-      >
-
-      <input
-        type="password"
-        name="password"
-        placeholder="Enter Password"
-        required
-      >
-
-      <input
-        type="email"
-        name="email"
-        placeholder="Email"
-        required
-      >
-
-      <br>
-      <div class="info-wrapper">
-        <button type="submit">Request Access</button>
-
-        <div class="info-icon">i</div>
-        <div class="info-tooltip">
-          Email is used only for account status communication and feedback requests.<br><br>
-          Credentials are private and never visible to the admin.<br> Save them to your browser for convenient and safe access.
-
+    <div class="relative z-10 w-full max-w-sm mx-auto p-8 bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-2xl shadow-2xl">
+        <div class="text-center mb-8">
+            <h1 class="text-2xl font-bold text-white tracking-tight">Tasker.</h1>
         </div>
-      </div>
-    </form>
 
-    <a href="{{ url_for('login') }}" class="logout-link">Back to Login</a>
+        <div id="error" class="text-red-400 text-sm mb-4 p-3 bg-red-400/10 border border-red-400/20 rounded-lg text-center" style="display:none;"></div>
 
-  </div>
-    <div id="toast" class="toast">
-    Request submitted. You’ll be notified by email when access is granted or denied.
-  </div>
+        <form method="POST" action="{{ url_for('signup') }}" class="space-y-4">
+            <div>
+                <input type="text" name="username" placeholder="Username" required class="w-full bg-slate-950/50 border border-slate-800 focus:border-accent/50 focus:ring-1 focus:ring-accent/50 text-white px-4 py-3 rounded-lg outline-none transition placeholder:text-slate-600">
+            </div>
 
-  <script>
-      const form = document.querySelector("form");
-      const toast = document.getElementById("toast");
-      const errorBox = document.getElementById("error");
-    
-      form.addEventListener("submit", async (e) => {
-        e.preventDefault();
-    
-        // Clear old error each submit
-        errorBox.textContent = "";
-        errorBox.style.display = "none";
-    
-        const res = await fetch("/signup", {
-          method: "POST",
-          body: new FormData(form)
+            <div>
+                <input type="password" name="password" placeholder="Password" required class="w-full bg-slate-950/50 border border-slate-800 focus:border-accent/50 focus:ring-1 focus:ring-accent/50 text-white px-4 py-3 rounded-lg outline-none transition placeholder:text-slate-600">
+            </div>
+
+            <div>
+                <input type="email" name="email" placeholder="Email" required class="w-full bg-slate-950/50 border border-slate-800 focus:border-accent/50 focus:ring-1 focus:ring-accent/50 text-white px-4 py-3 rounded-lg outline-none transition placeholder:text-slate-600">
+            </div>
+
+            <div class="flex items-center gap-3 pt-2">
+                <button type="submit" class="flex-1 bg-accent text-base font-semibold py-3 px-4 rounded-lg hover:bg-yellow-300 transition duration-200 shadow-[0_0_15px_rgba(252,211,77,0.15)] hover:shadow-[0_0_20px_rgba(252,211,77,0.3)]">
+                    Request Access
+                </button>
+
+                <div class="relative flex items-center justify-center">
+                    <button id="tooltip-btn" type="button" onclick="toggleTooltip(event)" class="w-12 h-12 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 flex items-center justify-center font-bold hover:bg-slate-700 hover:text-white transition duration-200 focus:outline-none">
+                        i
+                    </button>
+                    <div id="tooltip-content" class="hidden absolute bottom-full right-0 mb-3 w-64 p-4 bg-slate-800 border border-slate-700 text-slate-300 text-xs rounded-xl shadow-2xl z-20 pointer-events-none">
+                        <p class="mb-2"><strong class="text-white">Email</strong> is used only for account status communication and feedback requests.</p>
+                        <p><strong class="text-white">Credentials</strong> are private and never visible to the admin. Save them to your browser for convenient and safe access.</p>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <div class="mt-6 text-center">
+            <a href="{{ url_for('login') }}" class="text-sm font-medium text-slate-400 hover:text-white transition-colors duration-200">Back to Login</a>
+        </div>
+    </div>
+
+    <div id="toast" class="toast-box fixed bottom-8 left-1/2 z-50 w-max max-w-[90%] bg-slate-800 border border-slate-700 text-slate-200 px-5 py-3 rounded-lg shadow-2xl text-sm">
+        Request submitted. You'll be notified by email when access is granted or denied.
+    </div>
+
+    <script>
+        const form = document.querySelector("form");
+        const toast = document.getElementById("toast");
+        const errorBox = document.getElementById("error");
+        const grid = document.getElementById('parallax-grid');
+        const tooltipBtn = document.getElementById('tooltip-btn');
+        const tooltipContent = document.getElementById('tooltip-content');
+
+        // Handle Parallax Grid (Only on Desktop/Mouse)
+        if (window.matchMedia("(pointer: fine)").matches) {
+            document.addEventListener('mousemove', (e) => {
+                const xGrid = (e.clientX / window.innerWidth - 0.5) * 30;
+                const yGrid = (e.clientY / window.innerHeight - 0.5) * 30;
+                grid.style.transform = `translate(${xGrid * -1}px, ${yGrid * -1}px)`;
+            });
+        }
+      
+        // Handle Form Submission
+        form.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          errorBox.textContent = "";
+          errorBox.style.display = "none";
+          
+          const res = await fetch("/signup", {
+            method: "POST",
+            body: new FormData(form)
+          });
+      
+          let data;
+          try { 
+            data = await res.json(); 
+          } catch (err) { 
+            data = { ok: false, error: "Unexpected server response." }; 
+          }
+      
+          if (res.ok && data.ok) {
+            toast.classList.add("show");
+            setTimeout(() => toast.classList.remove("show"), 15000);
+            form.reset();
+          } else {
+            errorBox.textContent = data.error || "Request failed. Try again.";
+            errorBox.style.display = "block";
+          }
         });
-    
-        // We expect JSON from the backend for BOTH success + error
-        let data;
-        try {
-          data = await res.json();
-        } catch (err) {
-          data = { ok: false, error: "Unexpected server response." };
-        }
-    
-        if (res.ok && data.ok) {
-          // Success -> show toast, hide any error, optionally reset form
-          toast.classList.add("show");
-          setTimeout(() => toast.classList.remove("show"), 15000);
-          form.reset();
-        } else {
-          // Failure -> show error message, do NOT toast
-          errorBox.textContent = data.error || "Request failed. Try again.";
-          errorBox.style.display = "block";
-        }
-      });
-</script>
 
-  
+        // Toggle tooltip on click (Mobile friendly)
+        window.toggleTooltip = function(e) {
+            e.stopPropagation();
+            tooltipContent.classList.toggle('hidden');
+        };
+        
+        // Close tooltip when clicking anywhere else
+        document.addEventListener('click', (e) => {
+            if (tooltipBtn && !tooltipBtn.contains(e.target)) {
+                tooltipContent.classList.add('hidden');
+            }
+        });
+    </script>
 </body>
 </html>
