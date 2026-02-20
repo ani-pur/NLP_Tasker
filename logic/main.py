@@ -87,6 +87,7 @@ def info():
         f"{LOG_PAD}Accept: {request.headers.get('Accept')}\n"
         f"{LOG_PAD}Current Time: {currentTime()}\n"
         )
+    print(currentTime(),log_block)
     return render_template('mixed.html')
 
 # LOGIN ROUTE
