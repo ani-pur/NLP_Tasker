@@ -39,17 +39,22 @@ def discord_ping(username, email):
             return
             
         payload = json.dumps({"content": f"[!] Account request: [{username}] [{email}]"}).encode('utf-8')
-        req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
+        
+        # Added User-Agent to bypass Discord's anti-bot 403 block
+        headers = {
+            "Content-Type": "application/json",
+            "User-Agent": "TaskerApp/1.0" 
+        }
+        
+        req = urllib.request.Request(url, data=payload, headers=headers)
         
         try:
             urllib.request.urlopen(req, timeout=5)
+            print("\t webhook triggered")
         except Exception as e:
-            # Fails silently so it doesn't crash your app
             print(f"\t [!] Webhook failed: {e}")
 
-    # daemon=True ensures the thread dies quietly if the main app shuts down
     threading.Thread(target=_send, daemon=True).start()
-    print("\t webhook thread spawned")
 
 
 # PWA ENDPOINTS 
