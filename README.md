@@ -35,6 +35,9 @@ Step 3: Enable 'open as web app' (on ios) / agree to install prompt (on android)
 
 ### v2.5: 
 
+<img width="1119" height="835" alt="image" src="https://github.com/user-attachments/assets/7d22a374-fe6c-4fca-8766-554c5935a6a6" />
+
+
 <img width="1295" height="648" alt="image" src="https://github.com/user-attachments/assets/0061ffd6-6ec4-4754-aa3a-55544798b7ed" />
 
 <img width="2543" height="554" alt="image" src="https://github.com/user-attachments/assets/916d0f39-2370-4fd8-adce-5174cc1dd014" />
