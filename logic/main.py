@@ -115,12 +115,7 @@ def signup():
 
         hashedPass = hasher.hash_password(password)
         success = tasks.add_pending_approval(username, hashedPass, email)
-        ipAddr=fetch_real_ip()
-        if ipAddr is None:
-            ipv4=request.remote_addr
-            print(ipv4,end=" ")
-        else:
-            print(ipAddr,end=" ")
+        
 
         
         if not success:
@@ -128,8 +123,9 @@ def signup():
                 "ok": False,
                 "error": "Username already exists or request failed"
             }), 409
-        
-        print(currentTime(),'[++] Approval Request received and written to db')
+
+        ip = fetch_real_ip() or request.remote_addr
+        print(currentTime(),f"[++] Approval Request received and written to db [IP: {ip}")
         discord_ping(username, email)        # trigger webhook
         # run notifier script, couldn't be asked to integrate as function; will do someday
         try:
