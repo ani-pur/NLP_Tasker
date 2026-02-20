@@ -77,6 +77,16 @@ def pwa_icon_512():
 
 @app.route('/info', methods=['GET'])
 def info():
+
+    ipAddr = fetch_real_ip() or request.remote_addr
+    log_block = (
+        f"{LOG_PAD}IP: {ipAddr}\n"
+        f"{LOG_PAD}Full Path: {request.full_path}\n"
+        f"{LOG_PAD}User-Agent: {request.headers.get('User-Agent')}\n"
+        f"{LOG_PAD}Referer: {request.headers.get('Referer')}\n"
+        f"{LOG_PAD}Accept: {request.headers.get('Accept')}\n"
+        f"{LOG_PAD}Current Time: {currentTime()}\n"
+        )
     return render_template('mixed.html')
 
 # LOGIN ROUTE
