@@ -171,24 +171,10 @@ def logout():
     session.pop('username', None)
     return redirect(url_for('login'))
 
-
+# root route
 @app.route('/')
 def index():
     if 'username' not in session:
-        
-        ipAddr = fetch_real_ip()
-        if ipAddr is None:        # testing hotfix, shouldn't affect prod
-            ipAddr=request.remote_addr
-        log_block = (
-            f"{LOG_PAD}IP: {ipAddr}\n"
-            f"{LOG_PAD}Full Path: {request.full_path}\n"
-            f"{LOG_PAD}User-Agent: {request.headers.get('User-Agent')}\n"
-            f"{LOG_PAD}Referer: {request.headers.get('Referer')}\n"
-            f"{LOG_PAD}Accept: {request.headers.get('Accept')}\n"
-            f"{LOG_PAD}Current Time: {currentTime()}\n"
-        )
-    
-        print(currentTime(),'\n',log_block)    
         return redirect(url_for('info'))
 
     rootHit = session['username']
