@@ -125,7 +125,7 @@ def signup():
             }), 409
 
         ip = fetch_real_ip() or request.remote_addr
-        print(currentTime(),f"[++] Approval Request received and written to db [IP: {ip}")
+        print(currentTime(),f"[++] Approval Request received and written to db [IP: {ip}]")
         discord_ping(username, email)        # trigger webhook
         # run notifier script, couldn't be asked to integrate as function; will do someday
         try:
@@ -168,7 +168,8 @@ def index():
             f"{LOG_PAD}Full Path: {request.full_path}\n"
             f"{LOG_PAD}User-Agent: {request.headers.get('User-Agent')}\n"
             f"{LOG_PAD}Referer: {request.headers.get('Referer')}\n"
-            f"{LOG_PAD}Accept: {request.headers.get('Accept')}"
+            f"{LOG_PAD}Accept: {request.headers.get('Accept')}\n"
+            f"{LOG_PAD}Current Time: {currentTime()}\n"
         )
     
         print(currentTime(),'\n',log_block)    
