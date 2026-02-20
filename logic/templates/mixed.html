@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tasker | Let Tasker remember it</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: { base: '#111520', accent: '#fcd34d' }
+                }
+            }
+        }
+    </script>
+    <style>
+        .dot-grid {
+            background-image: radial-gradient(rgba(252, 211, 77, 0.35) 1.5px, transparent 1.5px);
+            background-size: 24px 24px;
+            filter: drop-shadow(0 0 4px rgba(252, 211, 77, 0.6));
+            will-change: transform, background-position;
+            animation: grid-drift 20s linear infinite;
+        }
+
+        @keyframes grid-drift {
+            0% { background-position: 0 0; }
+            100% { background-position: 48px 48px; }
+        }
+
+        .orb {
+            will-change: transform;
+            transition: transform 0.15s cubic-bezier(0.1, 0.5, 0.3, 1);
+        }
+    </style>
+</head>
+<body class="bg-base text-slate-300 antialiased selection:bg-accent selection:text-base flex flex-col min-h-screen relative overflow-hidden">
+    
+    <div class="fixed inset-0 pointer-events-none z-0">
+        <div class="orb absolute top-[-5%] left-[-10%] w-[20rem] md:w-[30rem] h-[20rem] md:h-[30rem] bg-accent/10 rounded-full blur-[80px] md:blur-[120px]" data-speed="-3"></div>
+        <div class="orb absolute bottom-[-10%] right-[-10%] w-[25rem] md:w-[40rem] h-[25rem] md:h-[40rem] bg-accent/5 rounded-full blur-[100px] md:blur-[150px]" data-speed="2"></div>
+        <div class="orb absolute top-[40%] left-[40%] w-[15rem] md:w-[20rem] h-[15rem] md:h-[20rem] bg-accent/10 rounded-full blur-[60px] md:blur-[100px]" data-speed="-5"></div>
+    </div>
+
+    <div class="fixed inset-[-50px] pointer-events-none z-0 dot-grid [mask-image:radial-gradient(ellipse_at_center,black_10%,transparent_75%)]" id="parallax-grid"></div>
+
+    <nav class="p-6 md:p-8 w-full max-w-5xl mx-auto flex justify-between items-center relative z-10">
+        <div class="text-xl md:text-2xl font-bold text-white tracking-tight">Tasker.</div>
+        <div class="flex items-center gap-4 md:gap-6">
+            <a href="/login" class="text-sm font-medium hover:text-white transition-colors duration-200">Log in</a>
+            <a href="/signup" class="text-sm font-semibold bg-accent text-base px-4 py-2 md:px-5 md:py-2.5 rounded-full hover:bg-yellow-300 transition-colors duration-200 shadow-[0_0_15px_rgba(252,211,77,0.2)]">Sign up</a>
+        </div>
+    </nav>
+
+    <main class="flex-grow flex flex-col justify-center max-w-5xl mx-auto px-6 md:px-8 w-full py-12 md:py-20 relative z-10">
+        <h1 class="text-5xl sm:text-6xl md:text-8xl font-extrabold text-white tracking-tighter leading-tight max-w-4xl mb-6 md:mb-8">
+            Let Tasker <br> <span class="text-accent">remember it.</span>
+        </h1>
+        <p class="text-lg md:text-2xl text-slate-400 font-light max-w-2xl mb-12 md:mb-16 leading-relaxed">
+            Offload your mental clutter. A radically simple dashboard designed to capture your tasks instantly and keep them organized.
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 border-t border-slate-800 pt-12 md:pt-16">
+            <div>
+                <h3 class="text-lg font-bold text-white mb-2 md:mb-3">Absolute Privacy.</h3>
+                <p class="text-slate-400 leading-relaxed text-sm">Your data stays yours. Hosted on private infrastructure so you never have to worry about third-party tracking or data scraping.</p>
+            </div>
+            <div>
+                <h3 class="text-lg font-bold text-white mb-2 md:mb-3">Simplicity.</h3>
+                <p class="text-slate-400 leading-relaxed text-sm">Capture thoughts on the go and let the app handle the rest.</p>
+            </div>
+            <div>
+                <h3 class="text-lg font-bold text-white mb-2 md:mb-3">Frictionless Entry.</h3>
+                <p class="text-slate-400 leading-relaxed text-sm">Get in, dump your tasks, get out. The interface is stripped down to the essentials so nothing gets in your way.</p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const grid = document.getElementById('parallax-grid');
+        const orbs = document.querySelectorAll('.orb');
+
+        // Only runs on devices with a mouse, keeping mobile smooth
+        if (window.matchMedia("(pointer: fine)").matches) {
+            document.addEventListener('mousemove', (e) => {
+                const xGrid = (e.clientX / window.innerWidth - 0.5) * 30;
+                const yGrid = (e.clientY / window.innerHeight - 0.5) * 30;
+                grid.style.transform = `translate(${xGrid * -1}px, ${yGrid * -1}px)`;
+
+                const xOrb = (window.innerWidth - e.pageX * 2) / 100;
+                const yOrb = (window.innerHeight - e.pageY * 2) / 100;
+
+                orbs.forEach(orb => {
+                    const speed = orb.getAttribute('data-speed');
+                    orb.style.transform = `translate(${xOrb * speed}px, ${yOrb * speed}px)`;
+                });
+            });
+        }
+    </script>
+</body>
+</html>
