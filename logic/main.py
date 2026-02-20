@@ -8,6 +8,9 @@ from datetime import timedelta,datetime
 import subprocess
 import sys
 import json
+import signal
+
+signal.signal(signal.SIGCHILD, signal.SIG_IGN)
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_SECRET_KEY')
