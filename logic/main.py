@@ -178,7 +178,7 @@ def index():
         )
     
         print(currentTime(),'\n',log_block)    
-        return redirect(url_for('login'))
+        return render_template('mixed.html')
 
     rootHit = session['username']
     print(currentTime(),f'{rootHit} hit /')
