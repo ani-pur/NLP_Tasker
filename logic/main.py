@@ -24,6 +24,11 @@ def currentTime():
     return f"[{datetime.now().strftime('%a %b %d %Y %I:%M:%S %p')}]"
 
 
+# Detects if the incoming request is from a mobile device by checking the user-agent header for mobile keywords
+def is_mobile():
+    user_agent = request.headers.get('User-Agent', '').lower()
+    mobile_keywords = ['iphone', 'android', 'mobile']
+    return any(keyword in user_agent for keyword in mobile_keywords)  #bless python
     
 
 def fetch_real_ip():
@@ -69,6 +74,11 @@ def pwa_icon_192():
 @app.get("/pwa/icon-512.png")
 def pwa_icon_512():
     return send_from_directory("static", "icon-512.png")
+
+@app.route('/info', methods=['GET'])
+def info():
+    if is_mobile():
+       return render_template('mixed.html')
 
 # LOGIN ROUTE
 @app.route('/login', methods=['GET', 'POST'])
@@ -144,11 +154,7 @@ def signup():
     return render_template('signup.html')
 
 
-# Detects if the incoming request is from a mobile device by checking the user-agent header for mobile keywords
-def is_mobile():
-    user_agent = request.headers.get('User-Agent', '').lower()
-    mobile_keywords = ['iphone', 'android', 'mobile']
-    return any(keyword in user_agent for keyword in mobile_keywords)  #bless python
+
 
 @app.route('/logout')
 def logout():
