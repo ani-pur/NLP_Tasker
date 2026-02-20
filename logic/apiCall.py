@@ -1,5 +1,5 @@
 # this program constructs user metadata that gets appended to user request to API
-
+import httpx
 from datetime import date,datetime
 from openai import OpenAI
 import time
@@ -7,10 +7,15 @@ from textwrap import dedent
 import os
 import threading
 
+def currentTime():
+    # returns current local time formatted for logs as: [HH:MM:SS AM/PM]
+    return f"[{datetime.now().strftime('%a %b %d %Y %I:%M:%S %p')}]"
 
+
+http_client=httpx.Client(limits=httpx.Limits(max_keepalive_connections=20, keepalive_expiry=140.0)) # 20 second overhead for each warmup attempt
 
 api_key=os.environ.get('API_KEY')
-client = OpenAI(api_key=api_key)
+client = OpenAI(api_key=api_key,http_client=http_client)
 
 LOG_PAD = "\t\t"        # to pad logs so they're actually readable lol
 
@@ -65,14 +70,26 @@ def warmupCall():
 
     )
     
-    warmup_endTime=time.time()
-    warmupClock = warmup_endTime - warmup_startTime
-    print(LOG_PAD,'api WARMUP and RESPONSE: ',warmupClock, emptyResponse.output_text)
+    warmupClock = time.time() - warmup_startTime
+    if warmupClock >= 3:
+        print(f"{currentTime()} [PID {os.getpid()}] LATE WARMUP: {warmupClock:.2f}s")
     
+def keep_warm_loop():
+    while True:
+        try:
+            print(f"warming PID [{os.getpid()}]")
+            warmupCall()
+        except Exception as e:
+            print(LOG_PAD, "Warmup ping failed:", e)
+        
+        # Sleep for 120 seconds before pinging again
+        time.sleep(120)
 
-def warmupCall_async():
-    t = threading.Thread(target=warmupCall, daemon=True)
-    t.start()
+# When Gunicorn forks a worker, it imports this file
+# This hopefully guarantees exactly ONE background thread is spawned PER WORKER
+# Each worker fires warmup call and hopefully all children threads per worker can share the warm socket
+warmup_thread = threading.Thread(target=keep_warm_loop, daemon=True)
+warmup_thread.start()
 
 # pass to api
 def postRequest(userInput: dict) -> str:  

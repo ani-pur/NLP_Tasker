@@ -5,9 +5,12 @@ from logic import apiCall as api
 import secrets
 import os
 from datetime import timedelta,datetime
+import threading
 import subprocess
 import sys
 import json
+import urllib.request
+
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_SECRET_KEY')
@@ -30,20 +33,28 @@ def fetch_real_ip():
     return None
 
 def discord_ping(username, email):
-    subprocess.Popen(
-        [
-            "curl",
-            "-s",
-            "-H", "Content-Type: application/json",
-            "-d", json.dumps({
-                "content": f"[!] Account request: [{username}] [{email}]"
-            }),
-            os.environ.get("DISCORD_WEBHOOK_URL"),
-        ],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
-    print("\t webhook triggered")
+    def _send():
+        url = os.environ.get("DISCORD_WEBHOOK_URL")
+        if not url:
+            return
+            
+        payload = json.dumps({"content": f"[!] Account request: [{username}] [{email}]"}).encode('utf-8')
+        
+        # Added User-Agent to bypass Discord's anti-bot 403 block
+        headers = {
+            "Content-Type": "application/json",
+            "User-Agent": "TaskerApp/1.0" 
+        }
+        
+        req = urllib.request.Request(url, data=payload, headers=headers)
+        
+        try:
+            urllib.request.urlopen(req, timeout=5)
+            print("\t webhook triggered")
+        except Exception as e:
+            print(f"\t [!] Webhook failed: {e}")
+
+    threading.Thread(target=_send, daemon=True).start()
 
 
 # PWA ENDPOINTS 
@@ -104,12 +115,7 @@ def signup():
 
         hashedPass = hasher.hash_password(password)
         success = tasks.add_pending_approval(username, hashedPass, email)
-        ipAddr=fetch_real_ip()
-        if ipAddr is None:
-            ipv4=request.remote_addr
-            print(ipv4,end=" ")
-        else:
-            print(ipAddr,end=" ")
+        
 
         
         if not success:
@@ -117,8 +123,9 @@ def signup():
                 "ok": False,
                 "error": "Username already exists or request failed"
             }), 409
-        
-        print(currentTime(),'[++] Approval Request received and written to db')
+
+        ip = fetch_real_ip() or request.remote_addr
+        print(currentTime(),f"[++] Approval Request received and written to db [IP: {ip}]")
         discord_ping(username, email)        # trigger webhook
         # run notifier script, couldn't be asked to integrate as function; will do someday
         try:
@@ -161,7 +168,8 @@ def index():
             f"{LOG_PAD}Full Path: {request.full_path}\n"
             f"{LOG_PAD}User-Agent: {request.headers.get('User-Agent')}\n"
             f"{LOG_PAD}Referer: {request.headers.get('Referer')}\n"
-            f"{LOG_PAD}Accept: {request.headers.get('Accept')}"
+            f"{LOG_PAD}Accept: {request.headers.get('Accept')}\n"
+            f"{LOG_PAD}Current Time: {currentTime()}\n"
         )
     
         print(currentTime(),'\n',log_block)    
@@ -169,9 +177,6 @@ def index():
 
     rootHit = session['username']
     print(currentTime(),f'{rootHit} hit /')
-
-    # API warmup
-    api.warmupCall_async()
 
     # Mobile UI
     if is_mobile():
