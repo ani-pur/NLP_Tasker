@@ -77,8 +77,7 @@ def pwa_icon_512():
 
 @app.route('/info', methods=['GET'])
 def info():
-    if is_mobile():
-       return render_template('mixed.html')
+    return render_template('mixed.html')
 
 # LOGIN ROUTE
 @app.route('/login', methods=['GET', 'POST'])
