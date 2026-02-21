@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <link rel="manifest" href="/pwa/manifest.webmanifest">
-  <meta name="theme-color" content="#09090b">
+  <meta name="theme-color" content="#111520">
   <title>Tasker.</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
@@ -16,9 +16,10 @@
         extend: {
           fontFamily: { sans: ['Inter', 'sans-serif'] },
           colors: { 
-            base: '#09090b',    /* Ultra dark matte background */
-            panel: '#18181b',   /* Solid matte container background */
-            surface: '#27272a', /* Solid border and input background */
+            base: '#111520',      /* Original navy slate base */
+            panel: '#1e293b',     /* Solid matte slate-800 */
+            surface: '#334155',   /* Solid matte slate-700 */
+            input: '#0f172a',     /* Deep matte slate-900 */
             accent: '#fcd34d', 
             'accent-pressed': '#eab308' 
           }
@@ -29,7 +30,7 @@
 
   <style>
     body { 
-      background-color: #09090b; 
+      background-color: #111520; 
       -webkit-tap-highlight-color: transparent; 
     }
 
@@ -39,61 +40,92 @@
       100% { opacity: 1; transform: translateY(0) scale(1); }
     }
 
+    /* Staggered entrance animation for tasks */
+    .task-enter {
+      animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    @keyframes slideUp {
+      0%   { opacity: 0; transform: translateY(15px) scale(0.98); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* Shimmer effect for the Add Task button */
+    .shimmer-btn {
+      position: relative;
+      overflow: hidden;
+    }
+    .shimmer-btn::after {
+      content: '';
+      position: absolute;
+      top: 0; 
+      left: -100%; 
+      width: 50%; 
+      height: 100%;
+      background: linear-gradient(to right, transparent, rgba(255,255,255,0.4), transparent);
+      transform: skewX(-20deg);
+      animation: shimmer 3s infinite;
+    }
+    @keyframes shimmer {
+      0%   { left: -100%; }
+      20%  { left: 200%; }
+      100% { left: 200%; }
+    }
+
     summary { list-style: none; }
     summary::-webkit-details-marker { display: none; }
 
     .task-details { animation: expand 0.2s ease-out; }
     @keyframes expand {
       from { opacity: 0; transform: translateY(-4px); }
-      to { opacity: 1; transform: translateY(0); }
+      to   { opacity: 1; transform: translateY(0); }
     }
 
     .tap-active {
-      background-color: #27272a !important; /* surface color for tap */
+      background-color: #334155 !important; 
       transform: scale(0.985);
     }
     
     .btn-pressed {
       background-color: #eab308 !important; 
-      transform: translateY(1px) scale(0.98);
+      transform: translateY(2px) scale(0.98);
     }
   </style>
 </head>
 
 <body class="text-slate-300 antialiased selection:bg-accent selection:text-base min-h-screen flex flex-col">
 
-  <header class="w-full border-b border-surface bg-panel sticky top-0 z-50">
-    <div class="px-5 h-16 flex items-center justify-between">
+  <header class="w-full border-b border-surface bg-panel sticky top-0 z-50 shadow-md">
+    <div class="px-5 h-14 flex items-center justify-between">
       <div class="text-2xl font-extrabold text-white tracking-tighter">Tasker.</div>
       <div class="flex items-center gap-4 text-sm font-medium">
-        <span class="text-slate-400 bg-base border border-surface px-2 py-1 rounded-md">{{ username }}</span>
+        <span class="text-slate-300 bg-input border border-surface px-2 py-1 rounded-md">{{ username }}</span>
         <a href="{{ url_for('logout') }}" class="text-red-400 hover:text-red-300 transition pl-1 border-l border-surface">Logout</a>
       </div>
     </div>
   </header>
 
-  <main class="flex-grow w-full max-w-md mx-auto px-4 py-6 flex flex-col gap-8">
+  <main class="flex-grow w-full max-w-md mx-auto px-4 py-5 flex flex-col gap-6">
     
-    <section class="bg-panel border border-surface rounded-2xl p-4 shadow-xl">
-      <h3 class="text-base font-bold text-white mb-3">Describe Task</h3>
-      <form id="taskForm" class="flex flex-col gap-3">
+    <section class="bg-panel border border-surface rounded-2xl p-3 shadow-lg">
+      <h3 class="text-sm font-bold text-white mb-2 ml-1">Describe Task</h3>
+      <form id="taskForm" class="flex flex-col gap-2">
         <textarea 
           id="task_description" 
           maxlength="200" 
-          class="w-full h-20 bg-base border border-surface focus:border-accent text-slate-200 px-4 py-3 rounded-xl outline-none transition-colors placeholder:text-slate-500 resize-none font-medium text-sm shadow-inner"
+          class="w-full h-14 bg-input border border-surface focus:border-accent text-slate-200 px-3 py-2 rounded-xl outline-none transition-colors placeholder:text-slate-500 resize-none font-medium text-sm shadow-inner"
         ></textarea>
-        <button type="submit" id="addTaskBtn" class="self-end bg-accent text-slate-900 font-bold py-2 px-6 rounded-lg text-sm transition duration-150 shadow-md">
+        <button type="submit" id="addTaskBtn" class="shimmer-btn w-full bg-accent text-slate-900 font-bold py-2.5 rounded-xl text-sm transition duration-150 shadow-[0_0_10px_rgba(252,211,77,0.2)]">
           Add Task
         </button>
       </form>
     </section>
 
     <section class="flex flex-col gap-4">
-      <div class="flex items-center justify-between border-b border-surface pb-3 px-1">
-        <h2 class="text-xl font-bold text-white tracking-tight">Active Queue</h2>
-        <div class="inline-flex items-center gap-2 text-xs font-bold tabular-nums">
+      <div class="flex items-center justify-between border-b border-surface pb-2 px-1">
+        <h2 class="text-lg font-bold text-white tracking-tight">Active Queue</h2>
+        <div class="inline-flex items-center gap-2 text-[11px] font-bold tabular-nums">
           <span id="clockDate" class="text-accent tracking-widest uppercase"></span>
-          <span class="text-slate-600">|</span>
+          <span class="text-slate-500">|</span>
           <span id="clockTime" class="text-slate-300 tracking-widest"></span>
         </div>
       </div>
@@ -157,7 +189,7 @@
       const list = document.getElementById('taskList');
       list.innerHTML = '';
 
-      tasks.forEach(task => {
+      tasks.forEach((task, index) => {
         const [id, __, name, time, desc, due, priority, color] = task;
         
         const dueDateDisplay = due ? due.replace(/ 00:00:00.*$/, '') : '';
@@ -165,19 +197,20 @@
         const fullDateTime = `${dueDateDisplay}${timeDisplay}`.trim();
 
         const li = document.createElement('li');
-        // Swapped to solid matte panel with solid surface border
-        li.className = 'bg-panel border border-surface rounded-xl px-4 py-4 transition-transform duration-100 ease-out shadow-sm';
+        // Matte panels, staggered slide up animation
+        li.className = 'task-enter bg-panel border border-surface rounded-xl px-4 py-4 transition-transform duration-100 ease-out shadow-sm';
+        li.style.animationDelay = `${index * 40}ms`;
         
         li.innerHTML = `
           <details class="group">
             <summary class="flex flex-col gap-1 outline-none cursor-pointer">
               <div class="font-bold text-[1.05rem] leading-tight" style="color:${color || '#fcd34d'}">${name}</div>
-              ${fullDateTime ? `<div class="text-xs font-semibold text-sky-400 mt-0.5">${fullDateTime}</div>` : ''}
+              ${fullDateTime ? `<div class="text-xs font-semibold text-sky-400/80 mt-0.5">${fullDateTime}</div>` : ''}
             </summary>
             <div class="task-details mt-3 text-slate-400 text-sm leading-relaxed border-t border-surface pt-3">
               ${desc}
               <div class="mt-4 flex justify-end">
-                <button class="text-red-400 font-bold text-xs tracking-widest uppercase px-5 py-2.5 bg-red-400/10 active:bg-red-400/20 rounded-lg transition" onclick="deleteTask(${id})">
+                <button class="text-red-400 font-bold text-xs tracking-widest uppercase px-5 py-2.5 bg-input border border-surface active:bg-surface rounded-lg transition" onclick="deleteTask(${id})">
                   Delete
                 </button>
               </div>
@@ -209,7 +242,7 @@
       setTimeout(() => { addTaskCooldown = false; }, ADD_TASK_COOLDOWN_MS);
       
       const desc = taskInput.value;
-      if (desc.length < 10 || desc.length > 200) return alert('Task description must be 10–200 characters');
+      if (desc.length < 10 || desc.length > 200) return alert('Task description must be 10 to 200 characters');
 
       const res = await fetch('/tasks', {
         method: 'POST',
