@@ -3,335 +3,175 @@
 <head>
   <meta charset="UTF-8">
   <link rel="manifest" href="/pwa/manifest.webmanifest">
-  <meta name="theme-color" content="#0b0f19">
+  <meta name="theme-color" content="#111520">
+  <title>Tasker.</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-  <title>Tasker – Mobile</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Nabla&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   
-
   <script>
-  (function () {
-    const ua = navigator.userAgent || "";
-    const platform = navigator.platform || "";
-    const isIOS =
-      /iPad|iPhone|iPod/.test(ua) ||
-      (platform === "MacIntel" && navigator.maxTouchPoints > 1);
-  
-    if (isIOS) document.documentElement.classList.add("ios");
-  })();
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          colors: { base: '#111520', accent: '#fcd34d', 'accent-pressed': '#eab308' }
+        }
+      }
+    }
   </script>
 
   <style>
-    :root {
-      --bg: #0e1116;
-      --panel: #151a21;
-      --panel-soft: #1b212b;
-      --text: #e6e9ef;
-      --muted: #9aa3b2;
-      --accent: #4f8cff;
-      --accent-pressed: #356de0;
-      --danger: #ff5c5c;
-      --radius: 16px;
+    body { 
+      background-color: #111520; 
+      -webkit-tap-highlight-color: transparent; 
     }
 
-    * { box-sizing: border-box; }
-
-    html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      background: var(--bg);
-      font-family: 'Roboto', system-ui, sans-serif;
-      color: var(--text);
+    /* Clock snap animation */
+    .snap { animation: snap 180ms ease-out; }
+    @keyframes snap {
+      0%   { opacity: 0; transform: translateY(-4px) scale(1.05); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
     }
 
-    body {
-      display: flex;
-      flex-direction: column;
+    /* Staggered slide-up for tasks */
+    .task-enter {
+      animation: slideUp 0.5s cubic-bezier(0.23, 1, 0.32, 1) both;
+    }
+    @keyframes slideUp {
+      0%   { opacity: 0; transform: translateY(20px) scale(0.96); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
     }
 
-    header {
-      padding: 20px 16px 14px;
-      background: var(--panel);
-      border-bottom: 1px solid #222;
-      text-align: center;
+    /* Faster pulsing clock separator */
+    .pulse-fast {
+      animation: fastPulse 1.5s ease-in-out infinite;
+    }
+    @keyframes fastPulse {
+      0%, 100% { opacity: 0.3; }
+      50%      { opacity: 1; text-shadow: 0 0 8px rgba(252,211,77,0.8); }
     }
 
-    header h1 {
-      margin: 0;
-      font-size: 1.4rem;
-      font-weight: 700;
-    }
-
-    header a {
-      display: inline-block;
-      margin-top: 6px;
-      color: var(--accent);
-      text-decoration: none;
-      font-size: 0.95rem;
-    }
-
-    main {
-      flex: 1;
-      max-width: 480px;
-      width: 100%;
-      margin: 0 auto;
-      padding: 16px 10px 28px;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-
-    .section {
-      background: var(--panel);
-      border-radius: var(--radius);
-      padding: 16px 14px;
-    }
-
-    h2, h3 {
-      margin: 0 0 12px;
-      font-weight: 500;
-    }
-
-    h2 a {
-      margin-left: 10px;
-      font-size: 0.9rem;
-      color: var(--accent);
-      text-decoration: none;
-    }
-
-    /* ---------- TASK LIST ---------- */
-
-    ul#taskList {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    ul#taskList li {
-      background: var(--panel-soft);
-      border-radius: var(--radius);
-      padding: 14px;
-      transition: background 0.15s ease, transform 0.1s ease;
-    }
-
-    ul#taskList li.tap-active {
-      background: #222836;
-      transform: scale(0.99);
-    }
-
+    /* Custom Accordion Logic */
     summary {
-      cursor: pointer;
-      list-style: none;
-      outline: none;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      align-items: center;
-      font-weight: 600;
+      list-style: none; 
     }
-
     summary::-webkit-details-marker {
-      display: none;
+      display: none; 
     }
 
     .task-details {
-      margin-top: 10px;
-      color: var(--muted);
-      font-size: 0.95rem;
-      line-height: 1.4;
-      animation: expand 0.15s ease;
+      animation: expand 0.2s ease-out;
     }
-
     @keyframes expand {
       from { opacity: 0; transform: translateY(-4px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
-    .delete-btn {
-      margin-top: 10px;
-      background: transparent;
-      border: 1px solid var(--danger);
-      color: var(--danger);
-      padding: 6px 14px;
-      border-radius: 10px;
-      font-size: 0.9rem;
-      cursor: pointer;
+    /* Tap Feedback Classes */
+    .tap-active {
+      background-color: rgba(0, 0, 0, 0.4) !important; 
+      transform: scale(0.985);
     }
-
-    .delete-btn:active {
-      background: var(--danger);
-      color: #fff;
-    }
-
-    /* ---------- FORM ---------- */
-
-    form {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    textarea {
-      width: 100%;
-      min-height: 110px;
-      resize: vertical;
-      background: var(--panel-soft);
-      border: none;
-      border-radius: var(--radius);
-      padding: 12px;
-      color: var(--text);
-      font-size: 1rem;
-      outline: none;
-    }
-
-    textarea::placeholder {
-      color: var(--muted);
-    }
-
-    button[type="submit"] {
-      width: 100%;
-      padding: 12px;
-      border-radius: var(--radius);
-      border: none;
-      font-size: 1rem;
-      font-weight: 600;
-      background: var(--accent);
-      color: #fff;
-      cursor: pointer;
-      transition: background 0.1s ease, transform 0.05s ease;
-    }
-
-    button[type="submit"].pressed {
-      background: var(--accent-pressed);
+    
+    .btn-pressed {
+      background-color: #eab308 !important; 
       transform: translateY(1px) scale(0.98);
     }
-
-    .section-head{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap: 10px;
-      margin: 0 0 12px;
-    }
-    
-    .section-head h2{
-      margin: 0;
-    }
-    
-    /* smaller than desktop so it fits clean on mobile */
-    .clock-strip{
-      display:inline-flex;
-      align-items:center;
-      padding: 6px 10px;
-      border-radius: 12px;
-      background: rgba(255,255,255,.03);
-      border: 1px solid rgba(255,255,255,.08);
-      letter-spacing: .05em;
-      user-select:none;
-      white-space:nowrap;
-    }
-    
-    .clock-date{
-      color: var(--accent);
-      font-weight: 800;
-      font-size: 0.78rem;
-    }
-    
-    .clock-sep{
-      opacity:.35;
-      padding: 0 8px;
-      font-weight: 800;
-    }
-    
-    .clock-time{
-      color: var(--text);
-      opacity:.65;
-      font-weight: 700;
-      font-size: 0.74rem;
-      font-variant-numeric: tabular-nums;
-    }
-    
-    .clock-time.snap{
-      animation: snap 180ms ease-out;
-    }
-    
-    @keyframes snap{
-      0%   { opacity:0; transform: translateY(-4px) scale(1.08); }
-      100% { opacity:.65; transform: translateY(0) scale(1); }
-    }
-
-    .nabla-title{
-      font-family: "Nabla", system-ui, sans-serif;
-      font-weight: 400;
-      letter-spacing: 0.02em;
-      line-height: 1;
-    }
-
-    html.ios .nabla-title{
-      font-family: "Outfit", system-ui, sans-serif;
-      font-weight: 800; 
-    }
-
-    
-    .nabla-welcome{
-      font-size: 2.1rem;  
-    }
-    
-    .nabla-tasks{
-      font-size: 1.55rem;
-    }
-
-
   </style>
 </head>
+<body class="text-slate-300 antialiased selection:bg-accent selection:text-base min-h-screen flex flex-col">
 
-<body>
-  <header>
-    <h1 class="nabla-title nabla-welcome">Welcome, {{ username }}</h1>
-    <a href="{{ url_for('logout') }}">Logout</a>
+  <header class="w-full border-b border-slate-800/80 bg-slate-900/80 backdrop-blur-xl sticky top-0 z-50">
+    <div class="px-5 h-16 flex items-center justify-between">
+      <div class="text-2xl font-extrabold text-white tracking-tighter">Tasker.</div>
+      <div class="flex items-center gap-4 text-sm font-medium">
+        <span class="text-slate-400 bg-slate-800/50 px-2 py-1 rounded-md">{{ username }}</span>
+        <a href="{{ url_for('logout') }}" class="text-red-400 hover:text-red-300 transition pl-1 border-l border-slate-700">Logout</a>
+      </div>
+    </div>
   </header>
 
-  <main>
-    <section class="section">
-      <div class="section-head">
-        <h2 class="nabla-title nabla-tasks">
-          Your Tasks 
-        </h2>
-
-      
-        <div class="clock-strip" id="clockStrip">
-          <span class="clock-date" id="clockDate"></span>
-          <span class="clock-sep">·</span>
-          <span class="clock-time" id="clockTime"></span>
-        </div>
-      </div>
-
-      <ul id="taskList"></ul>
-    </section>
-
-    <section class="section">
-      <h3>Add Task</h3>
-      <form id="taskForm">
-        <textarea id="task_description" placeholder="Describe task"></textarea>
-        <button type="submit" id="addTaskBtn">Add Task</button>
+  <main class="flex-grow w-full max-w-md mx-auto px-4 py-6 flex flex-col gap-8">
+    
+    <section class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 shadow-xl relative overflow-hidden">
+      <h3 class="text-base font-bold text-white mb-3">Describe Task</h3>
+      <form id="taskForm" class="flex flex-col gap-3">
+        <textarea 
+          id="task_description" 
+          maxlength="200" 
+          class="w-full h-20 bg-slate-950/50 border border-slate-800 focus:border-accent/50 focus:ring-1 focus:ring-accent/50 text-slate-200 px-4 py-3 rounded-xl outline-none transition-colors placeholder:text-slate-600 resize-none font-medium text-sm"
+        ></textarea>
+        <button type="submit" id="addTaskBtn" class="w-full bg-accent text-slate-900 font-bold py-3 px-4 rounded-xl transition duration-150 shadow-lg">
+          Add Task
+        </button>
       </form>
     </section>
+
+    <section class="flex flex-col gap-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3 px-1">
+        <h2 class="text-xl font-bold text-white tracking-tight">Active Queue</h2>
+        <div class="inline-flex items-center gap-2 text-xs font-bold tabular-nums">
+          <span id="clockDate" class="text-accent tracking-widest uppercase"></span>
+          <span class="text-accent pulse-fast">|</span>
+          <span id="clockTime" class="text-slate-300 tracking-widest"></span>
+        </div>
+      </div>
+      
+      <ul id="taskList" class="flex flex-col gap-3 pb-8"></ul>
+    </section>
+
   </main>
 
   <script>
+    // --- UI/UX Enhancements ---
+    const taskInput = document.getElementById('task_description');
+    
+    // Dynamic Placeholders
+    const prompts = [
+      "gym next monday 7am legs, blue",
+      "groceries in 2 hours yellow, milk eggs chicken rice",
+      "submit project by Friday evening, orange",
+      "call mom tomorrow at noon pink",
+      "doctor appointment next tuesday 9am, red",
+      "read 20 pages of book tonight, purple",
+      "fix production bug before standup, green"
+    ];
+    taskInput.placeholder = 'Try: ' + prompts[Math.floor(Math.random() * prompts.length)];
 
+    // Real-time Hex Parsing
+    const colorMap = {
+      blue: '#87CEEB',
+      red: '#f05656',
+      green: '#6CE5A9',
+      pink: '#F8C8DC',
+      orange: '#ff7f00',
+      purple: '#A96CE5',
+      yellow: '#FDDA0D'
+    };
+
+    taskInput.addEventListener('input', (e) => {
+      const text = e.target.value.toLowerCase();
+      const regex = /\b(blue|red|green|pink|orange|purple|yellow)\b/g;
+      const matches = text.match(regex);
+      
+      if (matches && matches.length > 0) {
+        const activeColor = matches[matches.length - 1];
+        e.target.style.color = colorMap[activeColor];
+      } else {
+        e.target.style.color = '';
+      }
+    });
+
+    // Mobile Button Press Feedback
+    const btn = document.getElementById('addTaskBtn');
+    ['touchstart','mousedown'].forEach(e => btn.addEventListener(e, () => btn.classList.add('btn-pressed')));
+    ['touchend','touchcancel','mouseup','mouseleave'].forEach(e => btn.addEventListener(e, () => btn.classList.remove('btn-pressed')));
+
+    // --- Core Tasker Logic ---
     let addTaskCooldown = false;
     const ADD_TASK_COOLDOWN_MS = 3000; 
 
-    
     function buildUserTzMetadata() {
       const now = new Date();
       return {
@@ -347,22 +187,32 @@
       const list = document.getElementById('taskList');
       list.innerHTML = '';
 
-      tasks.forEach(task => {
-        const [id,, name, time, desc, due,, color] = task;
-        const li = document.createElement('li');
+      tasks.forEach((task, index) => {
+        const [id, __, name, time, desc, due, priority, color] = task;
+        
+        // Format Date string cleanly
+        const dueDateDisplay = due ? due.replace(/ 00:00:00.*$/, '') : '';
+        const timeDisplay = time ? ' • ' + time : '';
+        const fullDateTime = `${dueDateDisplay}${timeDisplay}`.trim();
 
+        const li = document.createElement('li');
+        // Dark, transparent background + staggered animation delay
+        li.className = 'task-enter bg-black/20 border border-slate-800/40 rounded-xl px-4 py-4 transition-transform duration-100 ease-out';
+        li.style.animationDelay = `${index * 50}ms`;
+        
         li.innerHTML = `
-          <details>
-            <summary>
-              <span style="color:${color}">${name}</span>
-              <span style="font-size:0.85rem;color:var(--muted)">
-                ${due ? due.replace(/ 00:00:00.*$/, '') : ''} ${time || ''}
-              </span>
+          <details class="group">
+            <summary class="flex flex-col gap-1 outline-none cursor-pointer">
+              <div class="font-bold text-[1.05rem] leading-tight" style="color:${color || '#fcd34d'}">${name}</div>
+              ${fullDateTime ? `<div class="text-xs font-medium text-sky-300/80 mt-0.5">${fullDateTime}</div>` : ''}
             </summary>
-            <div class="task-details">
+            <div class="task-details mt-3 text-slate-400 text-sm leading-relaxed border-t border-slate-800/40 pt-3">
               ${desc}
-              <br>
-              <button class="delete-btn" onclick="deleteTask(${id})">Delete</button>
+              <div class="mt-4 flex justify-end">
+                <button class="text-red-400 font-bold text-xs tracking-widest uppercase px-5 py-2.5 bg-red-400/10 active:bg-red-400/20 rounded-lg transition" onclick="deleteTask(${id})">
+                  Delete
+                </button>
+              </div>
             </div>
           </details>
         `;
@@ -373,8 +223,8 @@
     }
 
     function addTapFeedback(el) {
-      el.addEventListener('touchstart', () => el.classList.add('tap-active'));
-      el.addEventListener('touchend', () => el.classList.remove('tap-active'));
+      el.addEventListener('touchstart', () => el.classList.add('tap-active'), {passive: true});
+      el.addEventListener('touchend', () => setTimeout(() => el.classList.remove('tap-active'), 50));
       el.addEventListener('touchcancel', () => el.classList.remove('tap-active'));
     }
 
@@ -383,15 +233,15 @@
       if (res.ok) loadTasks();
     }
 
-
     document.getElementById('taskForm').addEventListener('submit', async e => {
       e.preventDefault();
 
       if (addTaskCooldown) return;
       addTaskCooldown = true;
       setTimeout(() => { addTaskCooldown = false; }, ADD_TASK_COOLDOWN_MS);
-      const desc = task_description.value;
-      if (desc.length < 10 || desc.length > 200) return alert('10–200 chars');
+      
+      const desc = taskInput.value;
+      if (desc.length < 10 || desc.length > 200) return alert('Task description must be 10–200 characters');
 
       const res = await fetch('/tasks', {
         method: 'POST',
@@ -403,20 +253,16 @@
       });
 
       if (res.ok) {
-        task_description.value = '';
+        taskInput.value = '';
+        taskInput.style.color = ''; 
+        taskInput.placeholder = 'Try: ' + prompts[Math.floor(Math.random() * prompts.length)];
         loadTasks();
+      } else {
+        alert('Failed to add task');
       }
     });
 
-    // Add Task button press state (mobile-safe)
-    const btn = document.getElementById('addTaskBtn');
-    ['touchstart','mousedown'].forEach(e =>
-      btn.addEventListener(e, () => btn.classList.add('pressed'))
-    );
-    ['touchend','touchcancel','mouseup','mouseleave'].forEach(e =>
-      btn.addEventListener(e, () => btn.classList.remove('pressed'))
-    );
-
+    // --- Clock Logic ---
     function renderClock(animate=false){
       const now = new Date();
       const date = now.toLocaleDateString(undefined, { weekday:"short", month:"short", day:"numeric" }).toUpperCase();
@@ -432,35 +278,31 @@
     
       if (animate){
         elTime.classList.remove("snap");
-        void elTime.offsetWidth;
+        void elTime.offsetWidth; 
         elTime.classList.add("snap");
       }
     }
     
-  renderClock(false);
+    renderClock(false);
 
-  function scheduleNextClockTick(){
-    const now = Date.now();
-    const msToNextMinute = 60000 - (now % 60000);
+    function scheduleNextClockTick(){
+      const now = Date.now();
+      const msToNextMinute = 60000 - (now % 60000);
+      const bufferMs = 80;
 
-    // tiny buffer so we update just AFTER the minute flips
-    const bufferMs = 80;
+      setTimeout(() => {
+        renderClock(true);
+        scheduleNextClockTick();
+      }, msToNextMinute + bufferMs);
+    }
 
-    setTimeout(() => {
-      renderClock(true);
-      scheduleNextClockTick();   // resync every time (no drift ideally)
-    }, msToNextMinute + bufferMs);
-  }
+    scheduleNextClockTick();
 
-  scheduleNextClockTick();
-
-  // when tab becomes visible again, refresh immediately
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) renderClock(false);
-  });
-
-
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) renderClock(false);
+    });
     
+    // Initial Load
     loadTasks();
   </script>
 </body>
