@@ -3,7 +3,15 @@ from email.message import EmailMessage
 import sys
 import os
 import uuid
-# APPROVED template hardcoded but *not* directly in use; incase i decide to implement user notifs into this script, currently user notifs are sent by another script running outside app container
+
+# this is a script, not imported anywhere
+# intended to be used/called via cli 
+# should probably put some typa authentication to be safe, will do another day lol
+
+
+# hardcoding templates cuz they're prob never gonna change and i dont wanna worry about storing and injecting them serverside 
+
+# APPROVAL template  
 HTML_APPROVED = """<!doctype html><html><body style="margin:0;padding:0;background:#f6f7f9;"><div style="max-width:600px;margin:40px auto;background:#fff;border:1px solid #eef0f3;border-radius:12px;overflow:hidden;font-family:Arial,sans-serif;color:#111;line-height:1.55;"><div style="padding:16px 22px;background:#0b1220;"><div style="font-weight:900;letter-spacing:1px;font-size:13px;color:#fff;">TASKER</div><div style="margin-top:4px;font-size:11px;color:#94a3b8;">Notification</div></div><div style="padding:22px;font-size:14px;"><h2 style="margin:10px 0 6px 0;font-size:18px;line-height:1.25;">Hi <span style="font-weight:900;">${username}</span>,</h2><p style="margin:0 0 14px 0;color:#334155;">Your Tasker account has been approved.</p><div style="text-align:center;margin:18px 0 22px 0;"><a href="${login_url}" style="display:inline-block;padding:10px 20px;background:#2563eb;color:#fff;text-decoration:none;border-radius:9px;font-size:13px;font-weight:800;">Tasker</a><div style="margin-top:8px;font-size:11px;color:#64748b;">Manual redirect: <a href="${login_url}" style="color:#2563eb;text-decoration:none;">${login_url}</a></div></div><p style="margin:0;font-size:13px;color:#475569;">Updates and README: <a href="${readme_url}" style="color:#2563eb;text-decoration:none;font-weight:700;">GitHub</a></p><p style="margin:10px 0 0 0;font-size:13px;color:#475569;">Something broke? Got a feature idea? Respond to this email!</p><p style="margin:14px 0 0 0;font-size:13px;">Thanks,<br><strong>Anirudh</strong><br><span style="color:#64748b;">Tasker Admin</span></p></div><div style="padding:14px 22px;background:#f8fafc;border-top:1px solid #eef2f7;"><p style="margin:0;font-size:11px;color:#64748b;">Automated email. Replies go straight to me.<br>pls give internship</p></div></div></body></html>"""
 
 #admin notification template
@@ -94,10 +102,9 @@ if not SMTP_USER or not SMTP_PASS:
     sys.exit(1)
 
 
-# ---- Thread breakers (1,4) ----
+# basically just makes sure gmail sends each email as an individual, detached message instead of appending it to an email thread cuz of content similarity (thread situation ends up trimming parts of the template and users get malformed approval emails) 
 notif_uuid = uuid.uuid4().hex
 short_id = notif_uuid[:4].upper()
-# build message
 msg = EmailMessage()
 
 
@@ -107,7 +114,7 @@ msg["Message-ID"] = f"<tasker-{notif_uuid}@4nirudh.org>"
 msg["X-Tasker-Notification-ID"] = notif_uuid
 
 if notify_admin:
-    # (3) Subject unique ONLY by username
+    # more stuff to make sure email is unique
     msg["Subject"] = f"Tasker: account request received - {recipientUsername} [{short_id}]"
     msg["From"] = FROM_ADDR
     msg["To"] = ADMIN_ADDR
@@ -120,14 +127,14 @@ if notify_admin:
         HTML_ADMIN_NOTIFY
             .replace("${username}", recipientUsername)
             .replace("${email}", recipientAddress)
-        # (4) Invisible nonce to avoid identical-body threading
+        # more bs to ensure uniqueness
         + f"<!-- tasker-nonce:{notif_uuid} -->"
     )
 
     msg.add_alternative(html, subtype="html", cte="base64")
 
 else:
-    # (3) Subject unique ONLY by username
+    # more uniqueness bs
     msg["Subject"] = f"Tasker access granted - {recipientUsername} [{short_id}]"
     msg["From"] = FROM_ADDR
     msg["To"] = recipientAddress
@@ -139,7 +146,7 @@ else:
             .replace("${username}", recipientUsername)
             .replace("${login_url}", LOGIN_URL)
             .replace("${readme_url}", README_URL)
-        # (4) Invisible nonce to avoid identical-body threading
+        # more
         + f"<!-- tasker-nonce:{notif_uuid} -->"
     )
 
