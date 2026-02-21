@@ -3,25 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <link rel="manifest" href="/pwa/manifest.webmanifest">
-  <meta name="theme-color" content="#0a0f16">
+  <meta name="theme-color" content="#111520">
   <title>Tasker.</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   
   <script>
     tailwind.config = {
       theme: {
         extend: {
           fontFamily: { sans: ['Inter', 'sans-serif'] },
-          colors: { 
-            base: '#0a0f16',      /* Deep matte midnight blue */
-            panel: '#121924',     /* Slightly lighter matte container */
-            surface: '#1e293b',   /* Slate-800 for borders */
-            accent: '#fcd34d', 
-            'accent-pressed': '#eab308' 
-          }
+          colors: { base: '#111520', accent: '#fcd34d', 'accent-pressed': '#eab308' }
         }
       }
     }
@@ -29,85 +23,97 @@
 
   <style>
     body { 
-      background-color: #0a0f16; 
+      background-color: #111520; 
       -webkit-tap-highlight-color: transparent; 
     }
 
-    /* Slow, smooth staggered entrance */
-    .task-enter {
-      animation: slideUp 0.6s cubic-bezier(0.23, 1, 0.32, 1) both;
-    }
-    @keyframes slideUp {
-      0%   { opacity: 0; transform: translateY(25px) scale(0.96); }
+    /* Clock snap animation */
+    .snap { animation: snap 180ms ease-out; }
+    @keyframes snap {
+      0%   { opacity: 0; transform: translateY(-4px) scale(1.05); }
       100% { opacity: 1; transform: translateY(0) scale(1); }
     }
 
-    /* Gentle breathing eyecandy for the clock separator */
-    .pulse-slow {
-      animation: softPulse 3s ease-in-out infinite;
+    /* Staggered slide-up for tasks */
+    .task-enter {
+      animation: slideUp 0.5s cubic-bezier(0.23, 1, 0.32, 1) both;
     }
-    @keyframes softPulse {
+    @keyframes slideUp {
+      0%   { opacity: 0; transform: translateY(20px) scale(0.96); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* Faster pulsing clock separator */
+    .pulse-fast {
+      animation: fastPulse 1.5s ease-in-out infinite;
+    }
+    @keyframes fastPulse {
       0%, 100% { opacity: 0.3; }
-      50%      { opacity: 1; text-shadow: 0 0 8px rgba(252,211,77,0.6); }
+      50%      { opacity: 1; text-shadow: 0 0 8px rgba(252,211,77,0.8); }
     }
 
-    /* Accordion Logic */
-    summary { list-style: none; }
-    summary::-webkit-details-marker { display: none; }
+    /* Custom Accordion Logic */
+    summary {
+      list-style: none; 
+    }
+    summary::-webkit-details-marker {
+      display: none; 
+    }
 
-    .task-details { animation: expand 0.25s cubic-bezier(0.23, 1, 0.32, 1); }
+    .task-details {
+      animation: expand 0.2s ease-out;
+    }
     @keyframes expand {
       from { opacity: 0; transform: translateY(-4px); }
-      to   { opacity: 1; transform: translateY(0); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
+    /* Tap Feedback Classes */
     .tap-active {
-      transform: scale(0.97) !important;
-      transition: transform 0.1s ease-out;
+      background-color: rgba(0, 0, 0, 0.4) !important; 
+      transform: scale(0.985);
     }
     
     .btn-pressed {
       background-color: #eab308 !important; 
-      transform: translateY(2px) scale(0.96);
-      box-shadow: none !important;
+      transform: translateY(1px) scale(0.98);
     }
   </style>
 </head>
-
 <body class="text-slate-300 antialiased selection:bg-accent selection:text-base min-h-screen flex flex-col">
 
-  <header class="w-full border-b border-white/5 bg-base/70 backdrop-blur-xl sticky top-0 z-50">
-    <div class="px-5 h-14 flex items-center justify-between">
-      <div class="text-2xl font-extrabold text-white tracking-tighter drop-shadow-sm">Tasker.</div>
+  <header class="w-full border-b border-slate-800/80 bg-slate-900/80 backdrop-blur-xl sticky top-0 z-50">
+    <div class="px-5 h-16 flex items-center justify-between">
+      <div class="text-2xl font-extrabold text-white tracking-tighter">Tasker.</div>
       <div class="flex items-center gap-4 text-sm font-medium">
-        <span class="text-slate-400 bg-white/5 border border-white/5 px-2 py-1 rounded-md shadow-inner">{{ username }}</span>
-        <a href="{{ url_for('logout') }}" class="text-red-400 hover:text-red-300 transition pl-1 border-l border-white/10">Logout</a>
+        <span class="text-slate-400 bg-slate-800/50 px-2 py-1 rounded-md">{{ username }}</span>
+        <a href="{{ url_for('logout') }}" class="text-red-400 hover:text-red-300 transition pl-1 border-l border-slate-700">Logout</a>
       </div>
     </div>
   </header>
 
-  <main class="flex-grow w-full max-w-md mx-auto px-4 py-5 flex flex-col gap-6">
+  <main class="flex-grow w-full max-w-md mx-auto px-4 py-6 flex flex-col gap-8">
     
-    <section class="bg-panel border border-surface rounded-2xl p-3 shadow-2xl">
-      <h3 class="text-sm font-bold text-slate-200 mb-2 ml-1 tracking-wide">Describe Task</h3>
-      <form id="taskForm" class="flex flex-col gap-2">
+    <section class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 shadow-xl relative overflow-hidden">
+      <h3 class="text-base font-bold text-white mb-3">Describe Task</h3>
+      <form id="taskForm" class="flex flex-col gap-3">
         <textarea 
           id="task_description" 
           maxlength="200" 
-          class="w-full h-14 bg-base border border-surface focus:border-accent/70 text-slate-200 px-3 py-2 rounded-xl outline-none transition-colors placeholder:text-slate-600 resize-none font-medium text-sm shadow-inner"
+          class="w-full h-20 bg-slate-950/50 border border-slate-800 focus:border-accent/50 focus:ring-1 focus:ring-accent/50 text-slate-200 px-4 py-3 rounded-xl outline-none transition-colors placeholder:text-slate-600 resize-none font-medium text-sm"
         ></textarea>
-        <button type="submit" id="addTaskBtn" class="w-full bg-accent text-slate-900 font-bold py-2.5 rounded-xl text-sm transition-all duration-150 shadow-[0_4px_14px_rgba(252,211,77,0.25)]">
+        <button type="submit" id="addTaskBtn" class="w-full bg-accent text-slate-900 font-bold py-3 px-4 rounded-xl transition duration-150 shadow-lg">
           Add Task
         </button>
       </form>
     </section>
 
     <section class="flex flex-col gap-4">
-      <div class="flex items-center justify-between border-b border-surface pb-2 px-1">
-        <h2 class="text-lg font-bold text-white tracking-tight">Your Tasks</h2>
-        <div class="inline-flex items-center gap-2 text-[11px] font-bold tabular-nums">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3 px-1">
+        <h2 class="text-xl font-bold text-white tracking-tight">Active Queue</h2>
+        <div class="inline-flex items-center gap-2 text-xs font-bold tabular-nums">
           <span id="clockDate" class="text-accent tracking-widest uppercase"></span>
-          <span class="text-accent pulse-slow">|</span>
+          <span class="text-accent pulse-fast">|</span>
           <span id="clockTime" class="text-slate-300 tracking-widest"></span>
         </div>
       </div>
@@ -118,8 +124,10 @@
   </main>
 
   <script>
+    // --- UI/UX Enhancements ---
     const taskInput = document.getElementById('task_description');
     
+    // Dynamic Placeholders
     const prompts = [
       "gym next monday 7am legs, blue",
       "groceries in 2 hours yellow, milk eggs chicken rice",
@@ -131,9 +139,15 @@
     ];
     taskInput.placeholder = 'Try: ' + prompts[Math.floor(Math.random() * prompts.length)];
 
+    // Real-time Hex Parsing
     const colorMap = {
-      blue: '#87CEEB', red: '#f05656', green: '#6CE5A9',
-      pink: '#F8C8DC', orange: '#ff7f00', purple: '#A96CE5', yellow: '#FDDA0D'
+      blue: '#87CEEB',
+      red: '#f05656',
+      green: '#6CE5A9',
+      pink: '#F8C8DC',
+      orange: '#ff7f00',
+      purple: '#A96CE5',
+      yellow: '#FDDA0D'
     };
 
     taskInput.addEventListener('input', (e) => {
@@ -149,10 +163,12 @@
       }
     });
 
+    // Mobile Button Press Feedback
     const btn = document.getElementById('addTaskBtn');
     ['touchstart','mousedown'].forEach(e => btn.addEventListener(e, () => btn.classList.add('btn-pressed')));
     ['touchend','touchcancel','mouseup','mouseleave'].forEach(e => btn.addEventListener(e, () => btn.classList.remove('btn-pressed')));
 
+    // --- Core Tasker Logic ---
     let addTaskCooldown = false;
     const ADD_TASK_COOLDOWN_MS = 3000; 
 
@@ -174,25 +190,26 @@
       tasks.forEach((task, index) => {
         const [id, __, name, time, desc, due, priority, color] = task;
         
+        // Format Date string cleanly
         const dueDateDisplay = due ? due.replace(/ 00:00:00.*$/, '') : '';
         const timeDisplay = time ? ' • ' + time : '';
         const fullDateTime = `${dueDateDisplay}${timeDisplay}`.trim();
 
         const li = document.createElement('li');
-        // Glossy, physical glass cards with a subtle top highlight and smooth shadows
-        li.className = 'bg-black/20 border border-slate-800/40 rounded-xl px-4 py-4 transition-transform duration-100 ease-out';
-        li.style.animationDelay = `${index * 60}ms`; // Slightly longer stagger for that smooth glide
+        // Dark, transparent background + staggered animation delay
+        li.className = 'task-enter bg-black/20 border border-slate-800/40 rounded-xl px-4 py-4 transition-transform duration-100 ease-out';
+        li.style.animationDelay = `${index * 50}ms`;
         
         li.innerHTML = `
           <details class="group">
             <summary class="flex flex-col gap-1 outline-none cursor-pointer">
-              <div class="font-bold text-[1.05rem] leading-tight drop-shadow-md" style="color:${color || '#fcd34d'}">${name}</div>
-              ${fullDateTime ? `<div class="text-xs font-semibold text-sky-400/90 mt-0.5 tracking-wide">${fullDateTime}</div>` : ''}
+              <div class="font-bold text-[1.05rem] leading-tight" style="color:${color || '#fcd34d'}">${name}</div>
+              ${fullDateTime ? `<div class="text-xs font-medium text-sky-300/80 mt-0.5">${fullDateTime}</div>` : ''}
             </summary>
-            <div class="task-details mt-3 text-slate-300 text-sm leading-relaxed border-t border-white/5 pt-3">
+            <div class="task-details mt-3 text-slate-400 text-sm leading-relaxed border-t border-slate-800/40 pt-3">
               ${desc}
               <div class="mt-4 flex justify-end">
-                <button class="text-red-400 font-bold text-[11px] tracking-widest uppercase px-5 py-2.5 bg-red-400/10 border border-red-400/20 active:bg-red-400/30 rounded-lg transition" onclick="deleteTask(${id})">
+                <button class="text-red-400 font-bold text-xs tracking-widest uppercase px-5 py-2.5 bg-red-400/10 active:bg-red-400/20 rounded-lg transition" onclick="deleteTask(${id})">
                   Delete
                 </button>
               </div>
@@ -224,7 +241,7 @@
       setTimeout(() => { addTaskCooldown = false; }, ADD_TASK_COOLDOWN_MS);
       
       const desc = taskInput.value;
-      if (desc.length < 10 || desc.length > 200) return alert('Task description must be 10 to 200 characters');
+      if (desc.length < 10 || desc.length > 200) return alert('Task description must be 10–200 characters');
 
       const res = await fetch('/tasks', {
         method: 'POST',
@@ -245,7 +262,7 @@
       }
     });
 
-    // Clock Logic
+    // --- Clock Logic ---
     function renderClock(animate=false){
       const now = new Date();
       const date = now.toLocaleDateString(undefined, { weekday:"short", month:"short", day:"numeric" }).toUpperCase();
@@ -258,6 +275,12 @@
     
       elDate.textContent = date;
       elTime.textContent = time;
+    
+      if (animate){
+        elTime.classList.remove("snap");
+        void elTime.offsetWidth; 
+        elTime.classList.add("snap");
+      }
     }
     
     renderClock(false);
