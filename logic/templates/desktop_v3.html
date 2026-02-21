@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8" />
   <title>Dashboard | Tasker.</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <script>
@@ -24,7 +23,7 @@
     <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
       <div class="text-2xl font-extrabold text-white tracking-tighter">Tasker.</div>
       <div class="flex items-center gap-5 text-sm font-medium">
-        <span class="text-slate-400 hidden sm:inline-block">{{ username }}</span>
+        <span class="text-slate-400">{{ username }}</span>
         <a href="/switch/2" class="text-slate-500 hover:text-white transition duration-200">OldUI</a>
         <a href="https://github.com/ani-pur/NLP_Tasker/blob/main/README.md" target="_blank" rel="noopener" class="text-slate-500 hover:text-white transition duration-200">README</a>
         <a href="{{ url_for('logout') }}" class="text-red-400/80 hover:text-red-400 transition duration-200">Logout</a>
@@ -32,9 +31,9 @@
     </div>
   </header>
 
-  <main class="flex-grow max-w-7xl mx-auto w-full px-6 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-    <section class="lg:col-span-8 flex flex-col gap-6">
-      <div class="flex sm:items-center justify-between pb-4 border-b border-slate-800 flex-col sm:flex-row gap-4">
+  <main class="flex-grow max-w-7xl mx-auto w-full px-6 py-8 grid grid-cols-12 gap-8 items-start">
+    <section class="col-span-8 flex flex-col gap-6">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-800 gap-4">
         <h2 class="text-3xl font-bold text-white tracking-tight">Your Tasks</h2>
         <div class="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 border border-slate-800 rounded-lg shadow-inner">
           <span id="clockDate" class="text-accent font-bold text-xs tracking-widest uppercase"></span>
@@ -45,11 +44,11 @@
       <ul id="taskList" class="flex flex-col gap-4"></ul>
     </section>
 
-    <section class="lg:col-span-4 sticky top-24">
+    <section class="col-span-4 sticky top-24">
       <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 shadow-2xl backdrop-blur-sm">
-        <h3 class="text-lg font-bold text-white mb-4">Brain Dump</h3>
+        <h3 class="text-lg font-bold text-white mb-4">Describe Task</h3>
         <form id="taskForm" class="flex flex-col gap-4">
-          <textarea id="task_description" placeholder="What needs to be done?" maxlength="200" class="w-full h-32 bg-slate-950/50 border border-slate-800 focus:border-accent/50 focus:ring-1 focus:ring-accent/50 text-slate-200 px-4 py-3 rounded-xl outline-none transition placeholder:text-slate-600 resize-none"></textarea>
+          <textarea id="task_description" maxlength="200" class="w-full h-32 bg-slate-950/50 border border-slate-800 focus:border-accent/50 focus:ring-1 focus:ring-accent/50 text-slate-200 px-4 py-3 rounded-xl outline-none transition-colors placeholder:text-slate-600 resize-none font-medium"></textarea>
           <button type="submit" class="w-full bg-accent text-base font-semibold py-3 px-4 rounded-xl hover:bg-yellow-300 transition duration-200 shadow-[0_0_15px_rgba(252,211,77,0.15)] hover:shadow-[0_0_20px_rgba(252,211,77,0.3)]">Add Task</button>
         </form>
       </div>
@@ -57,6 +56,48 @@
   </main>
 
   <script>
+    // --- UI/UX Enhancements ---
+    const taskInput = document.getElementById('task_description');
+    
+    // Dynamic Placeholders
+    const prompts = [
+      "gym next monday 7am legs, blue",
+      "groceries in 2 hours yellow, milk eggs chicken rice",
+      "submit project by Friday evening, orange",
+      "call mom tomorrow at noon pink",
+      "doctor appointment next tuesday 9am, red",
+      "read 20 pages of book tonight, purple",
+      "fix production bug before standup, green"
+    ];
+    taskInput.placeholder = 'Try: ' + prompts[Math.floor(Math.random() * prompts.length)];
+
+    // Real-time Hex Parsing
+    const colorMap = {
+      blue: '#87CEEB',
+      red: '#f05656',
+      green: '#6CE5A9',
+      pink: '#F8C8DC',
+      orange: '#ff7f00',
+      purple: '#A96CE5',
+      yellow: '#FDDA0D'
+    };
+
+    taskInput.addEventListener('input', (e) => {
+      const text = e.target.value.toLowerCase();
+      const regex = /\b(blue|red|green|pink|orange|purple|yellow)\b/g;
+      const matches = text.match(regex);
+      
+      if (matches && matches.length > 0) {
+        // Grab the most recently typed color string in case they type multiple
+        const activeColor = matches[matches.length - 1];
+        e.target.style.color = colorMap[activeColor];
+      } else {
+        // Rip out the inline style so it falls back to Tailwind's text-slate-200
+        e.target.style.color = '';
+      }
+    });
+
+    // --- Core Tasker Logic ---
     let addTaskCooldown = false;
     const ADD_TASK_COOLDOWN_MS = 3000; 
     
@@ -115,7 +156,8 @@
       addTaskCooldown = true;
       setTimeout(() => { addTaskCooldown = false; }, ADD_TASK_COOLDOWN_MS);
       
-      const description = document.getElementById('task_description').value;
+      const inputEl = document.getElementById('task_description');
+      const description = inputEl.value;
       if (description.length < 10 || description.length > 200) { alert('Task description must be 10–200 characters'); return; }
 
       const response = await fetch('/tasks', {
@@ -123,7 +165,12 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ task_description: description, user_tz_metadata: buildUserTzMetadata() })
       });
-      if (response.ok) { document.getElementById('taskForm').reset(); loadTasks(); } 
+      if (response.ok) { 
+        document.getElementById('taskForm').reset(); 
+        inputEl.style.color = ''; // Reset color on submit
+        inputEl.placeholder = 'Try: ' + prompts[Math.floor(Math.random() * prompts.length)]; // Rotate prompt
+        loadTasks(); 
+      } 
       else { alert('Failed to add task'); }
     });
 
