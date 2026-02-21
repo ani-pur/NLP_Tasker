@@ -104,7 +104,7 @@
 
     <section class="flex flex-col gap-4">
       <div class="flex items-center justify-between border-b border-surface pb-2 px-1">
-        <h2 class="text-lg font-bold text-white tracking-tight">Active Queue</h2>
+        <h2 class="text-lg font-bold text-white tracking-tight">Your Tasks</h2>
         <div class="inline-flex items-center gap-2 text-[11px] font-bold tabular-nums">
           <span id="clockDate" class="text-accent tracking-widest uppercase"></span>
           <span class="text-accent pulse-slow">|</span>
@@ -180,7 +180,7 @@
 
         const li = document.createElement('li');
         // Glossy, physical glass cards with a subtle top highlight and smooth shadows
-        li.className = 'task-enter bg-gradient-to-b from-slate-800/80 to-slate-900/80 backdrop-blur-md border border-t-white/10 border-x-white/5 border-b-black/50 rounded-2xl px-4 py-4 transition-transform duration-200 ease-out shadow-[0_8px_20px_rgba(0,0,0,0.3)]';
+        li.className = 'bg-black/20 border border-slate-800/40 rounded-xl px-4 py-4 transition-transform duration-100 ease-out';
         li.style.animationDelay = `${index * 60}ms`; // Slightly longer stagger for that smooth glide
         
         li.innerHTML = `
