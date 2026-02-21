@@ -128,7 +128,7 @@ if notify_admin:
 
 else:
     # (3) Subject unique ONLY by username
-    msg["Subject"] = f"Tasker access granted — {recipientUsername} [{short_id}]"
+    msg["Subject"] = f"Tasker access granted - {recipientUsername} [{short_id}]"
     msg["From"] = FROM_ADDR
     msg["To"] = recipientAddress
 
