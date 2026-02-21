@@ -8,105 +8,109 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   
   <script>
-    tailwind.config = { 
-      theme: { 
-        extend: { 
-          fontFamily: { sans: ['Inter', 'sans-serif'] }, 
-          colors: { base: '#111520', panel: '#1a202c', accent: '#fcd34d' } 
-        } 
-      } 
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          colors: { base: '#111520', accent: '#fcd34d', 'accent-pressed': '#eab308' }
+        }
+      }
     }
   </script>
 
   <style>
     body { 
       background-color: #111520; 
-      -webkit-tap-highlight-color: transparent; 
-    }
-    
-    /* Hide default accordion arrow */
-    details > summary { list-style: none; }
-    details > summary::-webkit-details-marker { display: none; }
-    
-    /* Custom Chevron rotation */
-    details[open] summary .chevron { transform: rotate(180deg); }
-    
-    /* Smooth expand animation for task contents */
-    details[open] .task-content { animation: slideDown 0.2s ease-out; }
-    @keyframes slideDown {
-      from { opacity: 0; transform: translateY(-4px); }
-      to { opacity: 1; transform: translateY(0); }
+      -webkit-tap-highlight-color: transparent; /* Removes default blue tap flash on mobile */
     }
 
     /* Clock snap animation */
     .snap { animation: snap 180ms ease-out; }
-    @keyframes snap { 
-      0% { opacity: 0; transform: translateY(-2px) scale(1.05); } 
-      100% { opacity: 1; transform: translateY(0) scale(1); } 
+    @keyframes snap {
+      0%   { opacity: 0; transform: translateY(-4px) scale(1.05); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
     }
 
-    /* Touch feedback class managed by JS */
-    .tap-active { transform: scale(0.97); opacity: 0.9; }
+    /* Custom Accordion Logic */
+    summary {
+      list-style: none; /* Hide default arrow */
+    }
+    summary::-webkit-details-marker {
+      display: none; /* Hide Safari arrow */
+    }
+
+    .task-details {
+      animation: expand 0.2s ease-out;
+    }
+    @keyframes expand {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Tap Feedback Classes */
+    .tap-active {
+      background-color: rgba(30, 41, 59, 0.8) !important; /* slate-800 */
+      transform: scale(0.985);
+    }
+    
+    .btn-pressed {
+      background-color: #eab308 !important; /* darker yellow */
+      transform: translateY(1px) scale(0.98);
+    }
   </style>
 </head>
 
-<body class="text-slate-300 antialiased selection:bg-accent selection:text-base flex flex-col min-h-[100dvh]">
+<body class="text-slate-300 antialiased selection:bg-accent selection:text-base min-h-screen flex flex-col">
 
-  <header class="w-full bg-base/90 backdrop-blur-xl border-b border-slate-800 sticky top-0 z-50 pt-safe">
-    <div class="px-5 py-4 flex items-center justify-between">
-      <h1 class="text-2xl font-extrabold text-white tracking-tighter">Tasker.</h1>
+  <header class="w-full border-b border-slate-800/80 bg-slate-900/80 backdrop-blur-xl sticky top-0 z-50">
+    <div class="px-5 h-16 flex items-center justify-between">
+      <div class="text-2xl font-extrabold text-white tracking-tighter">Tasker.</div>
       <div class="flex items-center gap-4 text-sm font-medium">
-        <span class="text-slate-500 bg-slate-900 px-2.5 py-1 rounded-md border border-slate-800">{{ username }}</span>
-        <a href="{{ url_for('logout') }}" class="text-red-400 hover:text-red-300 transition-colors py-1">Logout</a>
+        <span class="text-slate-400 bg-slate-800/50 px-2 py-1 rounded-md">{{ username }}</span>
+        <a href="{{ url_for('logout') }}" class="text-red-400 hover:text-red-300 transition pl-1 border-l border-slate-700">Logout</a>
       </div>
     </div>
   </header>
 
-  <main class="flex-grow w-full max-w-md mx-auto px-4 py-6 flex flex-col gap-8 pb-12">
+  <main class="flex-grow w-full max-w-md mx-auto px-4 py-6 flex flex-col gap-8">
     
-    <section class="bg-slate-900/60 border border-slate-800 rounded-3xl p-5 shadow-2xl relative overflow-hidden">
-      
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-white font-bold tracking-tight text-lg">Describe Task</h3>
-        <div class="flex items-center gap-1.5 text-[10px] font-bold tabular-nums bg-slate-950/50 px-2.5 py-1.5 rounded-lg border border-slate-800/80">
-          <span id="clockDate" class="text-accent uppercase tracking-widest"></span>
-          <span class="text-slate-600">|</span>
-          <span id="clockTime" class="text-slate-300 tracking-widest"></span>
-        </div>
-      </div>
-
+    <section class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 shadow-xl relative overflow-hidden">
+      <h3 class="text-base font-bold text-white mb-3">Describe Task</h3>
       <form id="taskForm" class="flex flex-col gap-3">
         <textarea 
           id="task_description" 
           maxlength="200" 
-          rows="3" 
-          class="w-full bg-slate-950/80 border border-slate-800 focus:border-accent/80 focus:ring-1 focus:ring-accent/80 text-white px-4 py-3 rounded-2xl outline-none transition-colors placeholder:text-slate-600 resize-none font-medium shadow-inner"
+          class="w-full h-20 bg-slate-950/50 border border-slate-800 focus:border-accent/50 focus:ring-1 focus:ring-accent/50 text-slate-200 px-4 py-3 rounded-xl outline-none transition-colors placeholder:text-slate-600 resize-none font-medium text-sm"
         ></textarea>
-        
-        <button 
-          type="submit" 
-          id="addTaskBtn"
-          class="w-full bg-accent text-slate-900 font-extrabold text-base tracking-wide py-3.5 rounded-2xl transition-transform duration-100 shadow-[0_0_20px_rgba(252,211,77,0.15)] active:scale-95 active:bg-yellow-400"
-        >
+        <button type="submit" id="addTaskBtn" class="w-full bg-accent text-slate-900 font-bold py-3 px-4 rounded-xl transition duration-150 shadow-lg">
           Add Task
         </button>
       </form>
     </section>
 
     <section class="flex flex-col gap-4">
-      <h2 class="text-xl font-bold text-white tracking-tight px-1">Active Queue</h2>
-      <ul id="taskList" class="flex flex-col gap-3"></ul>
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3 px-1">
+        <h2 class="text-xl font-bold text-white tracking-tight">Active Queue</h2>
+        <div class="inline-flex items-center gap-2 text-xs font-bold tabular-nums">
+          <span id="clockDate" class="text-accent tracking-widest uppercase"></span>
+          <span class="text-slate-600">|</span>
+          <span id="clockTime" class="text-slate-300 tracking-widest"></span>
+        </div>
+      </div>
+      
+      <ul id="taskList" class="flex flex-col gap-3 pb-8"></ul>
     </section>
 
   </main>
 
   <script>
-    // --- Dynamic Prompts & Color Parsing ---
+    // --- UI/UX Enhancements ---
     const taskInput = document.getElementById('task_description');
     
+    // Dynamic Placeholders
     const prompts = [
       "gym next monday 7am legs, blue",
       "groceries in 2 hours yellow, milk eggs chicken rice",
@@ -116,12 +120,9 @@
       "read 20 pages of book tonight, purple",
       "fix production bug before standup, green"
     ];
-    
-    function rotatePrompt() {
-      taskInput.placeholder = 'Try: ' + prompts[Math.floor(Math.random() * prompts.length)];
-    }
-    rotatePrompt();
+    taskInput.placeholder = 'Try: ' + prompts[Math.floor(Math.random() * prompts.length)];
 
+    // Real-time Hex Parsing
     const colorMap = {
       blue: '#87CEEB',
       red: '#f05656',
@@ -145,10 +146,15 @@
       }
     });
 
+    // Mobile Button Press Feedback
+    const btn = document.getElementById('addTaskBtn');
+    ['touchstart','mousedown'].forEach(e => btn.addEventListener(e, () => btn.classList.add('btn-pressed')));
+    ['touchend','touchcancel','mouseup','mouseleave'].forEach(e => btn.addEventListener(e, () => btn.classList.remove('btn-pressed')));
+
     // --- Core Tasker Logic ---
     let addTaskCooldown = false;
     const ADD_TASK_COOLDOWN_MS = 3000; 
-    
+
     function buildUserTzMetadata() {
       const now = new Date();
       return {
@@ -166,31 +172,28 @@
 
       tasks.forEach(task => {
         const [id, __, name, time, desc, due, priority, color] = task;
-        const dueDateDisplay = due ? due.replace(/ 00:00:00.*$/, '') : "No date";
+        
+        // Format Date string cleanly
+        const dueDateDisplay = due ? due.replace(/ 00:00:00.*$/, '') : '';
+        const timeDisplay = time ? ' • ' + time : '';
+        const fullDateTime = `${dueDateDisplay}${timeDisplay}`.trim();
 
         const li = document.createElement('li');
-        li.className = 'bg-slate-900/50 border border-slate-800 rounded-3xl overflow-hidden transition-all duration-200 shadow-md';
+        li.className = 'bg-slate-900/40 border border-slate-800/80 rounded-xl px-4 py-4 transition-transform duration-100 ease-out';
         
         li.innerHTML = `
           <details class="group">
-            <summary class="p-4 cursor-pointer flex justify-between items-center gap-3 outline-none select-none relative">
-              <h4 class="font-bold text-[15px] truncate flex-1" style="color:${color || '#fcd34d'};">${name}</h4>
-              
-              <div class="flex items-center gap-2.5 shrink-0 pl-2">
-                <span class="text-[10px] font-bold tracking-wide text-sky-300 bg-sky-900/30 px-2.5 py-1 rounded-lg border border-sky-800/40 whitespace-nowrap">
-                  ${dueDateDisplay}${time ? ' • ' + time : ''}
-                </span>
-                <svg class="chevron w-5 h-5 text-slate-500 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-              </div>
+            <summary class="flex flex-col gap-1 outline-none cursor-pointer">
+              <div class="font-bold text-[1.05rem] leading-tight" style="color:${color || '#fcd34d'}">${name}</div>
+              ${fullDateTime ? `<div class="text-xs font-medium text-sky-300/80 mt-0.5">${fullDateTime}</div>` : ''}
             </summary>
-            
-            <div class="task-content px-4 pb-4 pt-1 border-t border-slate-800/50 mt-1">
-              <p class="text-[14px] text-slate-300 mb-5 whitespace-pre-wrap leading-relaxed">${desc}</p>
-              
-              <button onclick="deleteTask(${id})" class="w-full py-3 bg-red-500/10 text-red-400 font-bold rounded-2xl border border-red-500/20 active:bg-red-500 active:text-white transition-colors flex items-center justify-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                Delete Task
-              </button>
+            <div class="task-details mt-3 text-slate-400 text-sm leading-relaxed border-t border-slate-800/60 pt-3">
+              ${desc}
+              <div class="mt-4 flex justify-end">
+                <button class="text-red-400 font-bold text-xs tracking-widest uppercase px-5 py-2.5 bg-red-400/10 active:bg-red-400/20 rounded-lg transition" onclick="deleteTask(${id})">
+                  Delete
+                </button>
+              </div>
             </div>
           </details>
         `;
@@ -200,7 +203,7 @@
       });
     }
 
-    // Physical touch feedback logic preserved
+    // Mobile specific tap feedback for list items
     function addTapFeedback(el) {
       el.addEventListener('touchstart', () => el.classList.add('tap-active'), {passive: true});
       el.addEventListener('touchend', () => setTimeout(() => el.classList.remove('tap-active'), 50));
@@ -212,7 +215,6 @@
       if (res.ok) loadTasks();
     }
 
-    // Add form submission & debounce
     document.getElementById('taskForm').addEventListener('submit', async e => {
       e.preventDefault();
 
@@ -221,7 +223,7 @@
       setTimeout(() => { addTaskCooldown = false; }, ADD_TASK_COOLDOWN_MS);
       
       const desc = taskInput.value;
-      if (desc.length < 10 || desc.length > 200) return alert('Description must be 10–200 characters.');
+      if (desc.length < 10 || desc.length > 200) return alert('Task description must be 10–200 characters');
 
       const res = await fetch('/tasks', {
         method: 'POST',
@@ -234,9 +236,11 @@
 
       if (res.ok) {
         taskInput.value = '';
-        taskInput.style.color = ''; // Reset parser color
-        rotatePrompt(); // Give a new suggestion
+        taskInput.style.color = ''; // reset text color
+        taskInput.placeholder = 'Try: ' + prompts[Math.floor(Math.random() * prompts.length)]; // rotate prompt
         loadTasks();
+      } else {
+        alert('Failed to add task');
       }
     });
 
@@ -256,7 +260,7 @@
     
       if (animate){
         elTime.classList.remove("snap");
-        void elTime.offsetWidth;
+        void elTime.offsetWidth; // retrigger
         elTime.classList.add("snap");
       }
     }
@@ -279,7 +283,8 @@
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) renderClock(false);
     });
-
+    
+    // Initial Load
     loadTasks();
   </script>
 </body>
