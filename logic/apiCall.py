@@ -11,8 +11,10 @@ def currentTime():
     # returns current local time formatted for logs as: [HH:MM:SS AM/PM]
     return f"[{datetime.now().strftime('%a %b %d %Y %I:%M:%S %p')}]"
 
+# using a custom httpx client cuz apparently a good chunk of the API "warmup" is actually just opening sockets and TLS handshakes (which add more time on top of loading the model) ((DISCLAIMER: according to gpt and gemini lol))
+# seems to work, has mostly fixed warmup issues in combination with the keep_warm_loop() implementation [defined below in module]
 
-http_client=httpx.Client(limits=httpx.Limits(max_keepalive_connections=20, keepalive_expiry=140.0)) # 20 second overhead for each warmup attempt
+http_client=httpx.Client(limits=httpx.Limits(max_keepalive_connections=20, keepalive_expiry=140.0)) # keepalive_expiry MUST be greater than keep_warm_loop() SLEEP 
 
 api_key=os.environ.get('API_KEY')
 client = OpenAI(api_key=api_key,http_client=http_client)
@@ -73,7 +75,27 @@ def warmupCall():
     warmupClock = time.time() - warmup_startTime
     if warmupClock >= 3:
         print(f"{currentTime()} [PID {os.getpid()}] LATE WARMUP: {warmupClock:.2f}s")
-    
+
+
+
+# way better than firing warmup on every in-session index ('/' route) hit
+# Warmup cost math (24/7):
+#  120s sleep => 30 calls/hour/worker => 720 calls/day/worker
+#  ~30-day month => 21,600 calls/month/worker
+#  4 workers => 86,400 warmup calls/month total
+#
+# Token estimate per call (this prompt):
+#  input ≈ 20–30 tokens, output ≈ 2–4 tokens ("warmed up")
+#  Monthly tokens @ 86,400 calls:
+#  input: 1.728M–2.592M tokens
+#  output: 0.173M–0.346M tokens
+#
+# Pricing used: $0.40 / 1M input tokens, $1.60 / 1M output tokens
+# Estimated monthly cost:
+# - input: ~$0.69–$1.04
+# - output: ~$0.28–$0.55
+# - total: ~$0.97–$1.59 (≈ ~$1.3/mo)
+
 def keep_warm_loop():
     while True:
         try:
@@ -81,13 +103,13 @@ def keep_warm_loop():
             warmupCall()
         except Exception as e:
             print(LOG_PAD, "Warmup ping failed:", e)
-        
-        # Sleep for 120 seconds before pinging again
+
+        # MUST BE LOWER THAN HTTPXCLIENT KEEPALIVE EXPIRY
         time.sleep(120)
 
+
 # When Gunicorn forks a worker, it imports this file
-# This hopefully guarantees exactly ONE background thread is spawned PER WORKER
-# Each worker fires warmup call and hopefully all children threads per worker can share the warm socket
+# Each worker fires warmup call and hopefully all children threads per worker can share the warm socket, unless I am understanding ts horribly wrong 
 warmup_thread = threading.Thread(target=keep_warm_loop, daemon=True)
 warmup_thread.start()
 
