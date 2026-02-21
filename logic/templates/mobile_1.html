@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <link rel="manifest" href="/pwa/manifest.webmanifest">
-  <meta name="theme-color" content="#111520">
+  <meta name="theme-color" content="#0a0f16">
   <title>Tasker.</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
@@ -16,10 +16,9 @@
         extend: {
           fontFamily: { sans: ['Inter', 'sans-serif'] },
           colors: { 
-            base: '#111520',      /* Original navy slate base */
-            panel: '#1e293b',     /* Solid matte slate-800 */
-            surface: '#334155',   /* Solid matte slate-700 */
-            input: '#0f172a',     /* Deep matte slate-900 */
+            base: '#0a0f16',      /* Deep matte midnight blue */
+            panel: '#121924',     /* Slightly lighter matte container */
+            surface: '#1e293b',   /* Slate-800 for borders */
             accent: '#fcd34d', 
             'accent-pressed': '#eab308' 
           }
@@ -30,91 +29,74 @@
 
   <style>
     body { 
-      background-color: #111520; 
+      background-color: #0a0f16; 
       -webkit-tap-highlight-color: transparent; 
     }
 
-    .snap { animation: snap 180ms ease-out; }
-    @keyframes snap {
-      0%   { opacity: 0; transform: translateY(-4px) scale(1.05); }
-      100% { opacity: 1; transform: translateY(0) scale(1); }
-    }
-
-    /* Staggered entrance animation for tasks */
+    /* Slow, smooth staggered entrance */
     .task-enter {
-      animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+      animation: slideUp 0.6s cubic-bezier(0.23, 1, 0.32, 1) both;
     }
     @keyframes slideUp {
-      0%   { opacity: 0; transform: translateY(15px) scale(0.98); }
+      0%   { opacity: 0; transform: translateY(25px) scale(0.96); }
       100% { opacity: 1; transform: translateY(0) scale(1); }
     }
 
-    /* Shimmer effect for the Add Task button */
-    .shimmer-btn {
-      position: relative;
-      overflow: hidden;
+    /* Gentle breathing eyecandy for the clock separator */
+    .pulse-slow {
+      animation: softPulse 3s ease-in-out infinite;
     }
-    .shimmer-btn::after {
-      content: '';
-      position: absolute;
-      top: 0; 
-      left: -100%; 
-      width: 50%; 
-      height: 100%;
-      background: linear-gradient(to right, transparent, rgba(255,255,255,0.4), transparent);
-      transform: skewX(-20deg);
-      animation: shimmer 3s infinite;
-    }
-    @keyframes shimmer {
-      0%   { left: -100%; }
-      20%  { left: 200%; }
-      100% { left: 200%; }
+    @keyframes softPulse {
+      0%, 100% { opacity: 0.3; }
+      50%      { opacity: 1; text-shadow: 0 0 8px rgba(252,211,77,0.6); }
     }
 
+    /* Accordion Logic */
     summary { list-style: none; }
     summary::-webkit-details-marker { display: none; }
 
-    .task-details { animation: expand 0.2s ease-out; }
+    .task-details { animation: expand 0.25s cubic-bezier(0.23, 1, 0.32, 1); }
     @keyframes expand {
       from { opacity: 0; transform: translateY(-4px); }
       to   { opacity: 1; transform: translateY(0); }
     }
 
     .tap-active {
-      background-color: #334155 !important; 
-      transform: scale(0.985);
+      transform: scale(0.97) !important;
+      transition: transform 0.1s ease-out;
     }
     
     .btn-pressed {
       background-color: #eab308 !important; 
-      transform: translateY(2px) scale(0.98);
+      transform: translateY(2px) scale(0.96);
+      box-shadow: none !important;
     }
   </style>
 </head>
 
 <body class="text-slate-300 antialiased selection:bg-accent selection:text-base min-h-screen flex flex-col">
 
-  <header class="w-full border-b border-surface bg-panel sticky top-0 z-50 shadow-md">
+  <header class="w-full border-b border-white/5 bg-base/70 backdrop-blur-xl sticky top-0 z-50">
     <div class="px-5 h-14 flex items-center justify-between">
-      <div class="text-2xl font-extrabold text-white tracking-tighter">Tasker.</div>
+      <div class="text-2xl font-extrabold text-white tracking-tighter drop-shadow-sm">Tasker.</div>
       <div class="flex items-center gap-4 text-sm font-medium">
-        <span class="text-slate-300 bg-input border border-surface px-2 py-1 rounded-md">{{ username }}</span>
-        <a href="{{ url_for('logout') }}" class="text-red-400 hover:text-red-300 transition pl-1 border-l border-surface">Logout</a>
+        <span class="text-slate-400 bg-white/5 border border-white/5 px-2 py-1 rounded-md shadow-inner">{{ username }}</span>
+        <a href="{{ url_for('logout') }}" class="text-red-400 hover:text-red-300 transition pl-1 border-l border-white/10">Logout</a>
       </div>
     </div>
   </header>
 
   <main class="flex-grow w-full max-w-md mx-auto px-4 py-5 flex flex-col gap-6">
     
-    <section class="bg-panel border border-surface rounded-2xl p-3 shadow-lg">
-      <h3 class="text-sm font-bold text-white mb-2 ml-1">Describe Task</h3>
+    <section class="bg-panel border border-surface rounded-2xl p-3 shadow-2xl">
+      <h3 class="text-sm font-bold text-slate-200 mb-2 ml-1 tracking-wide">Describe Task</h3>
       <form id="taskForm" class="flex flex-col gap-2">
         <textarea 
           id="task_description" 
           maxlength="200" 
-          class="w-full h-14 bg-input border border-surface focus:border-accent text-slate-200 px-3 py-2 rounded-xl outline-none transition-colors placeholder:text-slate-500 resize-none font-medium text-sm shadow-inner"
+          class="w-full h-14 bg-base border border-surface focus:border-accent/70 text-slate-200 px-3 py-2 rounded-xl outline-none transition-colors placeholder:text-slate-600 resize-none font-medium text-sm shadow-inner"
         ></textarea>
-        <button type="submit" id="addTaskBtn" class="shimmer-btn w-full bg-accent text-slate-900 font-bold py-2.5 rounded-xl text-sm transition duration-150 shadow-[0_0_10px_rgba(252,211,77,0.2)]">
+        <button type="submit" id="addTaskBtn" class="w-full bg-accent text-slate-900 font-bold py-2.5 rounded-xl text-sm transition-all duration-150 shadow-[0_4px_14px_rgba(252,211,77,0.25)]">
           Add Task
         </button>
       </form>
@@ -125,7 +107,7 @@
         <h2 class="text-lg font-bold text-white tracking-tight">Active Queue</h2>
         <div class="inline-flex items-center gap-2 text-[11px] font-bold tabular-nums">
           <span id="clockDate" class="text-accent tracking-widest uppercase"></span>
-          <span class="text-slate-500">|</span>
+          <span class="text-accent pulse-slow">|</span>
           <span id="clockTime" class="text-slate-300 tracking-widest"></span>
         </div>
       </div>
@@ -197,20 +179,20 @@
         const fullDateTime = `${dueDateDisplay}${timeDisplay}`.trim();
 
         const li = document.createElement('li');
-        // Matte panels, staggered slide up animation
-        li.className = 'task-enter bg-panel border border-surface rounded-xl px-4 py-4 transition-transform duration-100 ease-out shadow-sm';
-        li.style.animationDelay = `${index * 40}ms`;
+        // Glossy, physical glass cards with a subtle top highlight and smooth shadows
+        li.className = 'task-enter bg-gradient-to-b from-slate-800/80 to-slate-900/80 backdrop-blur-md border border-t-white/10 border-x-white/5 border-b-black/50 rounded-2xl px-4 py-4 transition-transform duration-200 ease-out shadow-[0_8px_20px_rgba(0,0,0,0.3)]';
+        li.style.animationDelay = `${index * 60}ms`; // Slightly longer stagger for that smooth glide
         
         li.innerHTML = `
           <details class="group">
             <summary class="flex flex-col gap-1 outline-none cursor-pointer">
-              <div class="font-bold text-[1.05rem] leading-tight" style="color:${color || '#fcd34d'}">${name}</div>
-              ${fullDateTime ? `<div class="text-xs font-semibold text-sky-400/80 mt-0.5">${fullDateTime}</div>` : ''}
+              <div class="font-bold text-[1.05rem] leading-tight drop-shadow-md" style="color:${color || '#fcd34d'}">${name}</div>
+              ${fullDateTime ? `<div class="text-xs font-semibold text-sky-400/90 mt-0.5 tracking-wide">${fullDateTime}</div>` : ''}
             </summary>
-            <div class="task-details mt-3 text-slate-400 text-sm leading-relaxed border-t border-surface pt-3">
+            <div class="task-details mt-3 text-slate-300 text-sm leading-relaxed border-t border-white/5 pt-3">
               ${desc}
               <div class="mt-4 flex justify-end">
-                <button class="text-red-400 font-bold text-xs tracking-widest uppercase px-5 py-2.5 bg-input border border-surface active:bg-surface rounded-lg transition" onclick="deleteTask(${id})">
+                <button class="text-red-400 font-bold text-[11px] tracking-widest uppercase px-5 py-2.5 bg-red-400/10 border border-red-400/20 active:bg-red-400/30 rounded-lg transition" onclick="deleteTask(${id})">
                   Delete
                 </button>
               </div>
@@ -263,6 +245,7 @@
       }
     });
 
+    // Clock Logic
     function renderClock(animate=false){
       const now = new Date();
       const date = now.toLocaleDateString(undefined, { weekday:"short", month:"short", day:"numeric" }).toUpperCase();
@@ -275,12 +258,6 @@
     
       elDate.textContent = date;
       elTime.textContent = time;
-    
-      if (animate){
-        elTime.classList.remove("snap");
-        void elTime.offsetWidth; 
-        elTime.classList.add("snap");
-      }
     }
     
     renderClock(false);
@@ -302,6 +279,7 @@
       if (!document.hidden) renderClock(false);
     });
     
+    // Initial Load
     loadTasks();
   </script>
 </body>
