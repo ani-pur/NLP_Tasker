@@ -21,8 +21,7 @@ Step 3: Enable 'open as web app' (on ios) / agree to install prompt (on android)
 
 ✅
 
-### Coming soon:  
-- UI overhaul (v3) [almost complete; desktop and mobile dashboard remaining]
+### Coming soon: 
 - Push notifications 
 - edit button to edit tasks lol
 - sorting options (currently sorts earliest - latest due)
