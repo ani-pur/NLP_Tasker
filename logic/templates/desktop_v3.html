@@ -16,9 +16,26 @@
     .custom-scrollbar::-webkit-scrollbar { width: 8px; }
     .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+
+    /* --- Background Effects --- */
+    #parallax-grid {
+      background-image: radial-gradient(rgba(148, 163, 184, 0.15) 1.5px, transparent 1.5px);
+      background-size: 40px 40px;
+      will-change: transform;
+      transition: transform 0.15s ease-out;
+    }
+    #spotlight {
+      background: radial-gradient(800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(252, 211, 77, 0.04), transparent 40%);
+      will-change: background;
+    }
   </style>
 </head>
-<body class="text-slate-300 antialiased selection:bg-accent selection:text-base h-screen flex flex-col">
+<body class="text-slate-300 antialiased selection:bg-accent selection:text-base h-screen flex flex-col relative">
+
+  <div class="fixed inset-0 z-[-1] pointer-events-none overflow-hidden bg-base">
+    <div id="spotlight" class="absolute inset-0 z-10"></div>
+    <div id="parallax-grid" class="absolute inset-[-10%] w-[120%] h-[120%] z-0"></div>
+  </div>
 
   <header class="w-full border-b border-slate-800/80 bg-slate-900/50 backdrop-blur-xl shrink-0 z-50">
     <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
@@ -37,39 +54,54 @@
     <section class="col-span-8 flex flex-col min-h-0 gap-6">
       <div class="flex items-center justify-between pb-4 border-b border-slate-800 gap-4 shrink-0">
         <h2 class="text-3xl font-bold text-white tracking-tight">Your Tasks</h2>
-        <div class="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 border border-slate-800 rounded-lg shadow-inner">
+        <div class="inline-flex items-center gap-2 px-4 py-2 bg-slate-900/80 border border-slate-800 rounded-lg shadow-inner backdrop-blur-md">
           <span id="clockDate" class="text-accent font-bold text-xs tracking-widest uppercase"></span>
           <span class="text-slate-600 font-bold">·</span>
           <span id="clockTime" class="text-slate-300 font-bold text-xs tracking-widest tabular-nums"></span>
         </div>
       </div>
       
-      <ul id="taskList" class="flex-grow overflow-y-auto pr-4 custom-scrollbar pb-10 flex flex-col gap-4"></ul>
+      <ul id="taskList" class="flex-grow overflow-y-auto pr-4 custom-scrollbar pb-12 flex flex-col gap-4"></ul>
     </section>
 
     <section class="col-span-4 shrink-0">
-      <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 shadow-2xl backdrop-blur-sm">
+      <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 shadow-2xl backdrop-blur-md sticky top-0">
         <h3 class="text-lg font-bold text-white mb-4">Describe Task</h3>
         <form id="taskForm" class="flex flex-col gap-4">
           <textarea id="task_description" maxlength="200" class="w-full h-32 bg-slate-950/50 border border-slate-800 focus:border-accent/50 focus:ring-1 focus:ring-accent/50 text-slate-200 px-4 py-3 rounded-xl outline-none transition-colors placeholder:text-slate-600 resize-none font-medium custom-scrollbar"></textarea>
-          <button type="submit" class="w-full bg-accent text-base font-semibold py-3 px-4 rounded-xl hover:bg-yellow-300 transition duration-200 shadow-[0_0_15px_rgba(252,211,77,0.15)] hover:shadow-[0_0_20px_rgba(252,211,77,0.3)]">Add Task</button>
+          <button type="submit" class="w-full bg-accent text-base font-semibold py-3 px-4 rounded-xl hover:bg-yellow-300 transition duration-200 shadow-[0_0_15px_rgba(252,211,77,0.15)] hover:shadow-[0_0_20px_rgba(252,211,77,0.3)] text-slate-900">Add Task</button>
         </form>
       </div>
     </section>
   </main>
 
   <script>
-    // Original JS Logic
+    // --- Background Parallax & Spotlight ---
+    const grid = document.getElementById('parallax-grid');
+    const spotlight = document.getElementById('spotlight');
+    let ticking = false;
+
+    document.addEventListener('mousemove', (e) => {
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          // Update spotlight position
+          spotlight.style.setProperty('--mouse-x', `${e.clientX}px`);
+          spotlight.style.setProperty('--mouse-y', `${e.clientY}px`);
+          
+          // Calculate parallax offset (moves opposite to mouse)
+          const moveX = (e.clientX / window.innerWidth - 0.5) * -40; 
+          const moveY = (e.clientY / window.innerHeight - 0.5) * -40;
+          grid.style.transform = `translate(${moveX}px, ${moveY}px)`;
+          
+          ticking = false;
+        });
+        ticking = true;
+      }
+    });
+
+    // --- UI State & Inputs ---
     const taskInput = document.getElementById('task_description');
-    const prompts = [
-      "gym next monday 7am legs, blue",
-      "groceries in 2 hours yellow, milk eggs chicken rice",
-      "submit project by Friday evening, orange",
-      "call mom tomorrow at noon pink",
-      "doctor appointment next tuesday 9am, red",
-      "read 20 pages of book tonight, purple",
-      "fix production bug before standup, green"
-    ];
+    const prompts = ["gym next monday 7am legs, blue", "groceries in 2 hours yellow, milk eggs chicken rice", "submit project by Friday evening, orange", "call mom tomorrow at noon pink", "doctor appointment next tuesday 9am, red", "read 20 pages of book tonight, purple", "fix production bug before standup, green"];
     taskInput.placeholder = 'Try: ' + prompts[Math.floor(Math.random() * prompts.length)];
 
     const colorMap = { blue: '#87CEEB', red: '#f05656', green: '#6CE5A9', pink: '#F8C8DC', orange: '#ff7f00', purple: '#A96CE5', yellow: '#FDDA0D' };
@@ -86,6 +118,38 @@
       }
     });
 
+    // --- Clock Logic ---
+    let clockTimer;
+    
+    function renderClock(animate = false) {
+      const now = new Date();
+      document.getElementById("clockDate").textContent = now.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }).toUpperCase();
+      const elTime = document.getElementById("clockTime");
+      elTime.textContent = now.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+      if (animate) {
+        elTime.classList.remove("snap");
+        void elTime.offsetWidth; 
+        elTime.classList.add("snap");
+      }
+    }
+
+    function scheduleNextClockTick() {
+      if (clockTimer) clearTimeout(clockTimer);
+      const msToNextMinute = (60000 - (Date.now() % 60000)) + 80;
+      clockTimer = setTimeout(() => {
+        renderClock(true);
+        scheduleNextClockTick();
+      }, msToNextMinute);
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        renderClock(false); 
+        scheduleNextClockTick(); 
+      }
+    });
+
+    // --- Core Tasker Logic ---
     let addTaskCooldown = false;
     const ADD_TASK_COOLDOWN_MS = 3000; 
     
@@ -99,40 +163,44 @@
     }
 
     async function loadTasks() {
-      const response = await fetch('/tasks');
-      const tasks = await response.json();
-      const taskList = document.getElementById('taskList');
-      taskList.innerHTML = '';
+      try {
+        const response = await fetch('/tasks');
+        const tasks = await response.json();
+        const taskList = document.getElementById('taskList');
+        taskList.innerHTML = '';
 
-      tasks.forEach(task => {
-        const [id, __, task_name, task_time, task_description, due_date, priority, color] = task;
-        const dueDateDisplay = due_date ? due_date.replace(/ 00:00:00.*$/, '') : "No due date";
+        tasks.forEach(task => {
+          const [id, __, task_name, task_time, task_description, due_date, priority, color] = task;
+          const dueDateDisplay = due_date ? due_date.replace(/ 00:00:00.*$/, '') : "No due date";
 
-        const li = document.createElement('li');
-        li.className = 'task-card-item bg-slate-900/40 border border-slate-800/80 hover:border-slate-700/80 rounded-xl p-5 transition duration-200 group relative overflow-hidden shrink-0';
-        li.innerHTML = `
-          <div class="flex justify-between items-start gap-4">
-            <div class="task-text flex-1 transition-all duration-300">
-              <h4 class="font-bold text-lg leading-tight" style="color:${color || '#fcd34d'};">${task_name}</h4>
-              <p class="text-slate-400 text-sm leading-relaxed whitespace-pre-wrap mt-2">${task_description}</p>
-            </div>
-            <div class="flex flex-col items-end shrink-0 gap-2">
-              <span class="text-xs font-semibold tracking-wide text-sky-300 bg-sky-900/20 px-3 py-1.5 rounded-md border border-sky-800/30">${dueDateDisplay}${task_time ? ' • ' + task_time : ''}</span>
-              <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition duration-200">
-                <button type="button" onclick="deleteTask(${id})" class="text-slate-500 hover:text-red-400 p-2 rounded-lg transition" title="Delete">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                </button>
+          const li = document.createElement('li');
+          // Slightly increased opacity on task cards to pop against the new background
+          li.className = 'task-card-item bg-slate-900/60 border border-slate-800/80 hover:border-slate-700/80 rounded-xl p-5 transition duration-200 group relative overflow-hidden shrink-0 backdrop-blur-sm';
+          li.innerHTML = `
+            <div class="flex justify-between items-start gap-4">
+              <div class="task-text flex-1 transition-all duration-300">
+                <h4 class="font-bold text-lg leading-tight" style="color:${color || '#fcd34d'};">${task_name}</h4>
+                <p class="text-slate-400 text-sm leading-relaxed whitespace-pre-wrap mt-2">${task_description}</p>
+              </div>
+              <div class="flex flex-col items-end shrink-0 gap-2">
+                <span class="text-xs font-semibold tracking-wide text-sky-300 bg-sky-900/20 px-3 py-1.5 rounded-md border border-sky-800/30">${dueDateDisplay}${task_time ? ' • ' + task_time : ''}</span>
+                <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition duration-200">
+                  <button type="button" onclick="deleteTask(${id})" class="text-slate-500 hover:text-red-400 p-2 rounded-lg transition" title="Delete">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        `;
-        taskList.appendChild(li);
-      });
+          `;
+          taskList.appendChild(li);
+        });
+      } catch (err) { console.error("Error loading tasks:", err); }
     }
 
     async function deleteTask(taskId) {
       const response = await fetch('/tasks/' + taskId, { method: 'DELETE' });
       if (response.ok) loadTasks();
+      else alert('Failed to delete task');
     }
     
     document.getElementById('taskForm').addEventListener('submit', async e => {
@@ -156,21 +224,12 @@
         inputEl.placeholder = 'Try: ' + prompts[Math.floor(Math.random() * prompts.length)];
         loadTasks(); 
       } 
+      else { alert('Failed to add task'); }
     });
 
-    function renderClock(animate=false){
-      const now = new Date();
-      document.getElementById("clockDate").textContent = now.toLocaleDateString(undefined, { weekday:"short", month:"short", day:"numeric" }).toUpperCase();
-      const elTime = document.getElementById("clockTime");
-      elTime.textContent = now.toLocaleTimeString(undefined, { hour:"2-digit", minute:"2-digit" });
-      if (animate){ elTime.classList.remove("snap"); void elTime.offsetWidth; elTime.classList.add("snap"); }
-    }
+    // --- Init ---
     renderClock(false);
-    function scheduleNextClockTick(){
-      setTimeout(() => { renderClock(true); scheduleNextClockTick(); }, (60000 - (Date.now() % 60000)) + 80);
-    }
     scheduleNextClockTick();
-    document.addEventListener('visibilitychange', () => { if (!document.hidden) renderClock(false); });
     loadTasks();
   </script>
 </body>
