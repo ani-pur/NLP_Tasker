@@ -1,7 +1,7 @@
 # this program constructs user metadata that gets appended to user request to API
 import httpx
 from datetime import date,datetime
-from openai import OpenAI
+from openai import OpenAI, APITimeableError
 import time
 from textwrap import dedent
 import os
@@ -60,21 +60,28 @@ Dark Yellow: DAA520
 - Never guess the current time/date, always use the metadata provided."""
 
 
-
 def warmupCall():
-    warmup_startTime=time.time()
-    emptyResponse = client.responses.create(
-        model="gpt-4.1-mini-2025-04-14",
-        instructions="warmup ping to handle cold-start latency, respond with 'warmed up' ",
-        input="  ",
-        #text={ "verbosity": "low" },
-       # reasoning={ "effort": "minimal" }
-
-    )
-    
-    warmupClock = time.time() - warmup_startTime
-    if warmupClock >= 3:
-        print(f"{currentTime()} [PID {os.getpid()}] LATE WARMUP: {warmupClock:.2f}s")
+    warmup_startTime = time.time()
+    try:
+        # Pass timeout=5.0 (seconds) directly to the request
+        emptyResponse = client.responses.create(
+            model="gpt-4.1-mini-2025-04-14",
+            instructions="warmup ping to handle cold-start latency, respond with 'warmed up'",
+            input=" ",
+            timeout=5.0 
+        )
+        
+        warmupClock = time.time() - warmup_startTime
+        if warmupClock >= 3:
+            print(f"{currentTime()} [PID {os.getpid()}] LATE WARMUP: {warmupClock:.2f}s")
+            
+    except APITimeoutError:
+        # This triggers if the 5s limit is hit
+        duration = time.time() - warmup_startTime
+        print(f"{currentTime()} [PID {os.getpid()}] TIMEOUT WARMUP: Abandoned after {duration:.2f}s")
+    except Exception as e:
+        # Other errors (DNS, Auth, Rate Limits)
+        print(f"{currentTime()} [PID {os.getpid()}] WARMUP FAILED: {e}")
 
 
 
@@ -99,7 +106,6 @@ def warmupCall():
 def keep_warm_loop():
     while True:
         try:
-            print(f"warming PID [{os.getpid()}]")
             warmupCall()
         except Exception as e:
             print(LOG_PAD, "Warmup ping failed:", e)
