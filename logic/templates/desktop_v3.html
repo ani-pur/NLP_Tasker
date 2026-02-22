@@ -9,22 +9,18 @@
     tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] }, colors: { base: '#111520', accent: '#fcd34d' } } } }
   </script>
   <style>
-    body { background-color: #111520; overflow: hidden; } /* Prevent body scroll */
+    body { background-color: #111520; overflow: hidden; }
     .snap { animation: snap 180ms ease-out; }
     @keyframes snap { 0% { opacity: 0; transform: translateY(-4px) scale(1.05); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
     
-    /* Shared Scrollbar Styling */
     .custom-scrollbar::-webkit-scrollbar { width: 8px; }
     .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-    textarea::-webkit-scrollbar { width: 8px; }
-    textarea::-webkit-scrollbar-track { background: transparent; }
-    textarea::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
   </style>
 </head>
 <body class="text-slate-300 antialiased selection:bg-accent selection:text-base h-screen flex flex-col">
 
-  <header class="w-full border-b border-slate-800/80 bg-slate-900/50 backdrop-blur-xl sticky top-0 z-50 shrink-0">
+  <header class="w-full border-b border-slate-800/80 bg-slate-900/50 backdrop-blur-xl shrink-0 z-50">
     <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
       <div class="text-2xl font-extrabold text-white tracking-tighter">Tasker.</div>
       <div class="flex items-center gap-5 text-sm font-medium">
@@ -36,9 +32,9 @@
     </div>
   </header>
 
-  <main class="flex-grow max-w-7xl mx-auto w-full px-6 py-8 grid grid-cols-12 gap-8 items-start overflow-hidden">
+  <main class="max-w-7xl mx-auto w-full px-6 py-8 grid grid-cols-12 gap-8 h-[calc(100vh-4rem)] overflow-hidden">
     
-    <section class="col-span-8 flex flex-col h-full gap-6">
+    <section class="col-span-8 flex flex-col min-h-0 gap-6">
       <div class="flex items-center justify-between pb-4 border-b border-slate-800 gap-4 shrink-0">
         <h2 class="text-3xl font-bold text-white tracking-tight">Your Tasks</h2>
         <div class="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 border border-slate-800 rounded-lg shadow-inner">
@@ -48,14 +44,14 @@
         </div>
       </div>
       
-      <ul id="taskList" class="flex-1 flex flex-col gap-4 overflow-y-auto pr-4 custom-scrollbar pb-12"></ul>
+      <ul id="taskList" class="flex-grow overflow-y-auto pr-4 custom-scrollbar pb-10 flex flex-col gap-4"></ul>
     </section>
 
-    <section class="col-span-4 sticky top-0">
+    <section class="col-span-4 shrink-0">
       <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 shadow-2xl backdrop-blur-sm">
         <h3 class="text-lg font-bold text-white mb-4">Describe Task</h3>
         <form id="taskForm" class="flex flex-col gap-4">
-          <textarea id="task_description" maxlength="200" class="w-full h-32 bg-slate-950/50 border border-slate-800 focus:border-accent/50 focus:ring-1 focus:ring-accent/50 text-slate-200 px-4 py-3 rounded-xl outline-none transition-colors placeholder:text-slate-600 resize-none font-medium"></textarea>
+          <textarea id="task_description" maxlength="200" class="w-full h-32 bg-slate-950/50 border border-slate-800 focus:border-accent/50 focus:ring-1 focus:ring-accent/50 text-slate-200 px-4 py-3 rounded-xl outline-none transition-colors placeholder:text-slate-600 resize-none font-medium custom-scrollbar"></textarea>
           <button type="submit" class="w-full bg-accent text-base font-semibold py-3 px-4 rounded-xl hover:bg-yellow-300 transition duration-200 shadow-[0_0_15px_rgba(252,211,77,0.15)] hover:shadow-[0_0_20px_rgba(252,211,77,0.3)]">Add Task</button>
         </form>
       </div>
@@ -63,9 +59,17 @@
   </main>
 
   <script>
-    // --- All original JS logic remains identical and untouched ---
+    // Original JS Logic
     const taskInput = document.getElementById('task_description');
-    const prompts = ["gym next monday 7am legs, blue", "groceries in 2 hours yellow, milk eggs chicken rice", "submit project by Friday evening, orange", "call mom tomorrow at noon pink", "doctor appointment next tuesday 9am, red", "read 20 pages of book tonight, purple", "fix production bug before standup, green"];
+    const prompts = [
+      "gym next monday 7am legs, blue",
+      "groceries in 2 hours yellow, milk eggs chicken rice",
+      "submit project by Friday evening, orange",
+      "call mom tomorrow at noon pink",
+      "doctor appointment next tuesday 9am, red",
+      "read 20 pages of book tonight, purple",
+      "fix production bug before standup, green"
+    ];
     taskInput.placeholder = 'Try: ' + prompts[Math.floor(Math.random() * prompts.length)];
 
     const colorMap = { blue: '#87CEEB', red: '#f05656', green: '#6CE5A9', pink: '#F8C8DC', orange: '#ff7f00', purple: '#A96CE5', yellow: '#FDDA0D' };
@@ -129,7 +133,6 @@
     async function deleteTask(taskId) {
       const response = await fetch('/tasks/' + taskId, { method: 'DELETE' });
       if (response.ok) loadTasks();
-      else alert('Failed to delete task');
     }
     
     document.getElementById('taskForm').addEventListener('submit', async e => {
@@ -153,7 +156,6 @@
         inputEl.placeholder = 'Try: ' + prompts[Math.floor(Math.random() * prompts.length)];
         loadTasks(); 
       } 
-      else { alert('Failed to add task'); }
     });
 
     function renderClock(animate=false){
