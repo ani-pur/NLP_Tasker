@@ -9,17 +9,18 @@
     tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] }, colors: { base: '#111520', accent: '#fcd34d' } } } }
   </script>
   <style>
-    body { background-color: #111520; }
+    body { background-color: #111520; overflow: hidden; }
     .snap { animation: snap 180ms ease-out; }
     @keyframes snap { 0% { opacity: 0; transform: translateY(-4px) scale(1.05); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
-    textarea::-webkit-scrollbar { width: 8px; }
-    textarea::-webkit-scrollbar-track { background: transparent; }
-    textarea::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    
+    .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
   </style>
 </head>
-<body class="text-slate-300 antialiased selection:bg-accent selection:text-base min-h-screen flex flex-col">
+<body class="text-slate-300 antialiased selection:bg-accent selection:text-base h-screen flex flex-col">
 
-  <header class="w-full border-b border-slate-800/80 bg-slate-900/50 backdrop-blur-xl sticky top-0 z-50">
+  <header class="w-full border-b border-slate-800/80 bg-slate-900/50 backdrop-blur-xl shrink-0 z-50">
     <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
       <div class="text-2xl font-extrabold text-white tracking-tighter">Tasker.</div>
       <div class="flex items-center gap-5 text-sm font-medium">
@@ -31,9 +32,10 @@
     </div>
   </header>
 
-  <main class="flex-grow max-w-7xl mx-auto w-full px-6 py-8 grid grid-cols-12 gap-8 items-start">
-    <section class="col-span-8 flex flex-col gap-6">
-      <div class="flex items-center justify-between pb-4 border-b border-slate-800 gap-4">
+  <main class="max-w-7xl mx-auto w-full px-6 py-8 grid grid-cols-12 gap-8 h-[calc(100vh-4rem)] overflow-hidden">
+    
+    <section class="col-span-8 flex flex-col min-h-0 gap-6">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-800 gap-4 shrink-0">
         <h2 class="text-3xl font-bold text-white tracking-tight">Your Tasks</h2>
         <div class="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 border border-slate-800 rounded-lg shadow-inner">
           <span id="clockDate" class="text-accent font-bold text-xs tracking-widest uppercase"></span>
@@ -41,14 +43,15 @@
           <span id="clockTime" class="text-slate-300 font-bold text-xs tracking-widest tabular-nums"></span>
         </div>
       </div>
-      <ul id="taskList" class="flex flex-col gap-4"></ul>
+      
+      <ul id="taskList" class="flex-grow overflow-y-auto pr-4 custom-scrollbar pb-10 flex flex-col gap-4"></ul>
     </section>
 
-    <section class="col-span-4 sticky top-24">
+    <section class="col-span-4 shrink-0">
       <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 shadow-2xl backdrop-blur-sm">
         <h3 class="text-lg font-bold text-white mb-4">Describe Task</h3>
         <form id="taskForm" class="flex flex-col gap-4">
-          <textarea id="task_description" maxlength="200" class="w-full h-32 bg-slate-950/50 border border-slate-800 focus:border-accent/50 focus:ring-1 focus:ring-accent/50 text-slate-200 px-4 py-3 rounded-xl outline-none transition-colors placeholder:text-slate-600 resize-none font-medium"></textarea>
+          <textarea id="task_description" maxlength="200" class="w-full h-32 bg-slate-950/50 border border-slate-800 focus:border-accent/50 focus:ring-1 focus:ring-accent/50 text-slate-200 px-4 py-3 rounded-xl outline-none transition-colors placeholder:text-slate-600 resize-none font-medium custom-scrollbar"></textarea>
           <button type="submit" class="w-full bg-accent text-base font-semibold py-3 px-4 rounded-xl hover:bg-yellow-300 transition duration-200 shadow-[0_0_15px_rgba(252,211,77,0.15)] hover:shadow-[0_0_20px_rgba(252,211,77,0.3)]">Add Task</button>
         </form>
       </div>
@@ -56,10 +59,8 @@
   </main>
 
   <script>
-    // --- UI/UX Enhancements ---
+    // Original JS Logic
     const taskInput = document.getElementById('task_description');
-    
-    // Dynamic Placeholders
     const prompts = [
       "gym next monday 7am legs, blue",
       "groceries in 2 hours yellow, milk eggs chicken rice",
@@ -71,33 +72,20 @@
     ];
     taskInput.placeholder = 'Try: ' + prompts[Math.floor(Math.random() * prompts.length)];
 
-    // Real-time Hex Parsing
-    const colorMap = {
-      blue: '#87CEEB',
-      red: '#f05656',
-      green: '#6CE5A9',
-      pink: '#F8C8DC',
-      orange: '#ff7f00',
-      purple: '#A96CE5',
-      yellow: '#FDDA0D'
-    };
+    const colorMap = { blue: '#87CEEB', red: '#f05656', green: '#6CE5A9', pink: '#F8C8DC', orange: '#ff7f00', purple: '#A96CE5', yellow: '#FDDA0D' };
 
     taskInput.addEventListener('input', (e) => {
       const text = e.target.value.toLowerCase();
       const regex = /\b(blue|red|green|pink|orange|purple|yellow)\b/g;
       const matches = text.match(regex);
-      
       if (matches && matches.length > 0) {
-        // Grab the most recently typed color string in case they type multiple
         const activeColor = matches[matches.length - 1];
         e.target.style.color = colorMap[activeColor];
       } else {
-        // Rip out the inline style so it falls back to Tailwind's text-slate-200
         e.target.style.color = '';
       }
     });
 
-    // --- Core Tasker Logic ---
     let addTaskCooldown = false;
     const ADD_TASK_COOLDOWN_MS = 3000; 
     
@@ -121,17 +109,15 @@
         const dueDateDisplay = due_date ? due_date.replace(/ 00:00:00.*$/, '') : "No due date";
 
         const li = document.createElement('li');
-        li.className = 'task-card-item bg-slate-900/40 border border-slate-800/80 hover:border-slate-700/80 rounded-xl p-5 transition duration-200 group relative overflow-hidden';
+        li.className = 'task-card-item bg-slate-900/40 border border-slate-800/80 hover:border-slate-700/80 rounded-xl p-5 transition duration-200 group relative overflow-hidden shrink-0';
         li.innerHTML = `
           <div class="flex justify-between items-start gap-4">
             <div class="task-text flex-1 transition-all duration-300">
               <h4 class="font-bold text-lg leading-tight" style="color:${color || '#fcd34d'};">${task_name}</h4>
               <p class="text-slate-400 text-sm leading-relaxed whitespace-pre-wrap mt-2">${task_description}</p>
             </div>
-            
             <div class="flex flex-col items-end shrink-0 gap-2">
               <span class="text-xs font-semibold tracking-wide text-sky-300 bg-sky-900/20 px-3 py-1.5 rounded-md border border-sky-800/30">${dueDateDisplay}${task_time ? ' • ' + task_time : ''}</span>
-              
               <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition duration-200">
                 <button type="button" onclick="deleteTask(${id})" class="text-slate-500 hover:text-red-400 p-2 rounded-lg transition" title="Delete">
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
@@ -147,7 +133,6 @@
     async function deleteTask(taskId) {
       const response = await fetch('/tasks/' + taskId, { method: 'DELETE' });
       if (response.ok) loadTasks();
-      else alert('Failed to delete task');
     }
     
     document.getElementById('taskForm').addEventListener('submit', async e => {
@@ -158,7 +143,7 @@
       
       const inputEl = document.getElementById('task_description');
       const description = inputEl.value;
-      if (description.length < 10 || description.length > 200) { alert('Task description must be 10–200 characters'); return; }
+      if (description.length < 10 || description.length > 200) { alert('Task description must be 10-200 characters'); return; }
 
       const response = await fetch('/tasks', {
         method: 'POST',
@@ -167,11 +152,10 @@
       });
       if (response.ok) { 
         document.getElementById('taskForm').reset(); 
-        inputEl.style.color = ''; // Reset color on submit
-        inputEl.placeholder = 'Try: ' + prompts[Math.floor(Math.random() * prompts.length)]; // Rotate prompt
+        inputEl.style.color = ''; 
+        inputEl.placeholder = 'Try: ' + prompts[Math.floor(Math.random() * prompts.length)];
         loadTasks(); 
       } 
-      else { alert('Failed to add task'); }
     });
 
     function renderClock(animate=false){
