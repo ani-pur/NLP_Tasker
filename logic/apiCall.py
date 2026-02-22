@@ -1,7 +1,7 @@
 # this program constructs user metadata that gets appended to user request to API
 import httpx
 from datetime import date,datetime
-from openai import OpenAI, APITimeableError
+from openai import OpenAI, APITimeoutError
 import time
 from textwrap import dedent
 import os
