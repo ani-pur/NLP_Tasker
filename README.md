@@ -2,7 +2,7 @@ Author: Anirudh Purohit
 
 ## What is Tasker?
 
-Tasker lets you write tasks the way you think. No forms, no rigid structure. Just type naturally, and Tasker handles the details for you. It understands dates, times, and context written in plain language, so you can focus on what matters instead of how to enter it.
+[Tasker](https://tasker.4nirudh.org) lets you write tasks the way you think. No forms, no rigid structure. Just type naturally, and Tasker handles the details for you. It understands dates, times, and context written in plain language, so you can focus on what matters instead of how to enter it.
 
 Start with something simple like “submit project by Friday evening, red” 
 OR
