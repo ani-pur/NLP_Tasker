@@ -61,13 +61,6 @@
         </div>
       </div>
 
-      <div class="relative flex items-center py-6 w-full">
-        <div class="flex-grow border-t border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.6)]"></div>
-        <span class="shrink-0 mx-4 px-3 py-1 bg-slate-900 text-red-400 text-xs font-bold tracking-widest uppercase border border-red-500/50 rounded-full shadow-[0_0_10px_rgba(239,68,68,0.3)]">
-          Past Due
-        </span>
-        <div class="flex-grow border-t border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.6)]"></div>
-      </div>
       <ul id="taskList" class="flex-grow overflow-y-auto pr-4 custom-scrollbar pb-12 flex flex-col gap-4"></ul>
     </section>
 
@@ -180,21 +173,23 @@
             const pastDueTasks = [];
             const upcomingTasks = [];
     
+
             // 1. Sort tasks into Past Due and Upcoming
             tasks.forEach(task => {
-              const [id, __, task_name, task_time, task_description, due_date] = task;
+              const [id, __, task_name, task_time, task_description, due_date, priority, color] = task;
               let isPastDue = false;
     
               if (due_date) {
-                // Strip DB time payload to just YYYY-MM-DD
-                const dateStr = due_date.split(' ')[0]; 
-                // Default to end of day if no specific time is set
-                const timeStr = task_time ? task_time : '23:59'; 
+                // Strip the trailing " 00:00:00" from the DB if it exists, leave "Sun, 22 Feb 2026"
+                const cleanDate = due_date.replace(/ 00:00:00.*$/, '').trim(); 
+                // Default to 11:59 PM if no specific time is set
+                const timeStr = task_time ? task_time.trim() : '11:59 PM'; 
                 
-                // Note: This assumes task_time comes in 24hr format (e.g., "14:30")
-                const taskDateTime = new Date(`${dateStr}T${timeStr}:00`);
+                // Let JS natively parse "Sun, 22 Feb 2026 06:00 PM"
+                const taskDateTime = new Date(`${cleanDate} ${timeStr}`);
                 
-                if (taskDateTime < now) {
+                // Check if parsing was successful AND if the time has passed
+                if (!isNaN(taskDateTime) && taskDateTime < now) {
                   isPastDue = true;
                 }
               }
