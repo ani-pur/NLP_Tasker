@@ -182,44 +182,103 @@
     }
 
     async function loadTasks() {
-      const res = await fetch('/tasks');
-      const tasks = await res.json();
-      const list = document.getElementById('taskList');
-      list.innerHTML = '';
+      try {
+        const res = await fetch('/tasks');
+        const tasks = await res.json();
+        const list = document.getElementById('taskList');
+        list.innerHTML = '';
 
-      tasks.forEach((task, index) => {
-        const [id, __, name, time, desc, due, priority, color] = task;
-        
-        // Format Date string cleanly
-        const dueDateDisplay = due ? due.replace(/ 00:00:00.*$/, '') : '';
-        const timeDisplay = time ? ' • ' + time : '';
-        const fullDateTime = `${dueDateDisplay}${timeDisplay}`.trim();
+        const now = new Date();
+        const pastDueTasks = [];
+        const upcomingTasks = [];
 
-        const li = document.createElement('li');
-        // Dark, transparent background + staggered animation delay
-        li.className = 'task-enter bg-black/20 border border-slate-800/40 rounded-xl px-4 py-4 transition-transform duration-100 ease-out';
-        li.style.animationDelay = `${index * 50}ms`;
-        
-        li.innerHTML = `
-          <details class="group">
-            <summary class="flex flex-col gap-1 outline-none cursor-pointer">
-              <div class="font-bold text-[1.05rem] leading-tight" style="color:${color || '#fcd34d'}">${name}</div>
-              ${fullDateTime ? `<div class="text-xs font-medium text-sky-300/80 mt-0.5">${fullDateTime}</div>` : ''}
-            </summary>
-            <div class="task-details mt-3 text-slate-400 text-sm leading-relaxed border-t border-slate-800/40 pt-3">
-              ${desc}
-              <div class="mt-4 flex justify-end">
-                <button class="text-red-400 font-bold text-xs tracking-widest uppercase px-5 py-2.5 bg-red-400/10 active:bg-red-400/20 rounded-lg transition" onclick="deleteTask(${id})">
-                  Delete
-                </button>
+        // 1. Sort using our fixed AM/PM string parser
+        tasks.forEach(task => {
+          const [id, __, name, time, desc, due, priority, color] = task;
+          let isPastDue = false;
+
+          if (due) {
+            const cleanDate = due.replace(/ 00:00:00.*$/, '').trim(); 
+            const timeStr = time ? time.trim() : '11:59 PM'; 
+            const taskDateTime = new Date(`${cleanDate} ${timeStr}`);
+            
+            if (!isNaN(taskDateTime) && taskDateTime < now) {
+              isPastDue = true;
+            }
+          }
+
+          if (isPastDue) pastDueTasks.push(task);
+          else upcomingTasks.push(task);
+        });
+
+        // 2. Render Helper
+        const appendTaskToDOM = (task, isPastDue, animationIndex) => {
+          const [id, __, name, time, desc, due, priority, color] = task;
+          
+          const dueDateDisplay = due ? due.replace(/ 00:00:00.*$/, '') : '';
+          const timeDisplay = time ? ' • ' + time : '';
+          const fullDateTime = `${dueDateDisplay}${timeDisplay}`.trim();
+
+          const li = document.createElement('li');
+          
+          // Add a subtle red border glow to the container if past due, otherwise standard slate
+          const containerBorder = isPastDue ? 'border-red-900/40 shadow-[0_0_8px_rgba(239,68,68,0.05)]' : 'border-slate-800/40';
+          li.className = `task-enter bg-black/20 border ${containerBorder} rounded-xl px-4 py-4 transition-transform duration-100 ease-out`;
+          li.style.animationDelay = `${animationIndex * 50}ms`;
+          
+          // Make date text red and give it a subtle glow if past due
+          const dateStyle = isPastDue 
+            ? 'text-red-400 font-semibold drop-shadow-[0_0_5px_rgba(239,68,68,0.4)]' 
+            : 'text-sky-300/80';
+
+          li.innerHTML = `
+            <details class="group">
+              <summary class="flex flex-col gap-1 outline-none cursor-pointer">
+                <div class="font-bold text-[1.05rem] leading-tight" style="color:${color || '#fcd34d'}">${name}</div>
+                ${fullDateTime ? `<div class="text-xs font-medium ${dateStyle} mt-0.5">${fullDateTime}</div>` : ''}
+              </summary>
+              <div class="task-details mt-3 text-slate-400 text-sm leading-relaxed border-t border-slate-800/40 pt-3">
+                ${desc}
+                <div class="mt-4 flex justify-end">
+                  <button class="text-red-400 font-bold text-xs tracking-widest uppercase px-5 py-2.5 bg-red-400/10 active:bg-red-400/20 rounded-lg transition" onclick="deleteTask(${id})">
+                    Delete
+                  </button>
+                </div>
               </div>
-            </div>
-          </details>
-        `;
+            </details>
+          `;
 
-        addTapFeedback(li);
-        list.appendChild(li);
-      });
+          addTapFeedback(li);
+          list.appendChild(li);
+        };
+
+        // 3. Inject into the DOM sequentially 
+        let staggerIndex = 0;
+
+        pastDueTasks.forEach(task => {
+          appendTaskToDOM(task, true, staggerIndex++);
+        });
+
+        if (pastDueTasks.length > 0) {
+          const divider = document.createElement('li');
+          divider.className = "relative flex items-center py-4 w-full"; // Reduced y-padding slightly for mobile
+          divider.innerHTML = `
+            <div class="flex-grow border-t border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.6)]"></div>
+            <span class="shrink-0 mx-3 px-3 py-1 bg-slate-900 text-red-400 text-[0.65rem] font-bold tracking-widest uppercase border border-red-500/50 rounded-full shadow-[0_0_10px_rgba(239,68,68,0.3)]">
+              Past Due
+            </span>
+            <div class="flex-grow border-t border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.6)]"></div>
+          `;
+          list.appendChild(divider);
+        }
+
+        upcomingTasks.forEach(task => {
+          appendTaskToDOM(task, false, staggerIndex++);
+        });
+
+      } catch (err) {
+        console.error("Error loading tasks:", err);
+      }
     }
 
     function addTapFeedback(el) {
