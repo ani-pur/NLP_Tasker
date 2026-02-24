@@ -60,7 +60,7 @@
           <span id="clockTime" class="text-slate-300 font-bold text-xs tracking-widest tabular-nums"></span>
         </div>
       </div>
-      
+
       <ul id="taskList" class="flex-grow overflow-y-auto pr-4 custom-scrollbar pb-12 flex flex-col gap-4"></ul>
     </section>
 
@@ -163,39 +163,98 @@
     }
 
     async function loadTasks() {
-      try {
-        const response = await fetch('/tasks');
-        const tasks = await response.json();
-        const taskList = document.getElementById('taskList');
-        taskList.innerHTML = '';
+          try {
+            const response = await fetch('/tasks');
+            const tasks = await response.json();
+            const taskList = document.getElementById('taskList');
+            taskList.innerHTML = '';
+    
+            const now = new Date();
+            const pastDueTasks = [];
+            const upcomingTasks = [];
+    
 
-        tasks.forEach(task => {
-          const [id, __, task_name, task_time, task_description, due_date, priority, color] = task;
-          const dueDateDisplay = due_date ? due_date.replace(/ 00:00:00.*$/, '') : "No due date";
-
-          const li = document.createElement('li');
-          // Slightly increased opacity on task cards to pop against the new background
-          li.className = 'task-card-item bg-slate-900/60 border border-slate-800/80 hover:border-slate-700/80 rounded-xl p-5 transition duration-200 group relative overflow-hidden shrink-0 backdrop-blur-sm';
-          li.innerHTML = `
-            <div class="flex justify-between items-start gap-4">
-              <div class="task-text flex-1 transition-all duration-300">
-                <h4 class="font-bold text-lg leading-tight" style="color:${color || '#fcd34d'};">${task_name}</h4>
-                <p class="text-slate-400 text-sm leading-relaxed whitespace-pre-wrap mt-2">${task_description}</p>
-              </div>
-              <div class="flex flex-col items-end shrink-0 gap-2">
-                <span class="text-xs font-semibold tracking-wide text-sky-300 bg-sky-900/20 px-3 py-1.5 rounded-md border border-sky-800/30">${dueDateDisplay}${task_time ? ' • ' + task_time : ''}</span>
-                <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition duration-200">
-                  <button type="button" onclick="deleteTask(${id})" class="text-slate-500 hover:text-red-400 p-2 rounded-lg transition" title="Delete">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                  </button>
-                </div>
-              </div>
-            </div>
-          `;
-          taskList.appendChild(li);
-        });
-      } catch (err) { console.error("Error loading tasks:", err); }
-    }
+            // 1. Sort tasks into Past Due and Upcoming
+            tasks.forEach(task => {
+              const [id, __, task_name, task_time, task_description, due_date, priority, color] = task;
+              let isPastDue = false;
+    
+              if (due_date) {
+                // Strip the trailing " 00:00:00" from the DB if it exists, leave "Sun, 22 Feb 2026"
+                const cleanDate = due_date.replace(/ 00:00:00.*$/, '').trim(); 
+                // Default to 11:59 PM if no specific time is set
+                const timeStr = task_time ? task_time.trim() : '11:59 PM'; 
+                
+                // Let JS natively parse "Sun, 22 Feb 2026 06:00 PM"
+                const taskDateTime = new Date(`${cleanDate} ${timeStr}`);
+                
+                // Check if parsing was successful AND if the time has passed
+                if (!isNaN(taskDateTime) && taskDateTime < now) {
+                  isPastDue = true;
+                }
+              }
+    
+              if (isPastDue) {
+                pastDueTasks.push(task);
+              } else {
+                upcomingTasks.push(task);
+              }
+            });
+    
+            // 2. Render Helper
+            const renderTaskHtml = (task, isPastDue) => {
+              const [id, __, task_name, task_time, task_description, due_date, priority, color] = task;
+              const dueDateDisplay = due_date ? due_date.replace(/ 00:00:00.*$/, '') : "No due date";
+              
+              // Toggle pill colors based on status
+              const badgeColors = isPastDue 
+                ? "text-red-400 bg-red-900/20 border-red-800/30 shadow-[0_0_8px_rgba(239,68,68,0.15)]" 
+                : "text-sky-300 bg-sky-900/20 border-sky-800/30";
+    
+              return `
+                <li class="task-card-item bg-slate-900/60 border border-slate-800/80 hover:border-slate-700/80 rounded-xl p-5 transition duration-200 group relative overflow-hidden shrink-0 backdrop-blur-sm">
+                  <div class="flex justify-between items-start gap-4">
+                    <div class="task-text flex-1 transition-all duration-300">
+                      <h4 class="font-bold text-lg leading-tight" style="color:${color || '#fcd34d'};">${task_name}</h4>
+                      <p class="text-slate-400 text-sm leading-relaxed whitespace-pre-wrap mt-2">${task_description}</p>
+                    </div>
+                    <div class="flex flex-col items-end shrink-0 gap-2">
+                      <span class="text-xs font-semibold tracking-wide ${badgeColors} px-3 py-1.5 rounded-md border">${dueDateDisplay}${task_time ? ' • ' + task_time : ''}</span>
+                      <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition duration-200">
+                        <button type="button" onclick="deleteTask(${id})" class="text-slate-500 hover:text-red-400 p-2 rounded-lg transition" title="Delete">
+                          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              `;
+            };
+    
+            // 3. Inject to DOM
+            pastDueTasks.forEach(task => {
+              taskList.insertAdjacentHTML('beforeend', renderTaskHtml(task, true));
+            });
+    
+            // Only inject the glowing divider if there are past due tasks
+            if (pastDueTasks.length > 0) {
+              taskList.insertAdjacentHTML('beforeend', `
+                <li class="relative flex items-center py-6 w-full">
+                  <div class="flex-grow border-t border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.6)]"></div>
+                  <span class="shrink-0 mx-4 px-3 py-1 bg-slate-900 text-red-400 text-xs font-bold tracking-widest uppercase border border-red-500/50 rounded-full shadow-[0_0_10px_rgba(239,68,68,0.3)]">
+                    Past Due
+                  </span>
+                  <div class="flex-grow border-t border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.6)]"></div>
+                </li>
+              `);
+            }
+    
+            upcomingTasks.forEach(task => {
+              taskList.insertAdjacentHTML('beforeend', renderTaskHtml(task, false));
+            });
+    
+          } catch (err) { console.error("Error loading tasks:", err); }
+        }
 
     async function deleteTask(taskId) {
       const response = await fetch('/tasks/' + taskId, { method: 'DELETE' });
