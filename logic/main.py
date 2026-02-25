@@ -106,12 +106,8 @@ def login():
 
         else:
             error = "Invalid password. Please try again."
-            ipAddr= fetch_real_ip()
-            if ipAddr is not None:
-                print(currentTime(),"[!] FAILED LOGIN FROM IP: ",ipAddr)
-            else:
-                ipv4=request.remote_addr
-                print(currentTime(),"<!> FAILED LOGIN, IPV4: ",ipv4)        # hotfix for testing
+            ipAddr= fetch_real_ip() or request.remote_addr
+            print(currentTime(),"[!] FAILED LOGIN FROM IP: ",ipAddr, "Attempted username: ",input_username)
 
     return render_template('dual_login.html', error=error)
 
