@@ -221,7 +221,7 @@ def handle_tasks():
 
 
         # api call, response JSON from api call to be passed to tasks module
-        apiResponse = api.postRequest(task_data)
+        apiResponse = api.postRequest(username, task_data)
 
         new_task = tasks.add_task(username, apiResponse, task_data)
         return jsonify(new_task), 201
