@@ -75,10 +75,6 @@ def warmupCall():
         if warmupClock >= 3:
             print(f"{currentTime()} [PID {os.getpid()}] LATE WARMUP: {warmupClock:.2f}s")
             
-    except APITimeoutError:
-        # This triggers if the 5s limit is hit
-        duration = time.time() - warmup_startTime
-        print(f"{currentTime()} [PID {os.getpid()}] TIMEOUT WARMUP: Abandoned after {duration:.2f}s")
     except Exception as e:
         # Other errors (DNS, Auth, Rate Limits)
         print(f"{currentTime()} [PID {os.getpid()}] WARMUP FAILED: {e}")
@@ -120,7 +116,9 @@ warmup_thread = threading.Thread(target=keep_warm_loop, daemon=True)
 warmup_thread.start()
 
 # pass to api
-def postRequest(userInput: dict) -> str:  
+def postRequest(username: str, userInput: dict) -> str:
+    """ username only used for printing logs so i know whos adding tasks (can't see contents of task dw if anyone ends up reading for some reason)"""
+    
     stringInput = "\n ### [USER INPUT BEGINS] ### \n" + str(userInput["task_description"])     
     start_time=time.time()
     userTzData=userInput.get("user_tz_metadata")
@@ -142,7 +140,8 @@ def postRequest(userInput: dict) -> str:
 
     end_time=time.time()
     internalClock = end_time-start_time
-    print(LOG_PAD, 'api RESPONSE: ', internalClock)
-    # print('api RESPONSE JSON: ',response.output_text)
+    print(currentTime(), username, 'api RESPONSE: ', internalClock)
+    # EARLY STAGES DEBUGGING LOL line kept here incase i needa re-enable quickly again to debug (never on prod tho)
+    # print('API RESPONSE CONTENT: ',response.output_text)
 
     return response.output_text
