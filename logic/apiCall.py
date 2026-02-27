@@ -53,7 +53,7 @@ Dark Yellow: DAA520
     current time: 11:55 PM
     current day: Monday
 
-- Always use this metadata to resolve any relative time/due date. **IF DUE DATE RESOLVES TO 29 FEB, REPLACE WITH 01 MARCH**
+- Always use this metadata to resolve any relative time/due date. **FEBRUARY ONLY HAS 28 DAYS**
 
 - Return valid JSON containing ONLY the fields above. 
 
