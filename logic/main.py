@@ -80,12 +80,10 @@ def info():
 
     ipAddr = fetch_real_ip() or request.remote_addr
     log_block = (
-        f"{LOG_PAD}IP: {ipAddr}\n"
-        f"{LOG_PAD}Full Path: {request.full_path}\n"
-        f"{LOG_PAD}User-Agent: {request.headers.get('User-Agent')}\n"
-        f"{LOG_PAD}Referer: {request.headers.get('Referer')}\n"
-        f"{LOG_PAD}Accept: {request.headers.get('Accept')}\n"
-        f"{LOG_PAD}Current Time: {currentTime()}\n"
+        f"IP: {ipAddr}\n"
+        f"{2*LOG_PAD}Full Path: {request.full_path}\n"
+        f"{2*LOG_PAD}User-Agent: {request.headers.get('User-Agent')}\n"
+        f"{2*LOG_PAD}Referer: {request.headers.get('Referer')}\n"
         )
     print(currentTime(),log_block)
     return render_template('mixed.html')
