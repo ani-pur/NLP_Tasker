@@ -59,30 +59,43 @@ HTML_ADMIN_NOTIFY = """<!DOCTYPE html>
 </html>
 """
 
+# password reset template
+HTML_RESET = """<!doctype html><html><body style="margin:0;padding:0;background:#f6f7f9;"><div style="max-width:600px;margin:40px auto;background:#fff;border:1px solid #eef0f3;border-radius:12px;overflow:hidden;font-family:Arial,sans-serif;color:#111;line-height:1.55;"><div style="padding:16px 22px;background:#0b1220;"><div style="font-weight:900;letter-spacing:1px;font-size:13px;color:#fff;">TASKER</div><div style="margin-top:4px;font-size:11px;color:#94a3b8;">Password Reset</div></div><div style="padding:22px;font-size:14px;"><h2 style="margin:10px 0 6px 0;font-size:18px;line-height:1.25;">Hi <span style="font-weight:900;">${username}</span>,</h2><p style="margin:0 0 14px 0;color:#334155;">We received a request to reset your password. Click the button below to set a new one.</p><div style="text-align:center;margin:18px 0 22px 0;"><a href="${reset_url}" style="display:inline-block;padding:10px 20px;background:#2563eb;color:#fff;text-decoration:none;border-radius:9px;font-size:13px;font-weight:800;">Reset Password</a><div style="margin-top:8px;font-size:11px;color:#64748b;">Or copy this link: <a href="${reset_url}" style="color:#2563eb;text-decoration:none;">${reset_url}</a></div></div><p style="margin:0;font-size:13px;color:#475569;">This link expires in <strong>15 minutes</strong>. If you didn't request this, you can safely ignore this email.</p><p style="margin:14px 0 0 0;font-size:13px;">Thanks,<br><strong>Anirudh</strong><br><span style="color:#64748b;">Tasker Admin</span></p></div><div style="padding:14px 22px;background:#f8fafc;border-top:1px solid #eef2f7;"><p style="margin:0;font-size:11px;color:#64748b;">Automated email. Replies go straight to me.</p></div></div></body></html>"""
+
 
 def usage_and_exit():
     print("usage:")
     print("  python3 send_email.py <username> <email>")
     print("  python3 send_email.py --notifyAdmin <username> <email>")
+    print("  python3 send_email.py --resetPassword <username> <email> <reset_url>")
     sys.exit(1)
 
 
 
-notify_admin = False
+mode = "approval"  # default
 args = sys.argv[1:]
 
 if not args:
     usage_and_exit()
 
 if args[0] == "--notifyAdmin":
-    notify_admin = True
+    mode = "notifyAdmin"
+    args = args[1:]
+elif args[0] == "--resetPassword":
+    mode = "resetPassword"
     args = args[1:]
 
-if len(args) < 2:
-    usage_and_exit()
-
-recipientUsername = args[0]
-recipientAddress = args[1]
+if mode == "resetPassword":
+    if len(args) < 3:
+        usage_and_exit()
+    recipientUsername = args[0]
+    recipientAddress = args[1]
+    resetUrl = args[2]
+else:
+    if len(args) < 2:
+        usage_and_exit()
+    recipientUsername = args[0]
+    recipientAddress = args[1]
 
 
 
@@ -113,7 +126,7 @@ msg["Message-ID"] = f"<tasker-{notif_uuid}@4nirudh.org>"
 
 msg["X-Tasker-Notification-ID"] = notif_uuid
 
-if notify_admin:
+if mode == "notifyAdmin":
     # more stuff to make sure email is unique
     msg["Subject"] = f"Tasker: account request received - {recipientUsername} [{short_id}]"
     msg["From"] = FROM_ADDR
@@ -132,6 +145,22 @@ if notify_admin:
     )
 
     msg.add_alternative(html, subtype="html", cte="base64")
+
+elif mode == "resetPassword":
+    msg["Subject"] = f"Tasker: password reset \u2014 {recipientUsername} [{short_id}]"
+    msg["From"] = FROM_ADDR
+    msg["To"] = recipientAddress
+
+    msg.set_content(f"Reset your Tasker password: {resetUrl}\nThis link expires in 15 minutes.")
+
+    html = (
+        HTML_RESET
+            .replace("${username}", recipientUsername)
+            .replace("${reset_url}", resetUrl)
+        + f"<!-- tasker-nonce:{notif_uuid} -->"
+    )
+
+    msg.add_alternative(html, subtype="html")
 
 else:
     # more uniqueness bs

@@ -3,7 +3,7 @@
 
 import werkzeug.security as wz
 import os
-#import json
+import secrets
 import psycopg2
 
 # connect to db
@@ -40,6 +40,54 @@ def hasher():
 
 def hash_password(password: str):
     return wz.generate_password_hash(password)
+
+
+# PASSWORD RESET FUNCTIONS
+
+def get_user_by_email(email):
+    """Returns (username, email) if a user with this email exists, else None."""
+    with dbConnect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT username, email FROM users WHERE email = %s;", (email,))
+            return cur.fetchone()
+
+def generate_reset_token(username):
+    """Generates a secure token, stores it in password_reset_tokens table, returns the token string."""
+    token = secrets.token_urlsafe(32)
+    with dbConnect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO password_reset_tokens (token, username) VALUES (%s, %s);",
+                (token, username)
+            )
+            conn.commit()
+    return token
+
+def verify_reset_token(token):
+    """Checks token is valid, unused, and within 15-min window. Returns username if valid, None otherwise. Marks token as used."""
+    with dbConnect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT username FROM password_reset_tokens WHERE token = %s AND used = FALSE AND created_at > NOW() - INTERVAL '15 minutes';",
+                (token,)
+            )
+            row = cur.fetchone()
+            if row is None:
+                return None
+            cur.execute(
+                "UPDATE password_reset_tokens SET used = TRUE WHERE token = %s;",
+                (token,)
+            )
+            conn.commit()
+            return row[0]
+
+def update_password(username, new_password):
+    """Hashes and updates the password for a given user."""
+    new_hash = wz.generate_password_hash(new_password)
+    with dbConnect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("UPDATE users SET pwhash = %s WHERE username = %s;", (new_hash, username))
+            conn.commit()
 
 def delProfile():
 
@@ -98,7 +146,7 @@ def merge_approve():
                         choice_2 = str(input('Approve? y/n: '))
                         if choice_2 == 'y':
                             index=i[0]  # index of row
-                            cur.execute(f"INSERT INTO users (username, pwhash) SELECT username, password_hash FROM PendingApprovals WHERE id = {index}")
+                            cur.execute(f"INSERT INTO users (username, pwhash, email) SELECT username, password_hash, email FROM PendingApprovals WHERE id = {index}")
                             print(f'Merged {index}')
                             conn.commit()
                             cur.execute(f"DELETE FROM pendingapprovals WHERE id = {index};")
@@ -123,7 +171,7 @@ def merge_approve():
                     try:
                         cur.execute("SELECT * FROM PendingApprovals;")
                         print('\n MERGING INTO TABLE [USERS] \n')
-                        cur.execute(" INSERT INTO users (username, pwhash) SELECT username, password_hash FROM PendingApprovals ON CONFLICT (username) DO NOTHING;")
+                        cur.execute(" INSERT INTO users (username, pwhash, email) SELECT username, password_hash, email FROM PendingApprovals ON CONFLICT (username) DO NOTHING;")
                         print('\n Merged. \n')
                         conn.commit()
 
