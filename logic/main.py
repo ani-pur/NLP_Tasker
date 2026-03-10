@@ -160,6 +160,81 @@ def signup():
 
 
 
+# PASSWORD RESET ROUTES
+
+# Step 1: User submits email, we look up user and fire off a reset email if they exist
+# Always shows the same message regardless of whether the email was found (prevents enumeration)
+@app.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    message = None
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip()
+        print(currentTime(), "[RESET] Password reset requested for email:", email)
+
+        user = hasher.get_user_by_email(email)
+        if user:
+            username = user[0]
+            token = hasher.generate_reset_token(username)
+            reset_url = request.host_url.rstrip('/') + f"/reset-password?token={token}"
+
+            # fire reset email via subprocess (same pattern as signup notification)
+            try:
+                r = subprocess.Popen(
+                    [sys.executable, "logic/emailHandler.py", "--resetPassword", username, email, reset_url],
+                )
+                print(currentTime(), "[RESET] Reset email fired for user:", username)
+            except subprocess.CalledProcessError as e:
+                print(currentTime(), "[RESET] Email subprocess failed:", e)
+        else:
+            print(currentTime(), "[RESET] No user found for email:", email)
+
+        # generic message regardless of outcome
+        message = "If an account with that email exists, a reset link has been sent."
+
+    return render_template('forgot_password.html', message=message)
+
+
+# Step 2: User clicks reset link from email, enters new password + confirmation
+# Token is validated (one-time use, 15-min expiry) before allowing password update
+@app.route('/reset-password', methods=['GET', 'POST'])
+def reset_password():
+    error = None
+
+    if request.method == 'GET':
+        token = request.args.get('token', '')
+        if not token:
+            return redirect(url_for('forgot_password'))
+        return render_template('reset_password.html', token=token, error=error)
+
+    # POST: validate inputs and token, then update password
+    token = request.form.get('token', '')
+    password = request.form.get('password', '').strip()
+    confirm_password = request.form.get('confirm_password', '').strip()
+
+    if not password or not confirm_password:
+        error = "Both fields are required."
+        return render_template('reset_password.html', token=token, error=error)
+
+    if password != confirm_password:
+        error = "Passwords do not match."
+        return render_template('reset_password.html', token=token, error=error)
+
+    if len(password) < 6:
+        error = "Password must be at least 6 characters."
+        return render_template('reset_password.html', token=token, error=error)
+
+    # verify token: checks unused + within 15-min window, marks as used
+    username = hasher.verify_reset_token(token)
+    if username is None:
+        print(currentTime(), "[RESET] Invalid/expired token attempted")
+        error = "This reset link is invalid or has expired."
+        return render_template('reset_password.html', token=token, error=error)
+
+    hasher.update_password(username, password)
+    print(currentTime(), "[RESET] Password updated for user:", username)
+    return redirect(url_for('login'))
+
+
 @app.route('/logout')
 def logout():
     session.pop('username', None)
