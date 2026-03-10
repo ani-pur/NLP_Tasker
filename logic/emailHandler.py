@@ -147,7 +147,7 @@ if mode == "notifyAdmin":
     msg.add_alternative(html, subtype="html", cte="base64")
 
 elif mode == "resetPassword":
-    msg["Subject"] = f"Tasker: password reset \u2014 {recipientUsername} [{short_id}]"
+    msg["Subject"] = f"Tasker: password reset - {recipientUsername} [{short_id}]"
     msg["From"] = FROM_ADDR
     msg["To"] = recipientAddress
 
