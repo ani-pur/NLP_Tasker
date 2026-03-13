@@ -177,7 +177,8 @@
       return {
         "todaysDate (yyyy/mm/dd): ": now.toLocaleDateString('en-CA'),
         "current time: ": now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
-        "current day: ": now.toLocaleDateString('en-US', { weekday: 'long' })
+        "current day: ": now.toLocaleDateString('en-US', { weekday: 'long' }),
+        "utc_offset_minutes": now.getTimezoneOffset()
       };
     }
 
@@ -194,7 +195,7 @@
 
         // 1. Sort using our fixed AM/PM string parser
         tasks.forEach(task => {
-          const [id, __, name, time, desc, due, priority, color] = task;
+          const [id, __, name, time, desc, due, color] = task;
           let isPastDue = false;
 
           if (due) {
@@ -213,7 +214,7 @@
 
         // 2. Render Helper
     const appendTaskToDOM = (task, isPastDue, animationIndex) => {
-      const [id, __, name, time, desc, due, priority, color] = task;
+      const [id, __, name, time, desc, due, color] = task;
       
       const dueDateDisplay = due ? due.replace(/ 00:00:00.*$/, '') : '';
       const timeDisplay = time ? ' • ' + time : '';
@@ -365,8 +366,49 @@
       if (!document.hidden) renderClock(false);
     });
     
+    // --- Push Notifications ---
+    async function setupPushNotifications() {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+
+      try {
+        const reg = await navigator.serviceWorker.register('/sw.js');
+
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') return;
+
+        const existing = await reg.pushManager.getSubscription();
+        if (existing) return;
+
+        const keyRes = await fetch('/push/vapid-public-key');
+        const keyData = await keyRes.json();
+        if (!keyData.public_key) return;
+
+        const rawKey = atob(keyData.public_key.replace(/-/g, '+').replace(/_/g, '/'));
+        const vapidKey = new Uint8Array(rawKey.length);
+        for (let i = 0; i < rawKey.length; i++) vapidKey[i] = rawKey.charCodeAt(i);
+
+        const sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: vapidKey
+        });
+
+        const subJson = sub.toJSON();
+        await fetch('/push/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            endpoint: subJson.endpoint,
+            keys: subJson.keys
+          })
+        });
+      } catch (err) {
+        console.error('Push setup failed:', err);
+      }
+    }
+
     // Initial Load
     loadTasks();
+    setupPushNotifications();
   </script>
 </body>
 </html>

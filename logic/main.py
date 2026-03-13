@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_from_directory, make_response
 from logic import hasher
 from logic import tasks_db as tasks
 from logic import apiCall as api
@@ -15,6 +15,8 @@ import urllib.request
 app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_SECRET_KEY')
 app.permanent_session_lifetime = timedelta(weeks=1)
+
+VAPID_PUBLIC_KEY = os.environ.get('VAPID_PUBLIC_KEY', '')
 
 LOG_PAD = "\t\t"        # to pad logs so they're actually readable lol
 
@@ -74,6 +76,13 @@ def pwa_icon_192():
 @app.get("/pwa/icon-512.png")
 def pwa_icon_512():
     return send_from_directory("static", "icon-512.png")
+
+@app.get("/sw.js")
+def service_worker():
+    response = make_response(send_from_directory("static", "sw.js"))
+    response.headers['Service-Worker-Allowed'] = '/'
+    response.headers['Content-Type'] = 'application/javascript'
+    return response
 
 @app.route('/info', methods=['GET'])
 def info():
@@ -310,6 +319,48 @@ def delete_task(task_id):
         return jsonify({'message': 'Task deleted successfully.'})
     else:
         return jsonify({'error': 'Task not found.'}), 404
+
+# --- Push Notification Endpoints ---
+
+@app.get('/push/vapid-public-key')
+def vapid_public_key():
+    if 'username' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    return jsonify({'public_key': VAPID_PUBLIC_KEY})
+
+@app.post('/push/subscribe')
+def push_subscribe():
+    if 'username' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    username = session['username']
+    data = request.get_json()
+    if not data or not data.get('endpoint') or not data.get('keys'):
+        return jsonify({'error': 'Invalid subscription data'}), 400
+
+    endpoint = data['endpoint']
+    p256dh = data['keys'].get('p256dh', '')
+    auth = data['keys'].get('auth', '')
+
+    if not p256dh or not auth:
+        return jsonify({'error': 'Missing p256dh or auth keys'}), 400
+
+    success = tasks.save_push_subscription(username, endpoint, p256dh, auth)
+    if success:
+        return jsonify({'ok': True}), 201
+    return jsonify({'error': 'Failed to save subscription'}), 500
+
+@app.post('/push/unsubscribe')
+def push_unsubscribe():
+    if 'username' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    username = session['username']
+    data = request.get_json()
+    if not data or not data.get('endpoint'):
+        return jsonify({'error': 'Missing endpoint'}), 400
+
+    tasks.delete_push_subscription(username, data['endpoint'])
+    return jsonify({'ok': True})
+
 
 @app.errorhandler(404)
 def not_found(e):
