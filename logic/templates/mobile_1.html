@@ -87,6 +87,9 @@
       <div class="text-2xl font-extrabold text-white tracking-tighter">Tasker.</div>
       <div class="flex items-center gap-4 text-sm font-medium">
         <span class="text-slate-400 bg-slate-800/50 px-2 py-1 rounded-md">{{ username }}</span>
+        <button id="notifBtn" onclick="setupPushNotifications()" class="hidden text-slate-500 hover:text-accent transition p-1" title="Enable notifications">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+        </button>
         <a href="{{ url_for('logout') }}" class="text-red-400 hover:text-red-300 transition pl-1 border-l border-slate-700">Logout</a>
       </div>
     </div>
@@ -370,6 +373,8 @@
     async function setupPushNotifications() {
       if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
 
+      const btn = document.getElementById('notifBtn');
+
       try {
         const reg = await navigator.serviceWorker.register('/sw.js');
 
@@ -377,7 +382,7 @@
         if (permission !== 'granted') return;
 
         const existing = await reg.pushManager.getSubscription();
-        if (existing) return;
+        if (existing) { if (btn) btn.classList.add('hidden'); return; }
 
         const keyRes = await fetch('/push/vapid-public-key');
         const keyData = await keyRes.json();
@@ -401,14 +406,30 @@
             keys: subJson.keys
           })
         });
+
+        if (btn) btn.classList.add('hidden');
       } catch (err) {
         console.error('Push setup failed:', err);
       }
     }
 
+    // Show notification bell if push is supported but not yet subscribed
+    async function initNotifButton() {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+      if (Notification.permission === 'granted') {
+        const reg = await navigator.serviceWorker.getRegistration('/sw.js');
+        if (reg) {
+          const existing = await reg.pushManager.getSubscription();
+          if (existing) return; // already subscribed, keep hidden
+        }
+      }
+      const btn = document.getElementById('notifBtn');
+      if (btn) btn.classList.remove('hidden');
+    }
+
     // Initial Load
     loadTasks();
-    setupPushNotifications();
+    initNotifButton();
   </script>
 </body>
 </html>
