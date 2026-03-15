@@ -30,7 +30,7 @@ Instructions:
     2. task_time [optional]: 12-hour format without seconds (e.g., "4:32 PM"). If input uses relative phrases (e.g., "in 2 hours"), calculate the specific time using the provided user metadata. "Midnight" ALWAYS resolves to 11:59pm. Else, null.
     3. task_description: Preserve ALL detail and instructions from user input, only removing: color, due date, reminder/notification phrases.
     4. due_date [required]: Always resolve to an absolute date. If input has relative date ("in X hours", "tomorrow"), use the appended metadata (provided below) to calculate. Format: 'DD Mon YYYY' (e.g., "01 Jul 2025").
-    5. notif_time_offset [optional]: Number of hours before the task's due date+time the user wants a reminder. Parse from phrases like "remind me 3 hours before", "notify 30 min prior", "alert me 1 day before". Convert non-hour units to fractional hours (30 minutes = 0.5, 1 day = 24). If the user doesn't mention a reminder, return null.
+    5. notif_time_offset [optional] [MAX RETURN VALUE = 24]: Number of hours before the task's due date+time the user wants a reminder. Parse from phrases like "remind me 3 hours before", "notify 30 min prior", "alert me 1 day before". Convert non-hour units to fractional hours (30 minutes = 0.5, 1 day = 24). If the user doesn't mention a reminder, return 0.25
     6. color [required]: Return only hex values. Parse from input for any colors and check against provided hex table below titled "COLOR:HEX". Default/fallback: #FFFFFF.  
 
 - COLOR:HEX
