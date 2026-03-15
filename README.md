@@ -22,7 +22,7 @@ Step 3: Enable 'open as web app' (on ios) / agree to install prompt (on android)
 ✅
 
 ### Coming soon: 
-- Push notifications 
+- ~~Push notifications~~ [TESTING] 
 - edit button to edit tasks lol
 - sorting options (currently sorts earliest - latest due)
 
