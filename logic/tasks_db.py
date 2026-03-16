@@ -107,7 +107,7 @@ def add_task(username: str, jsonInput: str, task_data: dict):
         with conn.cursor() as cur:
             try:
                 cur.execute(
-                    "INSERT INTO tasks_testing (username, "
+                    "INSERT INTO tasks (username, "
                     "task_name, "
                     "task_time, "
                     "task_description, "
@@ -115,7 +115,7 @@ def add_task(username: str, jsonInput: str, task_data: dict):
                     "color, "
                     "task_datetime) VALUES (%s, %s, "
                     "to_timestamp(NULLIF(btrim(%s), ''), 'HH12:MI AM')::time, "
-                    "%s, %s, %s, %s) RETURNING tasks_testing.id",
+                    "%s, %s, %s, %s) RETURNING tasks.id",
                     (username, task_name, task_time, task_description, due_date, color, task_datetime_utc)
                 )
                 task_id = cur.fetchone()[0]
@@ -145,16 +145,16 @@ def get_all_tasks(username, sort_order):
             try:
                 cur.execute(
                     "SELECT "
-                    "tasks_testing.id, "
-                    "tasks_testing.username, "
-                    "tasks_testing.task_name, "
-                    "to_char(tasks_testing.task_time, 'HH12:MI AM') AS task_time, "
-                    "tasks_testing.task_description, "
-                    "tasks_testing.due_date, "
-                    "tasks_testing.color "
-                    "FROM tasks_testing "
-                    "WHERE tasks_testing.username = %s "
-                    "ORDER BY tasks_testing.due_date ASC, tasks_testing.task_time ASC NULLS LAST;",
+                    "tasks.id, "
+                    "tasks.username, "
+                    "tasks.task_name, "
+                    "to_char(tasks.task_time, 'HH12:MI AM') AS task_time, "
+                    "tasks.task_description, "
+                    "tasks.due_date, "
+                    "tasks.color "
+                    "FROM tasks "
+                    "WHERE tasks.username = %s "
+                    "ORDER BY tasks.due_date ASC, tasks.task_time ASC NULLS LAST;",
                     (username,)
                 )
                 rows = cur.fetchall()
@@ -172,7 +172,7 @@ def delete_task(username, task_id):
         with conn.cursor() as cur:
             try:
                 cur.execute(
-                    "DELETE FROM tasks_testing WHERE tasks_testing.username = %s AND tasks_testing.id = %s ",(username,task_id)
+                    "DELETE FROM tasks WHERE tasks.username = %s AND tasks.id = %s ",(username,task_id)
                 )
                 conn.commit()
                 return True
