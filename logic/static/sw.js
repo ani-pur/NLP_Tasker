@@ -10,7 +10,7 @@ self.addEventListener('push', event => {
     const data = event.data ? event.data.json() : {};
     event.waitUntil(
         self.registration.showNotification(data.title || 'Tasker Reminder', {
-            body: data.body || '',
+            body: data.body || 'Upcoming task.',
             icon: '/pwa/icon-192.png',
             badge: '/pwa/icon-192.png',
             data: { url: data.url || '/' }
