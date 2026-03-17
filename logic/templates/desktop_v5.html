@@ -26,7 +26,10 @@
       font-family: 'DM Sans', sans-serif;
       font-size: 14px;
       min-height: 100vh;
-      overflow-x: hidden;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
 
     /* ── Subtle paper texture ── */
@@ -102,6 +105,9 @@
       grid-template-columns: 1fr 340px;
       gap: 48px;
       align-items: start;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
     }
 
     @media (max-width: 768px) {
@@ -110,6 +116,26 @@
         padding: 24px 20px;
         gap: 32px;
       }
+      body {
+        height: auto;
+        overflow: auto;
+      }
+      main {
+        overflow: visible;
+      }
+    }
+
+    .task-section {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    #taskList {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding-right: 6px;
     }
 
     /* ── Task section ── */

@@ -8,7 +8,7 @@
   <style>
     :root { --bg:#09090b; --surface:#18181b; --border:#27272a; --fg:#fafafa; --muted:#71717a; }
     * { margin:0; padding:0; box-sizing:border-box; }
-    body { background:var(--bg); color:var(--fg); font-family:'Manrope',sans-serif; min-height:100vh; }
+    body { background:var(--bg); color:var(--fg); font-family:'Manrope',sans-serif; min-height:100vh; height:100vh; overflow:hidden; display:flex; flex-direction:column; }
 
     header {
       padding:16px 32px; display:flex; justify-content:space-between; align-items:center;
@@ -27,8 +27,13 @@
       border:1px solid var(--border); padding:4px 12px; border-radius:6px;
     }
 
-    main { max-width:1100px; margin:0 auto; padding:36px 32px; display:grid; grid-template-columns:1fr 360px; gap:36px; }
+    main { max-width:1100px; margin:0 auto; padding:36px 32px; display:grid; grid-template-columns:1fr 360px; gap:36px; flex:1; min-height:0; overflow:hidden; }
     @media(max-width:768px) { main { grid-template-columns:1fr; padding:20px 16px; } }
+    @media(max-width:768px) { body { height:auto; overflow:auto; } main { overflow:visible; } }
+
+    .task-section { display:flex; flex-direction:column; min-height:0; }
+
+    #taskList { flex:1; min-height:0; overflow-y:auto; padding-right:6px; }
 
     .section-head { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:24px; }
     .section-head h2 { font-size:24px; font-weight:800; letter-spacing:-0.5px; }
@@ -132,7 +137,7 @@
   </header>
 
   <main>
-    <div>
+    <div class="task-section">
       <div class="section-head">
         <h2>Tasks <span style="font-size:14px;font-weight:500;color:var(--muted);font-family:'Azeret Mono',monospace;" id="taskCount"></span></h2>
         <div class="clock"><span class="accent" id="clockDate"></span><br><span id="clockTime"></span></div>

@@ -25,7 +25,10 @@
       font-family: 'Sora', sans-serif;
       font-size: 14px;
       min-height: 100vh;
-      overflow-x: hidden;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
 
     /* ── Gradient mesh background ── */
@@ -134,10 +137,36 @@
       gap: 32px;
       position: relative;
       z-index: 1;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
     }
 
     @media (max-width: 768px) {
       main { grid-template-columns: 1fr; padding: 20px 16px; }
+    }
+
+    @media (max-width: 768px) {
+      body {
+        height: auto;
+        overflow: auto;
+      }
+      main {
+        overflow: visible;
+      }
+    }
+
+    .task-section {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    #taskList {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding-right: 6px;
     }
 
     /* ── Section header ── */

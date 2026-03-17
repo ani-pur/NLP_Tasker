@@ -14,6 +14,10 @@
       font-family: 'Fira Code', monospace;
       font-size: 13px;
       min-height: 100vh;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
     /* CRT scanlines */
     body::after {
@@ -38,13 +42,26 @@
     .nav a:hover { color: var(--green); }
     .nav .user { color: var(--green); border: 1px solid var(--dim); padding: 2px 8px; }
 
-    main { display:grid; grid-template-columns:1fr 340px; min-height:calc(100vh - 45px); }
+    main { display:grid; grid-template-columns:1fr 340px; flex:1; min-height:0; overflow:hidden; }
     @media(max-width:768px) { main { grid-template-columns:1fr; } }
+    @media(max-width:768px) {
+      body { height:auto; overflow:auto; }
+      main { overflow:visible; }
+    }
 
     .tasks {
       padding: 24px;
       border-right: 1px solid var(--dim);
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    #taskList {
+      flex: 1;
+      min-height: 0;
       overflow-y: auto;
+      padding-right: 6px;
     }
     .prompt-line { color: var(--dim); margin-bottom:16px; font-size:11px; }
     .prompt-line .cmd { color: var(--green); }
