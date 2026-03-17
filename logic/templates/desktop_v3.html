@@ -106,6 +106,12 @@
 
     const colorMap = { blue: '#87CEEB', red: '#f05656', green: '#6CE5A9', pink: '#F8C8DC', orange: '#ff7f00', purple: '#A96CE5', yellow: '#FDDA0D' };
 
+    function extractColor(text) {
+      const matches = text.toLowerCase().match(/\b(blue|red|green|pink|orange|purple|yellow)\b/g);
+      if (matches && matches.length > 0) return colorMap[matches[matches.length - 1]];
+      return '#FFFFFF';
+    }
+
     taskInput.addEventListener('input', (e) => {
       const text = e.target.value.toLowerCase();
       const regex = /\b(blue|red|green|pink|orange|purple|yellow)\b/g;
@@ -276,7 +282,7 @@
       const response = await fetch('/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ task_description: description, user_tz_metadata: buildUserTzMetadata() })
+        body: JSON.stringify({ task_description: description, user_tz_metadata: buildUserTzMetadata(), color: extractColor(description) })
       });
       if (response.ok) { 
         document.getElementById('taskForm').reset(); 

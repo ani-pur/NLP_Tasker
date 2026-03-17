@@ -302,10 +302,13 @@ def handle_tasks():
             return jsonify({'error': 'Invalid task data'}), 400
 
 
+        # color parsed on frontend, passed alongside tz metadata
+        color = task_data.get('color', '#FFFFFF')
+
         # api call, response JSON from api call to be passed to tasks module
         apiResponse = api.postRequest(username, task_data)
 
-        new_task = tasks.add_task(username, apiResponse, task_data)
+        new_task = tasks.add_task(username, apiResponse, task_data, color=color)
         return jsonify(new_task), 201
 
 @app.route('/tasks/<int:task_id>', methods=['DELETE'])

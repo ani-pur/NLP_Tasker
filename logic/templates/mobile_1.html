@@ -153,6 +153,12 @@
       yellow: '#FDDA0D'
     };
 
+    function extractColor(text) {
+      const matches = text.toLowerCase().match(/\b(blue|red|green|pink|orange|purple|yellow)\b/g);
+      if (matches && matches.length > 0) return colorMap[matches[matches.length - 1]];
+      return '#FFFFFF';
+    }
+
     taskInput.addEventListener('input', (e) => {
       const text = e.target.value.toLowerCase();
       const regex = /\b(blue|red|green|pink|orange|purple|yellow)\b/g;
@@ -315,7 +321,8 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           task_description: desc,
-          user_tz_metadata: buildUserTzMetadata()
+          user_tz_metadata: buildUserTzMetadata(),
+          color: extractColor(desc)
         })
       });
 

@@ -78,13 +78,12 @@ def _build_task_datetime(due_date_str, task_time_str, utc_offset_minutes):
 DEFAULT_NOTIF_OFFSET_HOURS = 3.0
 
 # add task to db
-def add_task(username: str, jsonInput: str, task_data: dict):
+def add_task(username: str, jsonInput: str, task_data: dict, color: str = '#FFFFFF'):
     sendToDb = parse_api_response(jsonInput)
     task_name = sendToDb.get('task_name')
     task_time = sendToDb.get('task_time')
     task_description = sendToDb.get('task_description')
     due_date = sendToDb.get('due_date')
-    color = sendToDb.get('color')
     notif_time_offset = sendToDb.get('notif_time_offset')
 
     userInput = task_data.get('task_description')
