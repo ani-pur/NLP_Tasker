@@ -536,15 +536,15 @@
         list.appendChild(card);
       }
 
-      upcoming.forEach(renderCard);
-
       if (pastDue.length > 0) {
+        pastDue.forEach(renderCard);
         const divider = document.createElement('div');
         divider.className = 'past-due-divider';
         divider.innerHTML = `<span class="past-due-tag">Past Due</span>`;
         list.appendChild(divider);
-        pastDue.forEach(renderCard);
       }
+
+      upcoming.forEach(renderCard);
 
       if (tasks.length === 0) {
         list.innerHTML = `<div style="text-align:center;padding:60px 0;color:var(--muted);font-family:'Fraunces',serif;font-style:italic;font-size:16px;">Nothing here yet.</div>`;

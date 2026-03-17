@@ -275,15 +275,15 @@
         list.appendChild(card);
       }
 
-      upcoming.forEach(renderCard);
-
       if (pastDue.length > 0) {
+        pastDue.forEach(renderCard);
         const div = document.createElement('div');
         div.className = 'divider';
         div.textContent = 'PAST DUE';
         list.appendChild(div);
-        pastDue.forEach(renderCard);
       }
+
+      upcoming.forEach(renderCard);
     }
 
     /* ── Fetch / Delete ── */

@@ -232,15 +232,15 @@
         list.appendChild(div);
       }
 
-      upcoming.forEach((t, i) => renderCard(t, i));
-
       if (pastDue.length > 0) {
+        pastDue.forEach((t, i) => renderCard(t, i));
         const div = document.createElement('div');
         div.className = 'divider';
         div.textContent = 'PAST DUE';
         list.appendChild(div);
-        pastDue.forEach((t, i) => renderCard(t, upcoming.length + i));
       }
+
+      upcoming.forEach((t, i) => renderCard(t, pastDue.length + i));
     }
 
     /* ── Fetch / Delete ── */

@@ -485,15 +485,15 @@
         list.appendChild(card);
       }
 
-      upcoming.forEach(renderCard);
-
       if (pastDue.length > 0) {
+        pastDue.forEach(renderCard);
         const divider = document.createElement('div');
         divider.className = 'divider-line';
         divider.innerHTML = `<span class="divider-label">Past Due</span>`;
         list.appendChild(divider);
-        pastDue.forEach(renderCard);
       }
+
+      upcoming.forEach(renderCard);
     }
 
     /* ── Fetch / Delete ── */
