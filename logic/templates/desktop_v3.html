@@ -69,6 +69,10 @@
         <h3 class="text-lg font-bold text-white mb-4">Describe Task</h3>
         <form id="taskForm" class="flex flex-col gap-4">
           <textarea id="task_description" maxlength="200" class="w-full h-32 bg-slate-950/50 border border-slate-800 focus:border-accent/50 focus:ring-1 focus:ring-accent/50 text-slate-200 px-4 py-3 rounded-xl outline-none transition-colors placeholder:text-slate-600 resize-none font-medium custom-scrollbar"></textarea>
+          <div class="flex items-center justify-between">
+            <span id="reminderPreview" class="hidden text-xs font-semibold text-amber-400/90 bg-amber-900/20 border border-amber-800/30 px-2.5 py-1 rounded-md transition-all">🔔 <span id="reminderValue"></span></span>
+            <span></span>
+          </div>
           <button type="submit" class="w-full bg-accent text-base font-semibold py-3 px-4 rounded-xl hover:bg-yellow-300 transition duration-200 shadow-[0_0_15px_rgba(252,211,77,0.15)] hover:shadow-[0_0_20px_rgba(252,211,77,0.3)] text-slate-900">Add Task</button>
         </form>
       </div>
@@ -112,6 +116,21 @@
       return '#FFFFFF';
     }
 
+    function parseReminder(text) {
+      const match = text.toLowerCase().match(/(?:remind|notify|alert)\s+(?:me\s+)?(\d+)\s*(m|min|mins|minute|minutes|h|hr|hrs|hour|hours)\b/);
+      if (!match) return { offsetHours: 0, display: null };
+      const val = parseInt(match[1]);
+      const unit = match[2];
+      if (unit.startsWith('h')) {
+        const clamped = Math.min(val, 24);
+        return { offsetHours: clamped, display: `${clamped}h` };
+      } else {
+        const hours = val / 60;
+        const clamped = Math.min(hours, 24);
+        return { offsetHours: clamped, display: `${val}m` };
+      }
+    }
+
     taskInput.addEventListener('input', (e) => {
       const text = e.target.value.toLowerCase();
       const regex = /\b(blue|red|green|pink|orange|purple|yellow)\b/g;
@@ -121,6 +140,15 @@
         e.target.style.color = colorMap[activeColor];
       } else {
         e.target.style.color = '';
+      }
+      // reminder preview
+      const reminder = parseReminder(e.target.value);
+      const preview = document.getElementById('reminderPreview');
+      if (reminder.display) {
+        document.getElementById('reminderValue').textContent = reminder.display;
+        preview.classList.remove('hidden');
+      } else {
+        preview.classList.add('hidden');
       }
     });
 
@@ -183,7 +211,7 @@
 
             // 1. Sort tasks into Past Due and Upcoming
             tasks.forEach(task => {
-              const [id, __, task_name, task_time, task_description, due_date, color] = task;
+              const [id, __, task_name, task_time, task_description, due_date, color, reminder_display] = task;
               let isPastDue = false;
     
               if (due_date) {
@@ -210,7 +238,7 @@
     
             // 2. Render Helper
             const renderTaskHtml = (task, isPastDue) => {
-              const [id, __, task_name, task_time, task_description, due_date, color] = task;
+              const [id, __, task_name, task_time, task_description, due_date, color, reminder_display] = task;
               const dueDateDisplay = due_date ? due_date.replace(/ 00:00:00.*$/, '') : "No due date";
               
               // Toggle pill colors based on status
@@ -226,7 +254,10 @@
                       <p class="text-slate-400 text-sm leading-relaxed whitespace-pre-wrap mt-2">${task_description}</p>
                     </div>
                     <div class="flex flex-col items-end shrink-0 gap-2">
-                      <span class="text-xs font-semibold tracking-wide ${badgeColors} px-3 py-1.5 rounded-md border">${dueDateDisplay}${task_time ? ' • ' + task_time : ''}</span>
+                      <div class="flex items-center gap-1.5">
+                        ${reminder_display ? `<span class="text-xs font-semibold text-amber-400/80 bg-amber-900/20 border border-amber-800/30 px-2 py-1.5 rounded-md" title="Reminder set">🔔 ${reminder_display}</span>` : ''}
+                        <span class="text-xs font-semibold tracking-wide ${badgeColors} px-3 py-1.5 rounded-md border">${dueDateDisplay}${task_time ? ' • ' + task_time : ''}</span>
+                      </div>
                       <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition duration-200">
                         <button type="button" onclick="deleteTask(${id})" class="text-slate-500 hover:text-red-400 p-2 rounded-lg transition" title="Delete">
                           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
@@ -279,16 +310,18 @@
       const description = inputEl.value;
       if (description.length < 10 || description.length > 200) { alert('Task description must be 10-200 characters'); return; }
 
+      const reminder = parseReminder(description);
       const response = await fetch('/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ task_description: description, user_tz_metadata: buildUserTzMetadata(), color: extractColor(description) })
+        body: JSON.stringify({ task_description: description, user_tz_metadata: buildUserTzMetadata(), color: extractColor(description), notif_time_offset: reminder.offsetHours, reminder_display: reminder.display })
       });
-      if (response.ok) { 
-        document.getElementById('taskForm').reset(); 
-        inputEl.style.color = ''; 
+      if (response.ok) {
+        document.getElementById('taskForm').reset();
+        inputEl.style.color = '';
+        document.getElementById('reminderPreview').classList.add('hidden');
         inputEl.placeholder = 'Try: ' + prompts[Math.floor(Math.random() * prompts.length)];
-        loadTasks(); 
+        loadTasks();
       } 
       else { alert('Failed to add task'); }
     });
