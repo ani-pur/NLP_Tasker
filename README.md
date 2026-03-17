@@ -1,7 +1,11 @@
 Author: Anirudh Purohit
 
+## NEW:
+- MOBILE PUSH NOTIFICATIONS! Look for the little bell icon on the tasker mobile app! (Installation instructions below)
+
+  Automatically notifies 3 hours before a task is due - user can override by appending 'remind me x hours/min prior' to their task description. Feature will continue evolving.
+
 ### Coming soon: 
-- ~~Push notifications~~ [TESTING] 
 - edit button to edit tasks lol
 - sorting options (currently sorts earliest - latest due)
 
