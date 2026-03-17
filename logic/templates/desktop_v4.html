@@ -460,14 +460,20 @@
       const upcoming = [], pastDue = [];
       tasks.forEach(task => {
         const [id, __, task_name, task_time, task_description, due_date, color, reminder_display] = task;
-        const due = due_date ? new Date(due_date) : null;
-        if (due && due < now) pastDue.push(task); else upcoming.push(task);
+        let isPast = false;
+        if (due_date) {
+          const cleanDate = due_date.replace(/ 00:00:00.*$/, '').trim();
+          const timeStr = task_time ? task_time.trim() : '11:59 PM';
+          const taskDateTime = new Date(`${cleanDate} ${timeStr}`);
+          if (!isNaN(taskDateTime) && taskDateTime < now) isPast = true;
+        }
+        if (isPast) pastDue.push(task); else upcoming.push(task);
       });
 
       function renderCard(task) {
         const [id, __, task_name, task_time, task_description, due_date, color, reminder_display] = task;
         const dueDateDisplay = due_date ? due_date.replace(/ 00:00:00.*$/, '') : '';
-        const isPast = due_date && new Date(due_date) < new Date();
+        const isPast = (() => { if (!due_date) return false; const d = new Date(`${due_date.replace(/ 00:00:00.*$/, '').trim()} ${task_time ? task_time.trim() : '11:59 PM'}`); return !isNaN(d) && d < new Date(); })();
         const card = document.createElement('div');
         card.className = 'task-card';
         card.innerHTML = `
