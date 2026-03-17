@@ -158,7 +158,8 @@
       return {
         "todaysDate (yyyy/mm/dd): ": now.toLocaleDateString('en-CA'),
         "current time: ": ` ${now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })} `,
-        "current day: ": ` ${now.toLocaleDateString('en-US', { weekday: 'long' })} `
+        "current day: ": ` ${now.toLocaleDateString('en-US', { weekday: 'long' })} `,
+        "utc_offset_minutes": now.getTimezoneOffset()
       };
     }
 
@@ -176,7 +177,7 @@
 
             // 1. Sort tasks into Past Due and Upcoming
             tasks.forEach(task => {
-              const [id, __, task_name, task_time, task_description, due_date, priority, color] = task;
+              const [id, __, task_name, task_time, task_description, due_date, color] = task;
               let isPastDue = false;
     
               if (due_date) {
@@ -203,7 +204,7 @@
     
             // 2. Render Helper
             const renderTaskHtml = (task, isPastDue) => {
-              const [id, __, task_name, task_time, task_description, due_date, priority, color] = task;
+              const [id, __, task_name, task_time, task_description, due_date, color] = task;
               const dueDateDisplay = due_date ? due_date.replace(/ 00:00:00.*$/, '') : "No due date";
               
               // Toggle pill colors based on status
@@ -286,10 +287,54 @@
       else { alert('Failed to add task'); }
     });
 
+    // --- Push Notifications ---
+    async function setupPushNotifications() {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+
+      try {
+        const reg = await navigator.serviceWorker.register('/sw.js');
+
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') return;
+
+        // check if already subscribed
+        const existing = await reg.pushManager.getSubscription();
+        if (existing) return;
+
+        // fetch VAPID public key from server
+        const keyRes = await fetch('/push/vapid-public-key');
+        const keyData = await keyRes.json();
+        if (!keyData.public_key) return;
+
+        // convert base64url to Uint8Array
+        const rawKey = atob(keyData.public_key.replace(/-/g, '+').replace(/_/g, '/'));
+        const vapidKey = new Uint8Array(rawKey.length);
+        for (let i = 0; i < rawKey.length; i++) vapidKey[i] = rawKey.charCodeAt(i);
+
+        const sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: vapidKey
+        });
+
+        const subJson = sub.toJSON();
+        await fetch('/push/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            endpoint: subJson.endpoint,
+            keys: subJson.keys
+          })
+        });
+      } catch (err) {
+        console.error('Push setup failed:', err);
+      }
+    }
+
     // --- Init ---
     renderClock(false);
     scheduleNextClockTick();
     loadTasks();
+    setupPushNotifications();
   </script>
 </body>
 </html>

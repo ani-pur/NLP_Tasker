@@ -1,5 +1,13 @@
 Author: Anirudh Purohit
 
+### Coming soon: 
+- ~~Push notifications~~ [TESTING] 
+- edit button to edit tasks lol
+- sorting options (currently sorts earliest - latest due)
+
+### Known bugs:
+- ~~Tasks on the same day may be sorted wrong on the dashboard~~ fixed january 17th
+
 ## What is Tasker?
 
 [Tasker](https://tasker.4nirudh.org) lets you write tasks the way you think. No forms, no rigid structure. Just type naturally, and Tasker handles the details for you. It understands dates, times, and context written in plain language, so you can focus on what matters instead of how to enter it.
@@ -21,13 +29,6 @@ Step 3: Enable 'open as web app' (on ios) / agree to install prompt (on android)
 
 ✅
 
-### Coming soon: 
-- Push notifications 
-- edit button to edit tasks lol
-- sorting options (currently sorts earliest - latest due)
-
-### Known bugs:
-- ~~Tasks on the same day may be sorted wrong on the dashboard~~ fixed january 17th
  
 
 ## Screenshots
