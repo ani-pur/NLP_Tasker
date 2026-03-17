@@ -225,7 +225,7 @@
     <div class="glass-container" style="position:relative;">
 
         <div class="session-actions">
-            <a href="/switch/3" class="logout-link">NewUI</a>
+            <div id="uiSwitcher"></div>
             <a href="{{ url_for('logout') }}" class="logout-link">Logout</a>
         </div>
         <h1 class="honk-text">Welcome, {{ username }}!</h1>
@@ -245,31 +245,57 @@
 
             <label for="task_description">Task Description</label>
             <textarea id="task_description" placeholder="Task Description" style="resize: vertical;"></textarea>
-            
+            <span id="reminderPreview" style="display:none; font-size:0.85rem; font-weight:600; color:#fbbf24; background:rgba(120,53,15,0.25); border:1px solid rgba(120,53,15,0.4); border-radius:8px; padding:4px 10px; align-self:flex-start; transition:all 0.2s;">🔔 <span id="reminderValue"></span></span>
             <button type="submit">Add Task</button>
         </form>
     </div>
     <script>
 
         
-        /* ---------- USER TZ METADATA (MATCHES v3) ---------- */
+        /* ---------- COLOR ---------- */
+        const colorMap = { blue:'#60a5fa', red:'#f87171', green:'#4ade80', pink:'#f472b6', orange:'#fb923c', purple:'#c084fc', yellow:'#facc15' };
+        function extractColor(text) {
+            const matches = text.toLowerCase().match(/\b(blue|red|green|pink|orange|purple|yellow)\b/g);
+            if (matches && matches.length > 0) return colorMap[matches[matches.length - 1]];
+            return '#FFFFFF';
+        }
+
+        /* ---------- REMINDER ---------- */
+        function parseReminder(text) {
+            const t = text.toLowerCase();
+            const rel = t.match(/(?:remind|notify|alert)\s+(?:me\s+)?(\d+)\s*(m|min|mins|minute|minutes|h|hr|hrs|hour|hours)\b/);
+            if (rel) {
+                const val = parseInt(rel[1]);
+                const unit = rel[2];
+                if (unit.startsWith('h')) {
+                    const clamped = Math.min(val, 24);
+                    return { offsetHours: clamped, absoluteTime: null, display: `${clamped}h` };
+                } else {
+                    const hours = val / 60;
+                    const clamped = Math.min(hours, 24);
+                    return { offsetHours: clamped, absoluteTime: null, display: `${val}m` };
+                }
+            }
+            const abs = t.match(/(?:remind|notify|alert)\s+(?:me\s+)?at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/);
+            if (abs) {
+                const hour = parseInt(abs[1]);
+                const mins = abs[2] ? parseInt(abs[2]) : 0;
+                const period = abs[3].toUpperCase();
+                const display = mins > 0 ? `${hour}:${String(mins).padStart(2,'0')}${period}` : `${hour}${period}`;
+                const absoluteTime = `${hour}:${String(mins).padStart(2,'0')} ${period}`;
+                return { offsetHours: null, absoluteTime, display };
+            }
+            return { offsetHours: 0, absoluteTime: null, display: null };
+        }
+
+        /* ---------- USER TZ METADATA ---------- */
         function buildUserTzMetadata() {
             const now = new Date();
-
-            const todaysDate = now.toLocaleDateString('en-CA');
-            const strTime = now.toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
-            });
-            const strDay = now.toLocaleDateString('en-US', {
-            weekday: 'long'
-            });
-
             return {
-            "todaysDate (yyyy/mm/dd): ": todaysDate,
-            "current time: ": ` ${strTime} `,
-            "current day: ": ` ${strDay} `
+                "todaysDate (yyyy/mm/dd): ": now.toLocaleDateString('en-CA'),
+                "current time: ": ` ${now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })} `,
+                "current day: ": ` ${now.toLocaleDateString('en-US', { weekday: 'long' })} `,
+                "utc_offset_minutes": now.getTimezoneOffset()
             };
         }
 
@@ -304,15 +330,7 @@
 
             tasks.forEach(task => {
                 
-                const [
-                    id,
-                    __,
-                    task_name,
-                    task_time,
-                    task_description,
-                    due_date,
-                    color
-                ] = task;
+                const [id, __, task_name, task_time, task_description, due_date, color, reminder_display] = task;
 
                 // Handle due_date if it's like "2025-06-27T00:00:00" 
                 let dueDateDisplay = due_date
@@ -326,7 +344,9 @@
                 li.innerHTML = `
                     <details>
                         <summary>
-                            <strong style="color: ${color};">${task_name}</strong> (Due: ${dueDateDisplay} ${task_time ? task_time : ""}) 
+                            <strong style="color: ${color};">${task_name}</strong>
+                            <span style="margin-left:6px; color:#9ca3af; font-size:0.85rem;">${dueDateDisplay}${task_time ? ' ' + task_time : ''}</span>
+                            ${reminder_display ? `<span style="margin-left:8px; font-size:0.8rem; font-weight:600; color:#fbbf24; background:rgba(120,53,15,0.25); border:1px solid rgba(120,53,15,0.4); border-radius:6px; padding:2px 8px;">🔔 ${reminder_display}</span>` : ''}
                         </summary>
                         <div style="margin-left: 10px;">
                             <div style="margin: 8px 0; color: #222;">
@@ -354,6 +374,20 @@
             }
         }
 
+        document.getElementById('task_description').addEventListener('input', (e) => {
+            const text = e.target.value;
+            const matches = text.toLowerCase().match(/\b(blue|red|green|pink|orange|purple|yellow)\b/g);
+            e.target.style.color = matches ? colorMap[matches[matches.length - 1]] : '';
+            const reminder = parseReminder(text);
+            const preview = document.getElementById('reminderPreview');
+            if (reminder.display) {
+                document.getElementById('reminderValue').textContent = reminder.display;
+                preview.style.display = 'inline-block';
+            } else {
+                preview.style.display = 'none';
+            }
+        });
+
         document.getElementById('taskForm').addEventListener('submit', async e => {
             e.preventDefault();
 
@@ -364,19 +398,25 @@
                 return;
             }
 
-            const taskData = {
-                task_description: description,
-                user_tz_metadata: buildUserTzMetadata()
-            };
+            const reminder = parseReminder(description);
+            document.getElementById('reminderPreview').style.display = 'none';
 
             const response = await fetch('/tasks', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(taskData)
+                body: JSON.stringify({
+                    task_description: description,
+                    user_tz_metadata: buildUserTzMetadata(),
+                    color: extractColor(description),
+                    notif_time_offset: reminder.offsetHours,
+                    notif_absolute_time: reminder.absoluteTime,
+                    reminder_display: reminder.display
+                })
             });
 
             if (response.ok) {
-                document.getElementById('taskForm').reset();
+                document.getElementById('task_description').value = '';
+                document.getElementById('task_description').style.color = '';
                 loadTasks();
             } else {
                 alert('Failed to add task');

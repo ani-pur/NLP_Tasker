@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>TASKER // CONCEPT B — EDITORIAL</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,600;9..144,800;9..144,900&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #faf8f4;
+      --fg: #1c1917;
+      --accent: #c2410c;
+      --accent-soft: #fed7aa;
+      --muted: #a8a29e;
+      --card: #ffffff;
+      --border: #e7e5e4;
+      --shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);
+      --shadow-hover: 0 2px 8px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.05);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Subtle paper texture ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      opacity: 0.3;
+      pointer-events: none;
+      z-index: 9999;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    }
+
+    /* ── Header ── */
+    header {
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      background: rgba(250,248,244,0.8);
+      backdrop-filter: blur(20px);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .logo {
+      font-family: 'Fraunces', serif;
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      color: var(--fg);
+    }
+
+    .logo em {
+      font-style: italic;
+      color: var(--accent);
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--fg); }
+    .nav-links a.exit { color: var(--accent); }
+
+    .user-chip {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--fg);
+      background: var(--accent-soft);
+      padding: 5px 14px;
+      border-radius: 100px;
+    }
+
+    /* ── Layout ── */
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 48px 40px;
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 48px;
+      align-items: start;
+    }
+
+    @media (max-width: 768px) {
+      main {
+        grid-template-columns: 1fr;
+        padding: 24px 20px;
+        gap: 32px;
+      }
+    }
+
+    /* ── Task section ── */
+    .task-section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 32px;
+    }
+
+    .task-section-title {
+      font-family: 'Fraunces', serif;
+      font-size: 36px;
+      font-weight: 900;
+      letter-spacing: -1px;
+      line-height: 1.1;
+    }
+
+    .task-count {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .clock-area {
+      text-align: right;
+    }
+
+    .clock-date {
+      font-family: 'Fraunces', serif;
+      font-size: 14px;
+      font-weight: 600;
+      font-style: italic;
+      color: var(--accent);
+    }
+
+    .clock-time {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    /* ── Task cards ── */
+    .task-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px 22px;
+      margin-bottom: 14px;
+      box-shadow: var(--shadow);
+      transition: all 0.25s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .task-card:hover {
+      box-shadow: var(--shadow-hover);
+      transform: translateY(-2px);
+    }
+
+    .task-card .accent-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 10px;
+      vertical-align: middle;
+    }
+
+    .task-name {
+      font-family: 'Fraunces', serif;
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+      color: var(--fg);
+      display: inline;
+      vertical-align: middle;
+    }
+
+    .task-desc {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+      margin-top: 8px;
+      margin-left: 18px;
+    }
+
+    .task-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 14px;
+      margin-left: 18px;
+    }
+
+    .task-date-pill {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--fg);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 4px 12px;
+      border-radius: 100px;
+    }
+
+    .task-date-pill.overdue {
+      color: var(--accent);
+      background: #fef2f2;
+      border-color: #fecaca;
+    }
+
+    .reminder-pill {
+      font-size: 11px;
+      font-weight: 600;
+      color: #92400e;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      padding: 4px 12px;
+      border-radius: 100px;
+      margin-left: 6px;
+    }
+
+    .delete-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: all 0.15s;
+      opacity: 0;
+    }
+
+    .task-card:hover .delete-btn { opacity: 1; }
+    .delete-btn:hover { color: var(--accent); background: #fef2f2; }
+
+    /* ── Divider ── */
+    .past-due-divider {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin: 28px 0;
+    }
+
+    .past-due-divider::before, .past-due-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(to right, transparent, var(--accent), transparent);
+      opacity: 0.3;
+    }
+
+    .past-due-tag {
+      font-family: 'Fraunces', serif;
+      font-size: 11px;
+      font-weight: 600;
+      font-style: italic;
+      color: var(--accent);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    /* ── Input panel ── */
+    .input-panel {
+      position: sticky;
+      top: 100px;
+    }
+
+    .input-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 28px;
+      box-shadow: var(--shadow);
+    }
+
+    .input-heading {
+      font-family: 'Fraunces', serif;
+      font-size: 20px;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+
+    .input-subtext {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+      margin-bottom: 18px;
+    }
+
+    textarea {
+      width: 100%;
+      height: 120px;
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      color: var(--fg);
+      resize: none;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(194, 65, 12, 0.08);
+    }
+
+    textarea::placeholder { color: #c7c2bc; }
+
+    .input-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 14px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .char-counter {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .submit-btn {
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 100px;
+      padding: 10px 28px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 2px 8px rgba(194,65,12,0.2);
+    }
+
+    .submit-btn:hover {
+      background: #9a3412;
+      box-shadow: 0 4px 16px rgba(194,65,12,0.3);
+      transform: translateY(-1px);
+    }
+
+    .submit-btn:active {
+      transform: translateY(0);
+    }
+
+    /* ── Motivational quote ── */
+    .daily-quote {
+      margin-top: 24px;
+      padding: 18px 20px;
+      background: linear-gradient(135deg, #fffbeb, #fef3c7);
+      border-radius: 14px;
+      border: 1px solid #fde68a;
+    }
+
+    .daily-quote p {
+      font-family: 'Fraunces', serif;
+      font-size: 14px;
+      font-style: italic;
+      color: #92400e;
+      line-height: 1.5;
+    }
+
+    .daily-quote cite {
+      display: block;
+      margin-top: 6px;
+      font-size: 11px;
+      font-family: 'DM Sans', sans-serif;
+      font-style: normal;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">Tasker<em>.</em></div>
+    <div class="nav-links">
+      <span class="user-chip">{{ username }}</span>
+      <div id="uiSwitcher"></div>
+      <a href="{{ url_for('logout') }}" class="exit">Log out</a>
+    </div>
+  </header>
+
+  <main>
+    <div class="task-section">
+      <div class="task-section-header">
+        <div>
+          <div class="task-section-title">Your Tasks</div>
+          <div class="task-count" id="taskCount">0 active</div>
+        </div>
+        <div class="clock-area">
+          <div class="clock-date" id="clockDate"></div>
+          <div class="clock-time" id="clockTime"></div>
+        </div>
+      </div>
+      <div id="taskList"></div>
+    </div>
+
+    <div class="input-panel">
+      <div class="input-card">
+        <div class="input-heading">What's on your mind?</div>
+        <div class="input-subtext">Type naturally. Tasker handles dates, times, colors, and reminders.</div>
+        <textarea id="taskInput" placeholder="submit project by Friday evening, orange"></textarea>
+        <div class="input-footer">
+          <span class="char-counter" id="charCounter">0/200</span>
+          <span id="reminderPreview" style="display:none; font-size:11px; font-weight:600; color:#92400e; background:#fffbeb; border:1px solid #fde68a; padding:4px 12px; border-radius:100px;">🔔 <span id="reminderValue"></span></span>
+          <button class="submit-btn" id="submitBtn">Add Task</button>
+        </div>
+      </div>
+
+      <div class="daily-quote">
+        <p>"The secret of getting ahead is getting started."</p>
+        <cite>— Mark Twain</cite>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    /* ── Clock ── */
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('clockDate').textContent = now.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+      document.getElementById('clockTime').textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+    }
+    updateClock();
+    setInterval(updateClock, 30000);
+
+    /* ── Color ── */
+    const colorMap = { blue:'#60a5fa', red:'#f87171', green:'#4ade80', pink:'#f472b6', orange:'#fb923c', purple:'#c084fc', yellow:'#facc15' };
+    function extractColor(text) {
+      const matches = text.toLowerCase().match(/\b(blue|red|green|pink|orange|purple|yellow)\b/g);
+      if (matches && matches.length > 0) return colorMap[matches[matches.length - 1]];
+      return '#FFFFFF';
+    }
+
+    /* ── Reminder ── */
+    function parseReminder(text) {
+      const t = text.toLowerCase();
+      const rel = t.match(/(?:remind|notify|alert)\s+(?:me\s+)?(\d+)\s*(m|min|mins|minute|minutes|h|hr|hrs|hour|hours)\b/);
+      if (rel) {
+        const val = parseInt(rel[1]);
+        const unit = rel[2];
+        if (unit.startsWith('h')) {
+          const clamped = Math.min(val, 24);
+          return { offsetHours: clamped, absoluteTime: null, display: `${clamped}h` };
+        } else {
+          const hours = val / 60;
+          const clamped = Math.min(hours, 24);
+          return { offsetHours: clamped, absoluteTime: null, display: `${val}m` };
+        }
+      }
+      const abs = t.match(/(?:remind|notify|alert)\s+(?:me\s+)?at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/);
+      if (abs) {
+        const hour = parseInt(abs[1]);
+        const mins = abs[2] ? parseInt(abs[2]) : 0;
+        const period = abs[3].toUpperCase();
+        const display = mins > 0 ? `${hour}:${String(mins).padStart(2,'0')}${period}` : `${hour}${period}`;
+        const absoluteTime = `${hour}:${String(mins).padStart(2,'0')} ${period}`;
+        return { offsetHours: null, absoluteTime, display };
+      }
+      return { offsetHours: 0, absoluteTime: null, display: null };
+    }
+
+    /* ── TZ metadata ── */
+    function buildUserTzMetadata() {
+      const now = new Date();
+      return {
+        "todaysDate (yyyy/mm/dd): ": now.toLocaleDateString('en-CA'),
+        "current time: ": ` ${now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })} `,
+        "current day: ": ` ${now.toLocaleDateString('en-US', { weekday: 'long' })} `,
+        "utc_offset_minutes": now.getTimezoneOffset()
+      };
+    }
+
+    /* ── Render tasks ── */
+    function renderTasks(tasks) {
+      const list = document.getElementById('taskList');
+      list.innerHTML = '';
+      const active = tasks.filter(t => !t[5] || new Date(t[5]) >= new Date());
+      document.getElementById('taskCount').textContent = `${active.length} active`;
+
+      const now = new Date();
+      const upcoming = [], pastDue = [];
+      tasks.forEach(task => {
+        const due = task[5] ? new Date(task[5]) : null;
+        if (due && due < now) pastDue.push(task); else upcoming.push(task);
+      });
+
+      function renderCard(task) {
+        const [id, __, task_name, task_time, task_description, due_date, color, reminder_display] = task;
+        const dueDateDisplay = due_date ? due_date.replace(/ 00:00:00.*$/, '') : '';
+        const isPast = due_date && new Date(due_date) < new Date();
+        const card = document.createElement('div');
+        card.className = 'task-card';
+        card.innerHTML = `
+          <div>
+            <span class="accent-dot" style="background:${color};"></span>
+            <span class="task-name">${task_name}</span>
+          </div>
+          <div class="task-desc">${task_description}</div>
+          <div class="task-footer">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span class="task-date-pill${isPast ? ' overdue' : ''}">${dueDateDisplay}${task_time ? ' · ' + task_time : ''}</span>
+              ${reminder_display ? `<span class="reminder-pill">🔔 ${reminder_display}</span>` : ''}
+            </div>
+            <button class="delete-btn" onclick="deleteTask(${id})">Remove</button>
+          </div>
+        `;
+        list.appendChild(card);
+      }
+
+      upcoming.forEach(renderCard);
+
+      if (pastDue.length > 0) {
+        const divider = document.createElement('div');
+        divider.className = 'past-due-divider';
+        divider.innerHTML = `<span class="past-due-tag">Past Due</span>`;
+        list.appendChild(divider);
+        pastDue.forEach(renderCard);
+      }
+
+      if (tasks.length === 0) {
+        list.innerHTML = `<div style="text-align:center;padding:60px 0;color:var(--muted);font-family:'Fraunces',serif;font-style:italic;font-size:16px;">Nothing here yet.</div>`;
+      }
+    }
+
+    /* ── Fetch / Delete ── */
+    async function fetchTasks() {
+      const res = await fetch('/tasks');
+      const tasks = await res.json();
+      renderTasks(tasks);
+    }
+
+    async function deleteTask(id) {
+      const res = await fetch('/tasks/' + id, { method: 'DELETE' });
+      if (res.ok) fetchTasks();
+    }
+
+    /* ── Input listener ── */
+    document.getElementById('taskInput').addEventListener('input', (e) => {
+      const text = e.target.value;
+      document.getElementById('charCounter').textContent = `${text.length}/200`;
+      const matches = text.toLowerCase().match(/\b(blue|red|green|pink|orange|purple|yellow)\b/g);
+      e.target.style.color = matches ? colorMap[matches[matches.length - 1]] : '';
+      const reminder = parseReminder(text);
+      const preview = document.getElementById('reminderPreview');
+      if (reminder.display) {
+        document.getElementById('reminderValue').textContent = reminder.display;
+        preview.style.display = 'inline-block';
+      } else {
+        preview.style.display = 'none';
+      }
+    });
+
+    /* ── Submit ── */
+    document.getElementById('submitBtn').addEventListener('click', async () => {
+      const desc = document.getElementById('taskInput').value.trim();
+      if (desc.length < 10 || desc.length > 200) {
+        alert('Task description must be 10–200 characters');
+        return;
+      }
+      const reminder = parseReminder(desc);
+      document.getElementById('reminderPreview').style.display = 'none';
+      const res = await fetch('/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          task_description: desc,
+          user_tz_metadata: buildUserTzMetadata(),
+          color: extractColor(desc),
+          notif_time_offset: reminder.offsetHours,
+          notif_absolute_time: reminder.absoluteTime,
+          reminder_display: reminder.display
+        })
+      });
+      if (res.ok) {
+        const input = document.getElementById('taskInput');
+        input.value = '';
+        input.style.color = '';
+        document.getElementById('charCounter').textContent = '0/200';
+        fetchTasks();
+      } else {
+        alert('Failed to add task');
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', fetchTasks);
+  </script>
+</body>
+</html>

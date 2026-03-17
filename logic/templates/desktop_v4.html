@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>TASKER // CONCEPT A — BRUTALIST</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Archivo+Black&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #e8e4df;
+      --fg: #1a1a1a;
+      --accent: #ff3d00;
+      --muted: #a09a93;
+      --card: #d9d4cd;
+      --border: #1a1a1a;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      font-family: 'Space Mono', monospace;
+      font-size: 13px;
+      min-height: 100vh;
+      overflow-x: hidden;
+      cursor: crosshair;
+    }
+
+    /* ── Noise texture overlay ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      opacity: 0.035;
+      pointer-events: none;
+      z-index: 9999;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size: 256px 256px;
+    }
+
+    /* ── Header ── */
+    header {
+      border-bottom: 3px solid var(--fg);
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 28px;
+      letter-spacing: -1px;
+      text-transform: uppercase;
+    }
+
+    .logo span { color: var(--accent); }
+
+    .nav-links {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .nav-links a {
+      color: var(--fg);
+      text-decoration: none;
+      text-transform: uppercase;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      border-bottom: 2px solid transparent;
+      padding-bottom: 2px;
+      transition: border-color 0.15s;
+    }
+
+    .nav-links a:hover { border-color: var(--accent); }
+    .nav-links a.exit { color: var(--accent); }
+
+    .user-tag {
+      background: var(--fg);
+      color: var(--bg);
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    /* ── Main grid ── */
+    main {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      min-height: calc(100vh - 62px);
+    }
+
+    @media (max-width: 768px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ── Task list side ── */
+    .task-panel {
+      padding: 32px 28px;
+      border-right: 3px solid var(--fg);
+      overflow-y: auto;
+    }
+
+    @media (max-width: 768px) {
+      .task-panel { border-right: none; border-bottom: 3px solid var(--fg); }
+    }
+
+    .section-label {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 4px;
+      color: var(--muted);
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+
+    .section-label .count {
+      font-family: 'Space Mono', monospace;
+      font-size: 32px;
+      color: var(--fg);
+      line-height: 1;
+    }
+
+    .clock-display {
+      font-size: 10px;
+      letter-spacing: 3px;
+      color: var(--muted);
+      text-align: right;
+    }
+
+    /* ── Task cards ── */
+    .task-card {
+      border: 2px solid var(--border);
+      padding: 16px 18px;
+      margin-bottom: 12px;
+      position: relative;
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+      background: var(--bg);
+    }
+
+    .task-card:hover {
+      transform: translate(-3px, -3px);
+      box-shadow: 3px 3px 0 var(--fg);
+    }
+
+    .task-card .color-stripe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+    }
+
+    .task-name {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+      padding-top: 4px;
+    }
+
+    .task-desc {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+      margin-bottom: 10px;
+    }
+
+    .task-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid var(--border);
+      padding-top: 8px;
+    }
+
+    .task-date {
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .task-date.overdue { color: var(--accent); }
+
+    .delete-btn {
+      background: none;
+      border: 2px solid var(--border);
+      color: var(--fg);
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      padding: 4px 12px;
+      cursor: pointer;
+      transition: all 0.1s;
+    }
+
+    .delete-btn:hover {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+
+    /* ── Past due divider ── */
+    .divider-line {
+      display: flex;
+      align-items: center;
+      margin: 24px 0;
+      gap: 12px;
+    }
+
+    .divider-line::before, .divider-line::after {
+      content: '';
+      flex: 1;
+      height: 2px;
+      background: var(--accent);
+    }
+
+    .divider-label {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 10px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--accent);
+      white-space: nowrap;
+    }
+
+    /* ── Input panel ── */
+    .input-panel {
+      padding: 32px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      background: var(--card);
+    }
+
+    .input-label {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 48px;
+      text-transform: uppercase;
+      line-height: 1;
+      letter-spacing: -2px;
+    }
+
+    .input-sublabel {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 1px;
+      line-height: 1.6;
+    }
+
+    textarea {
+      width: 100%;
+      height: 140px;
+      background: var(--bg);
+      border: 3px solid var(--fg);
+      padding: 14px;
+      font-family: 'Space Mono', monospace;
+      font-size: 13px;
+      color: var(--fg);
+      resize: none;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    textarea:focus {
+      border-color: var(--accent);
+    }
+
+    textarea::placeholder {
+      color: var(--muted);
+    }
+
+    .submit-btn {
+      width: 100%;
+      background: var(--fg);
+      color: var(--bg);
+      border: none;
+      padding: 16px;
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      cursor: pointer;
+      transition: all 0.1s;
+    }
+
+    .submit-btn:hover {
+      background: var(--accent);
+      color: white;
+    }
+
+    .submit-btn:active {
+      transform: translateY(2px);
+    }
+
+    .char-counter {
+      text-align: right;
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--muted);
+    }
+
+    /* ── Empty state ── */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 300px;
+      gap: 8px;
+    }
+
+    .empty-state .big {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 72px;
+      color: var(--border);
+      opacity: 0.15;
+    }
+
+    .empty-state .label {
+      font-size: 11px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">Tasker<span>.</span></div>
+    <div class="nav-links">
+      <span class="user-tag">{{ username | upper }}</span>
+      <div id="uiSwitcher"></div>
+      <a href="{{ url_for('logout') }}" class="exit">EXIT</a>
+    </div>
+  </header>
+
+  <main>
+    <div class="task-panel">
+      <div class="section-label">
+        <div>
+          Active Tasks
+          <br>
+          <span class="count" id="taskCount">00</span>
+        </div>
+        <div class="clock-display" id="clockDisplay"></div>
+      </div>
+      <div id="taskList"></div>
+    </div>
+
+    <div class="input-panel">
+      <div>
+        <div class="input-label">Add<br>Task.</div>
+      </div>
+      <div class="input-sublabel">
+        Type naturally. Tasker extracts dates, times, colors, and reminders from plain text.
+      </div>
+      <textarea id="taskInput" placeholder="gym next monday 7am legs, blue"></textarea>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span id="reminderPreview" style="display:none; font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--accent); border:2px solid var(--accent); padding:3px 10px;">🔔 <span id="reminderValue"></span></span>
+        <span class="char-counter" id="charCounter">0 / 200</span>
+      </div>
+      <button class="submit-btn" id="submitBtn">Submit →</button>
+    </div>
+  </main>
+
+  <script>
+    /* ── Clock ── */
+    function updateClock() {
+      const now = new Date();
+      const day = now.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+      const date = now.toLocaleDateString('en-US', { month: 'short', day: '2-digit' }).toUpperCase();
+      const time = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+      document.getElementById('clockDisplay').innerHTML = `${day} ${date}<br>${time}`;
+    }
+    updateClock();
+    setInterval(updateClock, 30000);
+
+    /* ── Color ── */
+    const colorMap = { blue:'#60a5fa', red:'#f87171', green:'#4ade80', pink:'#f472b6', orange:'#fb923c', purple:'#c084fc', yellow:'#facc15' };
+    function extractColor(text) {
+      const matches = text.toLowerCase().match(/\b(blue|red|green|pink|orange|purple|yellow)\b/g);
+      if (matches && matches.length > 0) return colorMap[matches[matches.length - 1]];
+      return '#FFFFFF';
+    }
+
+    /* ── Reminder ── */
+    function parseReminder(text) {
+      const t = text.toLowerCase();
+      const rel = t.match(/(?:remind|notify|alert)\s+(?:me\s+)?(\d+)\s*(m|min|mins|minute|minutes|h|hr|hrs|hour|hours)\b/);
+      if (rel) {
+        const val = parseInt(rel[1]);
+        const unit = rel[2];
+        if (unit.startsWith('h')) {
+          const clamped = Math.min(val, 24);
+          return { offsetHours: clamped, absoluteTime: null, display: `${clamped}h` };
+        } else {
+          const hours = val / 60;
+          const clamped = Math.min(hours, 24);
+          return { offsetHours: clamped, absoluteTime: null, display: `${val}m` };
+        }
+      }
+      const abs = t.match(/(?:remind|notify|alert)\s+(?:me\s+)?at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/);
+      if (abs) {
+        const hour = parseInt(abs[1]);
+        const mins = abs[2] ? parseInt(abs[2]) : 0;
+        const period = abs[3].toUpperCase();
+        const display = mins > 0 ? `${hour}:${String(mins).padStart(2,'0')}${period}` : `${hour}${period}`;
+        const absoluteTime = `${hour}:${String(mins).padStart(2,'0')} ${period}`;
+        return { offsetHours: null, absoluteTime, display };
+      }
+      return { offsetHours: 0, absoluteTime: null, display: null };
+    }
+
+    /* ── TZ metadata ── */
+    function buildUserTzMetadata() {
+      const now = new Date();
+      return {
+        "todaysDate (yyyy/mm/dd): ": now.toLocaleDateString('en-CA'),
+        "current time: ": ` ${now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })} `,
+        "current day: ": ` ${now.toLocaleDateString('en-US', { weekday: 'long' })} `,
+        "utc_offset_minutes": now.getTimezoneOffset()
+      };
+    }
+
+    /* ── Render tasks ── */
+    function renderTasks(tasks) {
+      const list = document.getElementById('taskList');
+      list.innerHTML = '';
+      document.getElementById('taskCount').textContent = String(tasks.length).padStart(2, '0');
+
+      if (tasks.length === 0) {
+        list.innerHTML = `<div class="empty-state"><div class="big">0</div><div class="label">No tasks yet</div></div>`;
+        return;
+      }
+
+      const now = new Date();
+      const upcoming = [], pastDue = [];
+      tasks.forEach(task => {
+        const [id, __, task_name, task_time, task_description, due_date, color, reminder_display] = task;
+        const due = due_date ? new Date(due_date) : null;
+        if (due && due < now) pastDue.push(task); else upcoming.push(task);
+      });
+
+      function renderCard(task) {
+        const [id, __, task_name, task_time, task_description, due_date, color, reminder_display] = task;
+        const dueDateDisplay = due_date ? due_date.replace(/ 00:00:00.*$/, '') : '';
+        const isPast = due_date && new Date(due_date) < new Date();
+        const card = document.createElement('div');
+        card.className = 'task-card';
+        card.innerHTML = `
+          <div class="color-stripe" style="background:${color};"></div>
+          <div class="task-name">${task_name}</div>
+          <div class="task-desc">${task_description}</div>
+          <div class="task-meta">
+            <span class="task-date${isPast ? ' overdue' : ''}">${dueDateDisplay}${task_time ? ' · ' + task_time : ''}</span>
+            <div style="display:flex;align-items:center;gap:8px;">
+              ${reminder_display ? `<span style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);border:2px solid var(--accent);padding:2px 8px;">🔔 ${reminder_display}</span>` : ''}
+              <button class="delete-btn" onclick="deleteTask(${id})">DEL</button>
+            </div>
+          </div>
+        `;
+        list.appendChild(card);
+      }
+
+      upcoming.forEach(renderCard);
+
+      if (pastDue.length > 0) {
+        const divider = document.createElement('div');
+        divider.className = 'divider-line';
+        divider.innerHTML = `<span class="divider-label">Past Due</span>`;
+        list.appendChild(divider);
+        pastDue.forEach(renderCard);
+      }
+    }
+
+    /* ── Fetch / Delete ── */
+    async function fetchTasks() {
+      const res = await fetch('/tasks');
+      const tasks = await res.json();
+      renderTasks(tasks);
+    }
+
+    async function deleteTask(id) {
+      const res = await fetch('/tasks/' + id, { method: 'DELETE' });
+      if (res.ok) fetchTasks();
+    }
+
+    /* ── Input listener ── */
+    document.getElementById('taskInput').addEventListener('input', (e) => {
+      const text = e.target.value;
+      document.getElementById('charCounter').textContent = `${text.length} / 200`;
+      const matches = text.toLowerCase().match(/\b(blue|red|green|pink|orange|purple|yellow)\b/g);
+      e.target.style.color = matches ? colorMap[matches[matches.length - 1]] : '';
+      const reminder = parseReminder(text);
+      const preview = document.getElementById('reminderPreview');
+      if (reminder.display) {
+        document.getElementById('reminderValue').textContent = reminder.display;
+        preview.style.display = 'inline-block';
+      } else {
+        preview.style.display = 'none';
+      }
+    });
+
+    /* ── Submit ── */
+    document.getElementById('submitBtn').addEventListener('click', async () => {
+      const desc = document.getElementById('taskInput').value.trim();
+      if (desc.length < 10 || desc.length > 200) {
+        alert('Task description must be 10–200 characters');
+        return;
+      }
+      const reminder = parseReminder(desc);
+      document.getElementById('reminderPreview').style.display = 'none';
+      const res = await fetch('/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          task_description: desc,
+          user_tz_metadata: buildUserTzMetadata(),
+          color: extractColor(desc),
+          notif_time_offset: reminder.offsetHours,
+          notif_absolute_time: reminder.absoluteTime,
+          reminder_display: reminder.display
+        })
+      });
+      if (res.ok) {
+        const input = document.getElementById('taskInput');
+        input.value = '';
+        input.style.color = '';
+        document.getElementById('charCounter').textContent = '0 / 200';
+        fetchTasks();
+      } else {
+        alert('Failed to add task');
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', fetchTasks);
+  </script>
+</body>
+</html>
