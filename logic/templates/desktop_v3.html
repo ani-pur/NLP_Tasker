@@ -117,18 +117,32 @@
     }
 
     function parseReminder(text) {
-      const match = text.toLowerCase().match(/(?:remind|notify|alert)\s+(?:me\s+)?(\d+)\s*(m|min|mins|minute|minutes|h|hr|hrs|hour|hours)\b/);
-      if (!match) return { offsetHours: 0, display: null };
-      const val = parseInt(match[1]);
-      const unit = match[2];
-      if (unit.startsWith('h')) {
-        const clamped = Math.min(val, 24);
-        return { offsetHours: clamped, display: `${clamped}h` };
-      } else {
-        const hours = val / 60;
-        const clamped = Math.min(hours, 24);
-        return { offsetHours: clamped, display: `${val}m` };
+      const t = text.toLowerCase();
+      // relative: "remind me 30 min before", "notify 2 hours prior"
+      const rel = t.match(/(?:remind|notify|alert)\s+(?:me\s+)?(\d+)\s*(m|min|mins|minute|minutes|h|hr|hrs|hour|hours)\b/);
+      if (rel) {
+        const val = parseInt(rel[1]);
+        const unit = rel[2];
+        if (unit.startsWith('h')) {
+          const clamped = Math.min(val, 24);
+          return { offsetHours: clamped, absoluteTime: null, display: `${clamped}h` };
+        } else {
+          const hours = val / 60;
+          const clamped = Math.min(hours, 24);
+          return { offsetHours: clamped, absoluteTime: null, display: `${val}m` };
+        }
       }
+      // absolute: "remind at 2pm", "remind me at 3:30am"
+      const abs = t.match(/(?:remind|notify|alert)\s+(?:me\s+)?at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/);
+      if (abs) {
+        const hour = parseInt(abs[1]);
+        const mins = abs[2] ? parseInt(abs[2]) : 0;
+        const period = abs[3].toUpperCase();
+        const display = mins > 0 ? `${hour}:${String(mins).padStart(2,'0')}${period}` : `${hour}${period}`;
+        const absoluteTime = `${hour}:${String(mins).padStart(2,'0')} ${period}`;
+        return { offsetHours: null, absoluteTime, display };
+      }
+      return { offsetHours: 0, absoluteTime: null, display: null };
     }
 
     taskInput.addEventListener('input', (e) => {
@@ -314,7 +328,7 @@
       const response = await fetch('/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ task_description: description, user_tz_metadata: buildUserTzMetadata(), color: extractColor(description), notif_time_offset: reminder.offsetHours, reminder_display: reminder.display })
+        body: JSON.stringify({ task_description: description, user_tz_metadata: buildUserTzMetadata(), color: extractColor(description), notif_time_offset: reminder.offsetHours, notif_absolute_time: reminder.absoluteTime, reminder_display: reminder.display })
       });
       if (response.ok) {
         document.getElementById('taskForm').reset();
