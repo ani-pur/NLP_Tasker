@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>TASKER // D — TERMINAL</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --green: #4ade80; --dim: #166534; --bg: #020a02; }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      background: var(--bg);
+      color: var(--green);
+      font-family: 'Fira Code', monospace;
+      font-size: 13px;
+      min-height: 100vh;
+    }
+    /* CRT scanlines */
+    body::after {
+      content:''; position:fixed; inset:0; z-index:9999; pointer-events:none;
+      background: repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 0px, rgba(0,0,0,0.15) 1px, transparent 1px, transparent 3px);
+    }
+    /* CRT vignette */
+    body::before {
+      content:''; position:fixed; inset:0; z-index:9998; pointer-events:none;
+      background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.7) 100%);
+    }
+
+    header {
+      border-bottom: 1px solid var(--dim);
+      padding: 12px 24px;
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 12px;
+    }
+    .logo { font-weight:700; font-size:16px; }
+    .logo span { color: var(--dim); }
+    .nav a { color: var(--dim); text-decoration:none; margin-left:16px; }
+    .nav a:hover { color: var(--green); }
+    .nav .user { color: var(--green); border: 1px solid var(--dim); padding: 2px 8px; }
+
+    main { display:grid; grid-template-columns:1fr 340px; min-height:calc(100vh - 45px); }
+    @media(max-width:768px) { main { grid-template-columns:1fr; } }
+
+    .tasks {
+      padding: 24px;
+      border-right: 1px solid var(--dim);
+      overflow-y: auto;
+    }
+    .prompt-line { color: var(--dim); margin-bottom:16px; font-size:11px; }
+    .prompt-line .cmd { color: var(--green); }
+
+    .task {
+      border: 1px solid var(--dim);
+      padding: 12px 14px;
+      margin-bottom: 8px;
+      transition: all 0.15s;
+      position: relative;
+    }
+    .task:hover { border-color: var(--green); box-shadow: 0 0 12px rgba(74,222,128,0.08); }
+    .task .pid { position:absolute; top:12px; right:14px; font-size:10px; color:var(--dim); }
+    .task-name { font-weight:700; font-size:14px; margin-bottom:4px; }
+    .task-desc { color: var(--dim); font-size:11px; line-height:1.5; }
+    .task-meta { margin-top:8px; font-size:10px; color:var(--dim); display:flex; gap:16px; flex-wrap:wrap; }
+    .task-meta .overdue { color: #ef4444; }
+    .task-meta .remind { color: #fbbf24; }
+
+    .divider { color: #ef4444; font-size:11px; margin:16px 0; letter-spacing:2px; }
+    .divider::before, .divider::after { content: '────── '; }
+
+    .input-side { padding:24px; background: rgba(74,222,128,0.02); }
+    .input-side h2 { font-size:12px; color:var(--dim); letter-spacing:2px; text-transform:uppercase; margin-bottom:16px; }
+    textarea {
+      width:100%; height:100px; background:var(--bg); border:1px solid var(--dim);
+      color:var(--green); font-family:'Fira Code',monospace; font-size:13px;
+      padding:12px; resize:none; outline:none;
+    }
+    textarea:focus { border-color: var(--green); box-shadow: 0 0 8px rgba(74,222,128,0.1); }
+    textarea::placeholder { color: var(--dim); }
+    .submit-row { display:flex; justify-content:space-between; align-items:center; margin-top:10px; flex-wrap:wrap; gap:6px; }
+    .char-ct { font-size:10px; color:var(--dim); }
+    .reminder-preview { font-size:10px; color:#fbbf24; display:none; }
+    button {
+      background:none; border:1px solid var(--green); color:var(--green);
+      font-family:'Fira Code',monospace; font-size:12px; font-weight:600;
+      padding:8px 20px; cursor:pointer; transition:all 0.15s;
+    }
+    button:hover { background:var(--green); color:var(--bg); }
+
+    .del-btn {
+      background:none; border:1px solid var(--dim); color:var(--dim);
+      font-family:'Fira Code',monospace; font-size:10px;
+      padding:2px 8px; cursor:pointer; transition:all 0.15s;
+      opacity:0;
+    }
+    .task:hover .del-btn { opacity:1; }
+    .del-btn:hover { border-color:#ef4444; color:#ef4444; background:none; }
+
+    .sys-info {
+      margin-top:24px; padding-top:16px; border-top:1px solid var(--dim);
+      font-size:10px; color:var(--dim); line-height:2;
+    }
+
+    .empty-state { color:var(--dim); font-size:11px; padding:32px 0; text-align:center; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">tasker<span>.sh</span></div>
+    <div class="nav">
+      <span class="user">{{ username }}</span>
+      <select onchange="if(this.value)window.location=this.value" style="background:var(--bg);border:1px solid var(--dim);color:var(--green);font-family:'Fira Code',monospace;font-size:11px;padding:2px 8px;cursor:pointer;display:inline;">
+        <option value="" selected>theme:terminal</option>
+        <option value="/switch/3">default</option>
+        <option value="/switch/2">og (retired)</option>
+        <option value="/switch/4">brutalist</option>
+        <option value="/switch/5">editorial</option>
+        <option value="/switch/6">glass</option>
+        <option value="/switch/8">midnight</option>
+      </select>
+      <a href="{{ url_for('logout') }}" style="color:#ef4444;">exit</a>
+    </div>
+  </header>
+  <main>
+    <div class="tasks">
+      <div class="prompt-line">{{ username }}@tasker:~$ <span class="cmd">ls --tasks --sort=due</span> <span id="taskCountLine"></span></div>
+      <div id="taskList"></div>
+    </div>
+
+    <div class="input-side">
+      <h2>→ new task</h2>
+      <textarea id="taskInput" placeholder="gym next monday 7am legs, blue"></textarea>
+      <div class="submit-row">
+        <span class="char-ct" id="charCounter">0/200</span>
+        <span class="reminder-preview" id="reminderPreview">🔔 <span id="reminderValue"></span></span>
+        <button id="submitBtn">exec →</button>
+      </div>
+      <div class="sys-info" id="sysInfo">
+        SYS: tasker v4.0.0<br>
+        HOST: devbox<br>
+        TASKS: <span id="sysTaskCount">0 active</span><br>
+        STATUS: ready
+      </div>
+    </div>
+  </main>
+
+  <script>
+    /* ── Color ── */
+    const prompts = ["gym next monday 7am legs, blue", "groceries in 2 hours yellow, milk eggs chicken rice", "submit project by Friday evening, orange", "call mom tomorrow at noon pink", "doctor appointment next tuesday 9am, red", "read 20 pages of book tonight, purple", "fix production bug before standup, green"];
+    document.getElementById('taskInput').placeholder = 'Try: ' + prompts[Math.floor(Math.random() * prompts.length)];
+    const colorMap = { blue: '#87CEEB', red: '#f05656', green: '#6CE5A9', pink: '#F8C8DC', orange: '#ff7f00', purple: '#A96CE5', yellow: '#FDDA0D' };
+    function extractColor(text) {
+      const matches = text.toLowerCase().match(/\b(blue|red|green|pink|orange|purple|yellow)\b/g);
+      if (matches && matches.length > 0) return colorMap[matches[matches.length - 1]];
+      return '#FFFFFF';
+    }
+
+    /* ── Reminder ── */
+    function parseReminder(text) {
+      const t = text.toLowerCase();
+      const rel = t.match(/(?:remind|notify|alert)\s+(?:me\s+)?(\d+)\s*(m|min|mins|minute|minutes|h|hr|hrs|hour|hours)\b/);
+      if (rel) {
+        const val = parseInt(rel[1]);
+        const unit = rel[2];
+        if (unit.startsWith('h')) {
+          const clamped = Math.min(val, 24);
+          return { offsetHours: clamped, absoluteTime: null, display: `${clamped}h` };
+        } else {
+          const hours = val / 60;
+          const clamped = Math.min(hours, 24);
+          return { offsetHours: clamped, absoluteTime: null, display: `${val}m` };
+        }
+      }
+      const abs = t.match(/(?:remind|notify|alert)\s+(?:me\s+)?at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/);
+      if (abs) {
+        const hour = parseInt(abs[1]);
+        const mins = abs[2] ? parseInt(abs[2]) : 0;
+        const period = abs[3].toUpperCase();
+        const display = mins > 0 ? `${hour}:${String(mins).padStart(2,'0')}${period}` : `${hour}${period}`;
+        const absoluteTime = `${hour}:${String(mins).padStart(2,'0')} ${period}`;
+        return { offsetHours: null, absoluteTime, display };
+      }
+      return { offsetHours: 0, absoluteTime: null, display: null };
+    }
+
+    let addTaskCooldown = false;
+    const ADD_TASK_COOLDOWN_MS = 3000;
+
+    /* ── TZ metadata ── */
+    function buildUserTzMetadata() {
+      const now = new Date();
+      return {
+        "todaysDate (yyyy/mm/dd): ": now.toLocaleDateString('en-CA'),
+        "current time: ": ` ${now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })} `,
+        "current day: ": ` ${now.toLocaleDateString('en-US', { weekday: 'long' })} `,
+        "utc_offset_minutes": now.getTimezoneOffset()
+      };
+    }
+
+    let pidCounter = 1000;
+
+    /* ── Render tasks ── */
+    function renderTasks(tasks) {
+      const list = document.getElementById('taskList');
+      list.innerHTML = '';
+      const now = new Date();
+      const upcoming = [], pastDue = [];
+      tasks.forEach(task => {
+        const [id, __, task_name, task_time, task_description, due_date, color, reminder_display] = task;
+        let isPast = false;
+        if (due_date) {
+          const cleanDate = due_date.replace(/ 00:00:00.*$/, '').trim();
+          const timeStr = task_time ? task_time.trim() : '11:59 PM';
+          const taskDateTime = new Date(`${cleanDate} ${timeStr}`);
+          if (!isNaN(taskDateTime) && taskDateTime < now) isPast = true;
+        }
+        if (isPast) pastDue.push(task); else upcoming.push(task);
+      });
+
+      document.getElementById('taskCountLine').textContent = `[${tasks.length} results]`;
+      document.getElementById('sysTaskCount').textContent = `${upcoming.length} active / ${pastDue.length} overdue`;
+
+      if (tasks.length === 0) {
+        list.innerHTML = `<div class="empty-state">// no tasks found</div>`;
+        return;
+      }
+
+      function renderCard(task, index) {
+        const [id, __, task_name, task_time, task_description, due_date, color, reminder_display] = task;
+        const dueDateDisplay = due_date ? due_date.replace(/ 00:00:00.*$/, '') : '';
+        const isPast = (() => { if (!due_date) return false; const d = new Date(`${due_date.replace(/ 00:00:00.*$/, '').trim()} ${task_time ? task_time.trim() : '11:59 PM'}`); return !isNaN(d) && d < new Date(); })();
+        const div = document.createElement('div');
+        div.className = 'task';
+        div.innerHTML = `
+          <div class="pid">PID ${1840 + index}</div>
+          <div class="task-name" style="color:${color};">${task_name}</div>
+          <div class="task-desc">${task_description}</div>
+          <div class="task-meta">
+            <span class="${isPast ? 'overdue' : ''}">due: ${dueDateDisplay}</span>
+            ${task_time ? `<span>time: ${task_time}</span>` : ''}
+            ${reminder_display ? `<span class="remind">remind: ${reminder_display}</span>` : ''}
+            <button class="del-btn" onclick="deleteTask(${id})">kill</button>
+          </div>
+        `;
+        list.appendChild(div);
+      }
+
+      if (pastDue.length > 0) {
+        pastDue.forEach((t, i) => renderCard(t, i));
+        const div = document.createElement('div');
+        div.className = 'divider';
+        div.textContent = 'PAST DUE';
+        list.appendChild(div);
+      }
+
+      upcoming.forEach((t, i) => renderCard(t, pastDue.length + i));
+    }
+
+    /* ── Fetch / Delete ── */
+    async function fetchTasks() {
+      try {
+        const res = await fetch('/tasks');
+        const tasks = await res.json();
+        renderTasks(tasks);
+      } catch (err) { console.error('Error loading tasks:', err); }
+    }
+
+    async function deleteTask(id) {
+      const res = await fetch('/tasks/' + id, { method: 'DELETE' });
+      if (res.ok) fetchTasks();
+      else alert('Failed to delete task');
+    }
+
+    /* ── Input listener ── */
+    document.getElementById('taskInput').addEventListener('input', (e) => {
+      const text = e.target.value;
+      document.getElementById('charCounter').textContent = `${text.length}/200`;
+      const matches = text.toLowerCase().match(/\b(blue|red|green|pink|orange|purple|yellow)\b/g);
+      e.target.style.color = matches ? colorMap[matches[matches.length - 1]] : '';
+      const reminder = parseReminder(text);
+      const preview = document.getElementById('reminderPreview');
+      if (reminder.display) {
+        document.getElementById('reminderValue').textContent = reminder.display;
+        preview.style.display = 'inline';
+      } else {
+        preview.style.display = 'none';
+      }
+    });
+
+    /* ── Submit ── */
+    document.getElementById('submitBtn').addEventListener('click', async () => {
+      if (addTaskCooldown) return;
+      addTaskCooldown = true;
+      setTimeout(() => { addTaskCooldown = false; }, ADD_TASK_COOLDOWN_MS);
+      const desc = document.getElementById('taskInput').value.trim();
+      if (desc.length < 10 || desc.length > 200) {
+        alert('Task description must be 10–200 characters');
+        return;
+      }
+      const reminder = parseReminder(desc);
+      document.getElementById('reminderPreview').style.display = 'none';
+      const res = await fetch('/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          task_description: desc,
+          user_tz_metadata: buildUserTzMetadata(),
+          color: extractColor(desc),
+          notif_time_offset: reminder.offsetHours,
+          notif_absolute_time: reminder.absoluteTime,
+          reminder_display: reminder.display
+        })
+      });
+      if (res.ok) {
+        const input = document.getElementById('taskInput');
+        input.value = '';
+        input.style.color = '';
+        document.getElementById('charCounter').textContent = '0/200';
+        fetchTasks();
+        document.getElementById('taskInput').placeholder = 'Try: ' + prompts[Math.floor(Math.random() * prompts.length)];
+      } else {
+        alert('Failed to add task');
+      }
+    });
+
+    /* ── Push Notifications ── */
+    async function setupPushNotifications() {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+      try {
+        const reg = await navigator.serviceWorker.register('/sw.js');
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') return;
+        const existing = await reg.pushManager.getSubscription();
+        if (existing) return;
+        const keyRes = await fetch('/push/vapid-public-key');
+        const keyData = await keyRes.json();
+        if (!keyData.public_key) return;
+        const rawKey = atob(keyData.public_key.replace(/-/g, '+').replace(/_/g, '/'));
+        const vapidKey = new Uint8Array(rawKey.length);
+        for (let i = 0; i < rawKey.length; i++) vapidKey[i] = rawKey.charCodeAt(i);
+        const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: vapidKey });
+        const subJson = sub.toJSON();
+        await fetch('/push/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint: subJson.endpoint, keys: subJson.keys }) });
+      } catch (err) { console.error('Push setup failed:', err); }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => { fetchTasks(); setupPushNotifications(); });
+  </script>
+</body>
+</html>

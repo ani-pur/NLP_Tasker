@@ -267,6 +267,16 @@ def index():
 
     if ui_version == 2:
         return render_template('desktop_v2.html', username=session['username'])
+    elif ui_version == 4:
+        return render_template('desktop_v4.html', username=session['username'])
+    elif ui_version == 5:
+        return render_template('desktop_v5.html', username=session['username'])
+    elif ui_version == 6:
+        return render_template('desktop_v6.html', username=session['username'])
+    elif ui_version == 7:
+        return render_template('desktop_v7.html', username=session['username'])
+    elif ui_version == 8:
+        return render_template('desktop_v8.html', username=session['username'])
 
     return render_template('desktop_v3.html', username=session['username'])
 
@@ -277,7 +287,7 @@ def switch_ui(switch_id):
     if 'username' not in session:
         return redirect(url_for('login'))
 
-    if switch_id in (2, 3):
+    if switch_id in (2, 3, 4, 5, 6, 7, 8):
         session['ui_version'] = switch_id
 
     return redirect(url_for('index'))
