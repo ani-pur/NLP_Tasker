@@ -395,7 +395,15 @@
     <div class="logo">Tasker<em>.</em></div>
     <div class="nav-links">
       <span class="user-chip">{{ username }}</span>
-      <div id="uiSwitcher"></div>
+      <select onchange="if(this.value)window.location=this.value" style="font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:var(--muted);background:var(--bg);border:1px solid var(--border);border-radius:100px;padding:5px 14px;cursor:pointer;">
+        <option value="" selected>Theme: Editorial</option>
+        <option value="/switch/3">Default</option>
+        <option value="/switch/2">Classic</option>
+        <option value="/switch/4">Brutalist</option>
+        <option value="/switch/6">Glass</option>
+        <option value="/switch/7">Terminal</option>
+        <option value="/switch/8">Midnight</option>
+      </select>
       <a href="{{ url_for('logout') }}" class="exit">Log out</a>
     </div>
   </header>

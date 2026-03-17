@@ -450,7 +450,15 @@
     <div class="logo">tasker.</div>
     <div class="nav-links">
       <span class="user-chip">{{ username }}</span>
-      <div id="uiSwitcher"></div>
+      <select onchange="if(this.value)window.location=this.value" style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:5px 12px;cursor:pointer;">
+        <option value="" selected>Theme: Glass</option>
+        <option value="/switch/3">Default</option>
+        <option value="/switch/2">Classic</option>
+        <option value="/switch/4">Brutalist</option>
+        <option value="/switch/5">Editorial</option>
+        <option value="/switch/7">Terminal</option>
+        <option value="/switch/8">Midnight</option>
+      </select>
       <a href="{{ url_for('logout') }}" class="exit">Exit</a>
     </div>
   </header>
