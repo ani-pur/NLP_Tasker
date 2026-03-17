@@ -620,8 +620,8 @@
           `;
         };
 
-        upcomingTasks.forEach(task => {
-          taskList.insertAdjacentHTML('beforeend', renderTaskHtml(task, false));
+        pastDueTasks.forEach(task => {
+          taskList.insertAdjacentHTML('beforeend', renderTaskHtml(task, true));
         });
 
         if (pastDueTasks.length > 0) {
@@ -632,8 +632,8 @@
           `);
         }
 
-        pastDueTasks.forEach(task => {
-          taskList.insertAdjacentHTML('beforeend', renderTaskHtml(task, true));
+        upcomingTasks.forEach(task => {
+          taskList.insertAdjacentHTML('beforeend', renderTaskHtml(task, false));
         });
 
       } catch (err) { console.error("Error loading tasks:", err); }
