@@ -388,18 +388,28 @@
 
   <script>
     /* ── Clock ── */
-    function updateClock() {
+    let clockTimer;
+    function renderClock(animate = false) {
       const now = new Date();
-      const day = now.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
-      const date = now.toLocaleDateString('en-US', { month: 'short', day: '2-digit' }).toUpperCase();
-      const time = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-      document.getElementById('clockDisplay').innerHTML = `${day} ${date}<br>${time}`;
+      const dateStr = now.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase();
+      const timeStr = now.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+      document.getElementById('clockDisplay').innerHTML = `${dateStr}<br>${timeStr}`;
     }
-    updateClock();
-    setInterval(updateClock, 30000);
+    function scheduleNextClockTick() {
+      if (clockTimer) clearTimeout(clockTimer);
+      const msToNextMinute = (60000 - (Date.now() % 60000)) + 80;
+      clockTimer = setTimeout(() => { renderClock(true); scheduleNextClockTick(); }, msToNextMinute);
+    }
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) { renderClock(false); scheduleNextClockTick(); }
+    });
+    renderClock(false);
+    scheduleNextClockTick();
 
     /* ── Color ── */
-    const colorMap = { blue:'#60a5fa', red:'#f87171', green:'#4ade80', pink:'#f472b6', orange:'#fb923c', purple:'#c084fc', yellow:'#facc15' };
+    const prompts = ["gym next monday 7am legs, blue", "groceries in 2 hours yellow, milk eggs chicken rice", "submit project by Friday evening, orange", "call mom tomorrow at noon pink", "doctor appointment next tuesday 9am, red", "read 20 pages of book tonight, purple", "fix production bug before standup, green"];
+    document.getElementById('taskInput').placeholder = 'Try: ' + prompts[Math.floor(Math.random() * prompts.length)];
+    const colorMap = { blue: '#87CEEB', red: '#f05656', green: '#6CE5A9', pink: '#F8C8DC', orange: '#ff7f00', purple: '#A96CE5', yellow: '#FDDA0D' };
     function extractColor(text) {
       const matches = text.toLowerCase().match(/\b(blue|red|green|pink|orange|purple|yellow)\b/g);
       if (matches && matches.length > 0) return colorMap[matches[matches.length - 1]];
@@ -433,6 +443,9 @@
       }
       return { offsetHours: 0, absoluteTime: null, display: null };
     }
+
+    let addTaskCooldown = false;
+    const ADD_TASK_COOLDOWN_MS = 3000;
 
     /* ── TZ metadata ── */
     function buildUserTzMetadata() {
@@ -504,14 +517,17 @@
 
     /* ── Fetch / Delete ── */
     async function fetchTasks() {
-      const res = await fetch('/tasks');
-      const tasks = await res.json();
-      renderTasks(tasks);
+      try {
+        const res = await fetch('/tasks');
+        const tasks = await res.json();
+        renderTasks(tasks);
+      } catch (err) { console.error('Error loading tasks:', err); }
     }
 
     async function deleteTask(id) {
       const res = await fetch('/tasks/' + id, { method: 'DELETE' });
       if (res.ok) fetchTasks();
+      else alert('Failed to delete task');
     }
 
     /* ── Input listener ── */
@@ -532,6 +548,9 @@
 
     /* ── Submit ── */
     document.getElementById('submitBtn').addEventListener('click', async () => {
+      if (addTaskCooldown) return;
+      addTaskCooldown = true;
+      setTimeout(() => { addTaskCooldown = false; }, ADD_TASK_COOLDOWN_MS);
       const desc = document.getElementById('taskInput').value.trim();
       if (desc.length < 10 || desc.length > 200) {
         alert('Task description must be 10–200 characters');
@@ -557,12 +576,34 @@
         input.style.color = '';
         document.getElementById('charCounter').textContent = '0 / 200';
         fetchTasks();
+        document.getElementById('taskInput').placeholder = 'Try: ' + prompts[Math.floor(Math.random() * prompts.length)];
       } else {
         alert('Failed to add task');
       }
     });
 
-    document.addEventListener('DOMContentLoaded', fetchTasks);
+    /* ── Push Notifications ── */
+    async function setupPushNotifications() {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+      try {
+        const reg = await navigator.serviceWorker.register('/sw.js');
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') return;
+        const existing = await reg.pushManager.getSubscription();
+        if (existing) return;
+        const keyRes = await fetch('/push/vapid-public-key');
+        const keyData = await keyRes.json();
+        if (!keyData.public_key) return;
+        const rawKey = atob(keyData.public_key.replace(/-/g, '+').replace(/_/g, '/'));
+        const vapidKey = new Uint8Array(rawKey.length);
+        for (let i = 0; i < rawKey.length; i++) vapidKey[i] = rawKey.charCodeAt(i);
+        const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: vapidKey });
+        const subJson = sub.toJSON();
+        await fetch('/push/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint: subJson.endpoint, keys: subJson.keys }) });
+      } catch (err) { console.error('Push setup failed:', err); }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => { fetchTasks(); setupPushNotifications(); });
   </script>
 </body>
 </html>
