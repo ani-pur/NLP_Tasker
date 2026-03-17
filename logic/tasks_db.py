@@ -78,14 +78,13 @@ def _build_task_datetime(due_date_str, task_time_str, utc_offset_minutes):
 DEFAULT_NOTIF_OFFSET_HOURS = 3.0
 
 # add task to db
-def add_task(username: str, jsonInput: str, task_data: dict):
+def add_task(username: str, jsonInput: str, task_data: dict, color: str = '#FFFFFF',
+             notif_time_offset=0, notif_absolute_time=None, reminder_display=None):
     sendToDb = parse_api_response(jsonInput)
     task_name = sendToDb.get('task_name')
     task_time = sendToDb.get('task_time')
     task_description = sendToDb.get('task_description')
     due_date = sendToDb.get('due_date')
-    color = sendToDb.get('color')
-    notif_time_offset = sendToDb.get('notif_time_offset')
 
     userInput = task_data.get('task_description')
     user_tz_metadata = task_data.get('user_tz_metadata', {})
@@ -95,9 +94,13 @@ def add_task(username: str, jsonInput: str, task_data: dict):
     task_datetime_utc = _build_task_datetime(due_date, task_time, utc_offset_minutes)
 
     # compute notify_at
-    offset_hours = notif_time_offset if notif_time_offset is not None else DEFAULT_NOTIF_OFFSET_HOURS
     notify_at = None
-    if task_datetime_utc is not None:
+    if notif_absolute_time and due_date:
+        # absolute reminder: "remind at 2:00 PM" → combine with due_date
+        notify_at = _build_task_datetime(due_date, notif_absolute_time, utc_offset_minutes)
+    elif task_datetime_utc is not None:
+        # relative reminder: offset hours before task time
+        offset_hours = notif_time_offset if notif_time_offset is not None else DEFAULT_NOTIF_OFFSET_HOURS
         try:
             notify_at = task_datetime_utc - timedelta(hours=float(offset_hours))
         except (ValueError, TypeError):
@@ -113,10 +116,11 @@ def add_task(username: str, jsonInput: str, task_data: dict):
                     "task_description, "
                     "due_date, "
                     "color, "
+                    "reminder_display, "
                     "task_datetime) VALUES (%s, %s, "
                     "to_timestamp(NULLIF(btrim(%s), ''), 'HH12:MI AM')::time, "
-                    "%s, %s, %s, %s) RETURNING tasks.id",
-                    (username, task_name, task_time, task_description, due_date, color, task_datetime_utc)
+                    "%s, %s, %s, %s, %s) RETURNING tasks.id",
+                    (username, task_name, task_time, task_description, due_date, color, reminder_display, task_datetime_utc)
                 )
                 task_id = cur.fetchone()[0]
 
@@ -151,7 +155,8 @@ def get_all_tasks(username, sort_order):
                     "to_char(tasks.task_time, 'HH12:MI AM') AS task_time, "
                     "tasks.task_description, "
                     "tasks.due_date, "
-                    "tasks.color "
+                    "tasks.color, "
+                    "tasks.reminder_display "
                     "FROM tasks "
                     "WHERE tasks.username = %s "
                     "ORDER BY tasks.due_date ASC, tasks.task_time ASC NULLS LAST;",

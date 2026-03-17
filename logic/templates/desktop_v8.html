@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>TASKER // F — MIDNIGHT</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=Azeret+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root { --bg:#09090b; --surface:#18181b; --border:#27272a; --fg:#fafafa; --muted:#71717a; }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:var(--bg); color:var(--fg); font-family:'Manrope',sans-serif; min-height:100vh; }
+
+    header {
+      padding:16px 32px; display:flex; justify-content:space-between; align-items:center;
+      border-bottom:1px solid var(--border);
+    }
+    .logo { font-size:20px; font-weight:800; letter-spacing:-0.5px; }
+    .logo span {
+      background:linear-gradient(135deg, #f472b6, #818cf8, #34d399);
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+    }
+    .nav { display:flex; gap:16px; align-items:center; font-size:13px; }
+    .nav a { color:var(--muted); text-decoration:none; }
+    .nav a:hover { color:var(--fg); }
+    .user-tag {
+      font-family:'Azeret Mono',monospace; font-size:11px; color:var(--muted);
+      border:1px solid var(--border); padding:4px 12px; border-radius:6px;
+    }
+
+    main { max-width:1100px; margin:0 auto; padding:36px 32px; display:grid; grid-template-columns:1fr 360px; gap:36px; }
+    @media(max-width:768px) { main { grid-template-columns:1fr; padding:20px 16px; } }
+
+    .section-head { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:24px; }
+    .section-head h2 { font-size:24px; font-weight:800; letter-spacing:-0.5px; }
+    .clock { font-family:'Azeret Mono',monospace; font-size:11px; color:var(--muted); text-align:right; }
+    .clock .accent { color:#818cf8; }
+
+    /* ── Gradient border cards ── */
+    .task-card {
+      position:relative; margin-bottom:10px; border-radius:14px;
+      background: var(--surface); padding:1px; transition:transform 0.2s;
+    }
+    .task-card:hover { transform:translateY(-1px); }
+
+    .task-card::before {
+      content:''; position:absolute; inset:0; border-radius:14px; padding:1px;
+      background: var(--grad);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor; mask-composite: exclude;
+      opacity:0.3; transition: opacity 0.25s;
+    }
+    .task-card:hover::before { opacity:0.7; }
+
+    .task-inner { background:var(--surface); border-radius:13px; padding:16px 18px; position:relative; z-index:1; }
+    .task-name { font-size:15px; font-weight:700; margin-bottom:4px; }
+    .task-desc { font-size:12px; color:var(--muted); line-height:1.5; }
+    .task-foot { display:flex; justify-content:space-between; align-items:center; margin-top:10px; flex-wrap:wrap; gap:6px; }
+    .task-time {
+      font-family:'Azeret Mono',monospace; font-size:10px; color:var(--muted);
+      background:rgba(255,255,255,0.04); padding:3px 10px; border-radius:6px; border:1px solid var(--border);
+    }
+    .task-time.overdue { color:#f87171; border-color:rgba(248,113,113,0.2); background:rgba(248,113,113,0.06); }
+    .remind-badge {
+      font-family:'Azeret Mono',monospace; font-size:10px; color:#fbbf24;
+      background:rgba(120,53,15,0.2); padding:3px 10px; border-radius:6px;
+      border:1px solid rgba(251,191,36,0.15);
+    }
+    .del { background:none; border:none; color:var(--muted); font-size:12px; cursor:pointer; opacity:0; transition:opacity 0.15s; }
+    .task-card:hover .del { opacity:1; }
+    .del:hover { color:#f87171; }
+
+    .divider {
+      display:flex; align-items:center; gap:12px; margin:20px 0;
+      font-family:'Azeret Mono',monospace; font-size:10px; color:#f87171;
+      letter-spacing:2px; text-transform:uppercase;
+    }
+    .divider::before,.divider::after { content:''; flex:1; height:1px; background:linear-gradient(to right, transparent, rgba(248,113,113,0.3), transparent); }
+
+    /* ── Input ── */
+    .input-panel { position:sticky; top:80px; }
+    .input-box {
+      background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:24px;
+    }
+    .input-box h3 { font-size:16px; font-weight:700; margin-bottom:12px; }
+    textarea {
+      width:100%; height:110px; background:var(--bg); border:1px solid var(--border);
+      border-radius:10px; padding:12px; color:var(--fg); font-family:'Manrope',sans-serif;
+      font-size:13px; resize:none; outline:none; transition:border-color 0.2s;
+    }
+    textarea:focus { border-color:#818cf8; }
+    textarea::placeholder { color:#3f3f46; }
+    .input-foot { display:flex; justify-content:space-between; align-items:center; margin-top:12px; flex-wrap:wrap; gap:6px; }
+    .char-ct { font-family:'Azeret Mono',monospace; font-size:10px; color:var(--muted); }
+    .reminder-preview { font-family:'Azeret Mono',monospace; font-size:10px; color:#fbbf24; display:none; }
+    .sub-btn {
+      background:linear-gradient(135deg, #818cf8, #6366f1); color:white; border:none;
+      border-radius:8px; padding:9px 20px; font-weight:700; font-size:12px; cursor:pointer;
+      transition:all 0.2s; box-shadow:0 2px 10px rgba(129,140,248,0.2);
+    }
+    .sub-btn:hover { box-shadow:0 4px 20px rgba(129,140,248,0.35); transform:translateY(-1px); }
+
+    /* ── Gradient tag row ── */
+    .color-tags {
+      display:flex; flex-wrap:wrap; gap:6px; margin-top:16px; padding-top:14px; border-top:1px solid var(--border);
+    }
+    .color-tag {
+      width:24px; height:24px; border-radius:6px; border:2px solid var(--border);
+      cursor:pointer; transition: transform 0.15s, border-color 0.15s;
+    }
+    .color-tag:hover { transform:scale(1.15); border-color:rgba(255,255,255,0.3); }
+    .color-tag.active { border-color:rgba(255,255,255,0.6); transform:scale(1.1); }
+
+    .empty-state { text-align:center; padding:60px 0; color:var(--muted); font-size:13px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">tasker<span>.</span></div>
+    <div class="nav">
+      <span class="user-tag">{{ username }}</span>
+      <select onchange="if(this.value)window.location=this.value" style="font-family:'Azeret Mono',monospace;font-size:11px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:4px 12px;cursor:pointer;">
+        <option value="" selected>Theme: Midnight</option>
+        <option value="/switch/3">Default</option>
+        <option value="/switch/2">OG (Retired)</option>
+        <option value="/switch/4">Brutalist</option>
+        <option value="/switch/5">Editorial</option>
+        <option value="/switch/6">Glass</option>
+        <option value="/switch/7">Terminal</option>
+      </select>
+      <a href="{{ url_for('logout') }}" style="color:#f87171;">exit</a>
+    </div>
+  </header>
+
+  <main>
+    <div>
+      <div class="section-head">
+        <h2>Tasks <span style="font-size:14px;font-weight:500;color:var(--muted);font-family:'Azeret Mono',monospace;" id="taskCount"></span></h2>
+        <div class="clock"><span class="accent" id="clockDate"></span><br><span id="clockTime"></span></div>
+      </div>
+      <div id="taskList"></div>
+    </div>
+
+    <div class="input-panel">
+      <div class="input-box">
+        <h3>New Task</h3>
+        <textarea id="taskInput" placeholder="gym next monday 7am legs, blue"></textarea>
+        <div class="input-foot">
+          <span class="char-ct" id="charCounter">0/200</span>
+          <span class="reminder-preview" id="reminderPreview">🔔 <span id="reminderValue"></span></span>
+          <button class="sub-btn" id="submitBtn">Add Task</button>
+        </div>
+        <div class="color-tags" id="colorTags">
+          <div class="color-tag" style="background:#87CEEB;" title="Blue" data-color="blue"></div>
+          <div class="color-tag" style="background:#f05656;" title="Red" data-color="red"></div>
+          <div class="color-tag" style="background:#6CE5A9;" title="Green" data-color="green"></div>
+          <div class="color-tag" style="background:#F8C8DC;" title="Pink" data-color="pink"></div>
+          <div class="color-tag" style="background:#ff7f00;" title="Orange" data-color="orange"></div>
+          <div class="color-tag" style="background:#A96CE5;" title="Purple" data-color="purple"></div>
+          <div class="color-tag" style="background:#FDDA0D;" title="Yellow" data-color="yellow"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    /* ── Clock ── */
+    let clockTimer;
+    function renderClock(animate = false) {
+      const now = new Date();
+      const day = now.toLocaleDateString(undefined, { weekday: 'short' }).toUpperCase();
+      const mon = now.toLocaleDateString(undefined, { month: 'short' }).toUpperCase();
+      const d = String(now.getDate()).padStart(2, '0');
+      document.getElementById('clockDate').textContent = `${day} ${mon} ${d}`;
+      document.getElementById('clockTime').textContent = now.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true });
+    }
+    function scheduleNextClockTick() {
+      if (clockTimer) clearTimeout(clockTimer);
+      const msToNextMinute = (60000 - (Date.now() % 60000)) + 80;
+      clockTimer = setTimeout(() => { renderClock(true); scheduleNextClockTick(); }, msToNextMinute);
+    }
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) { renderClock(false); scheduleNextClockTick(); }
+    });
+    renderClock(false);
+    scheduleNextClockTick();
+
+    /* ── Color ── */
+    const prompts = ["gym next monday 7am legs, blue", "groceries in 2 hours yellow, milk eggs chicken rice", "submit project by Friday evening, orange", "call mom tomorrow at noon pink", "doctor appointment next tuesday 9am, red", "read 20 pages of book tonight, purple", "fix production bug before standup, green"];
+    document.getElementById('taskInput').placeholder = 'Try: ' + prompts[Math.floor(Math.random() * prompts.length)];
+
+    const colorMap = { blue: '#87CEEB', red: '#f05656', green: '#6CE5A9', pink: '#F8C8DC', orange: '#ff7f00', purple: '#A96CE5', yellow: '#FDDA0D' };
+    const gradMap = {
+      '#87CEEB': 'linear-gradient(135deg, #87CEEB, #5ba3d9)',
+      '#f05656': 'linear-gradient(135deg, #f05656, #d63c3c)',
+      '#6CE5A9': 'linear-gradient(135deg, #6CE5A9, #4cc88a)',
+      '#F8C8DC': 'linear-gradient(135deg, #F8C8DC, #e8a0bc)',
+      '#ff7f00': 'linear-gradient(135deg, #ff7f00, #e06d00)',
+      '#A96CE5': 'linear-gradient(135deg, #A96CE5, #8a4dcf)',
+      '#FDDA0D': 'linear-gradient(135deg, #FDDA0D, #dfc00b)',
+    };
+
+    function extractColor(text) {
+      const matches = text.toLowerCase().match(/\b(blue|red|green|pink|orange|purple|yellow)\b/g);
+      if (matches && matches.length > 0) return colorMap[matches[matches.length - 1]];
+      return '#FFFFFF';
+    }
+
+    /* ── Reminder ── */
+    function parseReminder(text) {
+      const t = text.toLowerCase();
+      const rel = t.match(/(?:remind|notify|alert)\s+(?:me\s+)?(\d+)\s*(m|min|mins|minute|minutes|h|hr|hrs|hour|hours)\b/);
+      if (rel) {
+        const val = parseInt(rel[1]);
+        const unit = rel[2];
+        if (unit.startsWith('h')) {
+          const clamped = Math.min(val, 24);
+          return { offsetHours: clamped, absoluteTime: null, display: `${clamped}h` };
+        } else {
+          const hours = val / 60;
+          const clamped = Math.min(hours, 24);
+          return { offsetHours: clamped, absoluteTime: null, display: `${val}m` };
+        }
+      }
+      const abs = t.match(/(?:remind|notify|alert)\s+(?:me\s+)?at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/);
+      if (abs) {
+        const hour = parseInt(abs[1]);
+        const mins = abs[2] ? parseInt(abs[2]) : 0;
+        const period = abs[3].toUpperCase();
+        const display = mins > 0 ? `${hour}:${String(mins).padStart(2,'0')}${period}` : `${hour}${period}`;
+        const absoluteTime = `${hour}:${String(mins).padStart(2,'0')} ${period}`;
+        return { offsetHours: null, absoluteTime, display };
+      }
+      return { offsetHours: 0, absoluteTime: null, display: null };
+    }
+
+    let addTaskCooldown = false;
+    const ADD_TASK_COOLDOWN_MS = 3000;
+
+    /* ── TZ metadata ── */
+    function buildUserTzMetadata() {
+      const now = new Date();
+      return {
+        "todaysDate (yyyy/mm/dd): ": now.toLocaleDateString('en-CA'),
+        "current time: ": ` ${now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })} `,
+        "current day: ": ` ${now.toLocaleDateString('en-US', { weekday: 'long' })} `,
+        "utc_offset_minutes": now.getTimezoneOffset()
+      };
+    }
+
+    /* ── Render tasks ── */
+    function renderTasks(tasks) {
+      const list = document.getElementById('taskList');
+      list.innerHTML = '';
+      const now = new Date();
+      const upcoming = [], pastDue = [];
+      tasks.forEach(task => {
+        const [id, __, task_name, task_time, task_description, due_date, color, reminder_display] = task;
+        let isPast = false;
+        if (due_date) {
+          const cleanDate = due_date.replace(/ 00:00:00.*$/, '').trim();
+          const timeStr = task_time ? task_time.trim() : '11:59 PM';
+          const taskDateTime = new Date(`${cleanDate} ${timeStr}`);
+          if (!isNaN(taskDateTime) && taskDateTime < now) isPast = true;
+        }
+        if (isPast) pastDue.push(task); else upcoming.push(task);
+      });
+
+      document.getElementById('taskCount').textContent = tasks.length > 0 ? `(${tasks.length})` : '';
+
+      if (tasks.length === 0) {
+        list.innerHTML = `<div class="empty-state">Nothing here yet.</div>`;
+        return;
+      }
+
+      function renderCard(task) {
+        const [id, __, task_name, task_time, task_description, due_date, color, reminder_display] = task;
+        const c = color || '#818cf8';
+        const grad = gradMap[c] || `linear-gradient(135deg, ${c}, ${c})`;
+        const dueDateDisplay = due_date ? due_date.replace(/ 00:00:00.*$/, '') : '';
+        const isPast = (() => { if (!due_date) return false; const d = new Date(`${due_date.replace(/ 00:00:00.*$/, '').trim()} ${task_time ? task_time.trim() : '11:59 PM'}`); return !isNaN(d) && d < new Date(); })();
+        const card = document.createElement('div');
+        card.className = 'task-card';
+        card.style.setProperty('--grad', grad);
+        card.innerHTML = `
+          <div class="task-inner">
+            <div class="task-name" style="color:${c};">${task_name}</div>
+            <div class="task-desc">${task_description}</div>
+            <div class="task-foot">
+              <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                <span class="task-time${isPast ? ' overdue' : ''}">${dueDateDisplay}${task_time ? ' · ' + task_time : ''}</span>
+                ${reminder_display ? `<span class="remind-badge">🔔 ${reminder_display}</span>` : ''}
+              </div>
+              <button class="del" onclick="deleteTask(${id})">delete</button>
+            </div>
+          </div>
+        `;
+        list.appendChild(card);
+      }
+
+      if (pastDue.length > 0) {
+        pastDue.forEach(renderCard);
+        const div = document.createElement('div');
+        div.className = 'divider';
+        div.textContent = 'PAST DUE';
+        list.appendChild(div);
+      }
+
+      upcoming.forEach(renderCard);
+    }
+
+    /* ── Fetch / Delete ── */
+    async function fetchTasks() {
+      try {
+        const res = await fetch('/tasks');
+        const tasks = await res.json();
+        renderTasks(tasks);
+      } catch (err) { console.error('Error loading tasks:', err); }
+    }
+
+    async function deleteTask(id) {
+      const res = await fetch('/tasks/' + id, { method: 'DELETE' });
+      if (res.ok) fetchTasks();
+      else alert('Failed to delete task');
+    }
+
+    /* ── Color tag buttons ── */
+    document.getElementById('colorTags').addEventListener('click', (e) => {
+      const tag = e.target.closest('[data-color]');
+      if (!tag) return;
+      const colorName = tag.dataset.color;
+      const input = document.getElementById('taskInput');
+      // Remove any existing color word and append clicked one
+      input.value = input.value.replace(/\b(blue|red|green|pink|orange|purple|yellow)\b/gi, '').trimEnd() + ' ' + colorName;
+      input.dispatchEvent(new Event('input'));
+      input.focus();
+      // Visual active state
+      document.querySelectorAll('.color-tag').forEach(t => t.classList.remove('active'));
+      tag.classList.add('active');
+    });
+
+    /* ── Input listener ── */
+    document.getElementById('taskInput').addEventListener('input', (e) => {
+      const text = e.target.value;
+      document.getElementById('charCounter').textContent = `${text.length}/200`;
+      const matches = text.toLowerCase().match(/\b(blue|red|green|pink|orange|purple|yellow)\b/g);
+      e.target.style.color = matches ? colorMap[matches[matches.length - 1]] : '';
+      const reminder = parseReminder(text);
+      const preview = document.getElementById('reminderPreview');
+      if (reminder.display) {
+        document.getElementById('reminderValue').textContent = reminder.display;
+        preview.style.display = 'inline';
+      } else {
+        preview.style.display = 'none';
+      }
+    });
+
+    /* ── Submit ── */
+    document.getElementById('submitBtn').addEventListener('click', async () => {
+      if (addTaskCooldown) return;
+      addTaskCooldown = true;
+      setTimeout(() => { addTaskCooldown = false; }, ADD_TASK_COOLDOWN_MS);
+      const desc = document.getElementById('taskInput').value.trim();
+      if (desc.length < 10 || desc.length > 200) {
+        alert('Task description must be 10–200 characters');
+        return;
+      }
+      const reminder = parseReminder(desc);
+      document.getElementById('reminderPreview').style.display = 'none';
+      const res = await fetch('/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          task_description: desc,
+          user_tz_metadata: buildUserTzMetadata(),
+          color: extractColor(desc),
+          notif_time_offset: reminder.offsetHours,
+          notif_absolute_time: reminder.absoluteTime,
+          reminder_display: reminder.display
+        })
+      });
+      if (res.ok) {
+        const input = document.getElementById('taskInput');
+        input.value = '';
+        input.style.color = '';
+        document.getElementById('charCounter').textContent = '0/200';
+        document.querySelectorAll('.color-tag').forEach(t => t.classList.remove('active'));
+        fetchTasks();
+        document.getElementById('taskInput').placeholder = 'Try: ' + prompts[Math.floor(Math.random() * prompts.length)];
+      } else {
+        alert('Failed to add task');
+      }
+    });
+
+    /* ── Push Notifications ── */
+    async function setupPushNotifications() {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+      try {
+        const reg = await navigator.serviceWorker.register('/sw.js');
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') return;
+        const existing = await reg.pushManager.getSubscription();
+        if (existing) return;
+        const keyRes = await fetch('/push/vapid-public-key');
+        const keyData = await keyRes.json();
+        if (!keyData.public_key) return;
+        const rawKey = atob(keyData.public_key.replace(/-/g, '+').replace(/_/g, '/'));
+        const vapidKey = new Uint8Array(rawKey.length);
+        for (let i = 0; i < rawKey.length; i++) vapidKey[i] = rawKey.charCodeAt(i);
+        const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: vapidKey });
+        const subJson = sub.toJSON();
+        await fetch('/push/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint: subJson.endpoint, keys: subJson.keys }) });
+      } catch (err) { console.error('Push setup failed:', err); }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => { fetchTasks(); setupPushNotifications(); });
+  </script>
+</body>
+</html>
