@@ -3,7 +3,7 @@ Author: Anirudh Purohit
 ## NEW:
 - MOBILE PUSH NOTIFICATIONS! Look for the little bell icon on the tasker mobile app! (Installation instructions below)
 
-  Automatically notifies 3 hours before a task is due - user can override by appending 'remind me x hours/min prior' to their task description. Feature will continue evolving.
+Never let a deadline sneak up on you. Tasker's got a 3 hour reminder baked in for every single task, and if you want to fine tune it, just say "remind me X mins/hours before" for a custom ping at whatever time works for you.
 
 ### Coming soon: 
 - edit button to edit tasks lol
