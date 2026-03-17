@@ -305,6 +305,7 @@ def handle_tasks():
         # color + reminder parsed on frontend, passed alongside tz metadata
         color = task_data.get('color', '#FFFFFF')
         notif_time_offset = task_data.get('notif_time_offset', 0)
+        notif_absolute_time = task_data.get('notif_absolute_time')
         reminder_display = task_data.get('reminder_display')
 
         # api call, response JSON from api call to be passed to tasks module
@@ -312,6 +313,7 @@ def handle_tasks():
 
         new_task = tasks.add_task(username, apiResponse, task_data, color=color,
                                   notif_time_offset=notif_time_offset,
+                                  notif_absolute_time=notif_absolute_time,
                                   reminder_display=reminder_display)
         return jsonify(new_task), 201
 
