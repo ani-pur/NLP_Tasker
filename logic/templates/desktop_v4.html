@@ -7,12 +7,12 @@
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Archivo+Black&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #e8e4df;
-      --fg: #1a1a1a;
+      --bg: #141414;
+      --fg: #e8e4df;
       --accent: #ff3d00;
-      --muted: #a09a93;
-      --card: #d9d4cd;
-      --border: #1a1a1a;
+      --muted: #6b6560;
+      --card: #1c1c1c;
+      --border: #e8e4df;
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -32,7 +32,7 @@
       content: '';
       position: fixed;
       inset: 0;
-      opacity: 0.035;
+      opacity: 0.05;
       pointer-events: none;
       z-index: 9999;
       background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
@@ -347,7 +347,7 @@
       <select onchange="if(this.value)window.location=this.value" style="background:var(--bg);border:2px solid var(--border);color:var(--fg);font-family:'Space Mono',monospace;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:4px 10px;cursor:pointer;">
         <option value="" selected>Theme: Brutalist</option>
         <option value="/switch/3">Default</option>
-        <option value="/switch/2">Classic</option>
+        <option value="/switch/2">OG (Retired)</option>
         <option value="/switch/5">Editorial</option>
         <option value="/switch/6">Glass</option>
         <option value="/switch/7">Terminal</option>
