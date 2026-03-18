@@ -258,12 +258,15 @@ def index():
     rootHit = session['username']
     print(currentTime(),f'{rootHit} hit /')
 
-    # Mobile UI
-    if is_mobile():
-        return render_template('mobile_1.html', username=session['username'])
-
     # UI switching
     ui_version = session.get('ui_version', 3)  # default = v3
+
+    # Mobile UI
+    if is_mobile():
+        if ui_version == 5:
+            return render_template('mobile_2.html', username=session['username'])
+        else:
+            return render_template('mobile_1.html', username=session['username'])
 
     if ui_version == 2:
         return render_template('desktop_v2.html', username=session['username'])
