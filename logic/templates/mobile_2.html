@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="manifest" href="/pwa/manifest.webmanifest">
+  <meta name="theme-color" content="#121210">
+  <title>Dashboard | Tasker.</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=DM+Sans:wght@300..700&display=swap" rel="stylesheet">
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['DM Sans', 'sans-serif'], serif: ['Fraunces', 'serif'] },
+          colors: { 
+            base: '#121210', 
+            fg: '#e7e5e4',
+            accent: '#ea580c', 
+            'accent-soft': '#431407',
+            muted: '#78716c',
+            card: '#1c1a17',
+            bordercol: '#2e2a27'
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body { 
+      background-color: #121210; 
+      -webkit-tap-highlight-color: transparent; 
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      opacity: 0.3;
+      pointer-events: none;
+      z-index: 9999;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    }
+
+    /* Clock snap animation */
+    .snap { animation: snap 180ms ease-out; }
+    @keyframes snap {
+      0%   { opacity: 0; transform: translateY(-4px) scale(1.05); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* Staggered slide-up for tasks */
+    .task-enter {
+      animation: slideUp 0.5s cubic-bezier(0.23, 1, 0.32, 1) both;
+    }
+    @keyframes slideUp {
+      0%   { opacity: 0; transform: translateY(20px) scale(0.96); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* Custom Accordion Logic */
+    summary {
+      list-style: none; 
+    }
+    summary::-webkit-details-marker {
+      display: none; 
+    }
+
+    .task-details {
+      animation: expand 0.2s ease-out;
+    }
+    @keyframes expand {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Tap Feedback Classes */
+    .tap-active {
+      background-color: rgba(255, 255, 255, 0.05) !important; 
+      transform: scale(0.985);
+    }
+    
+    .btn-pressed {
+      background-color: #c2410c !important; 
+      transform: translateY(1px) scale(0.98);
+      box-shadow: 0 4px 16px rgba(234,88,12,0.4);
+    }
+  </style>
+</head>
+<body class="text-fg antialiased selection:bg-accent selection:text-base min-h-screen flex flex-col relative">
+
+  <header class="w-full border-b border-bordercol bg-base/90 backdrop-blur-xl sticky top-0 z-50">
+    <div class="px-5 h-16 flex items-center justify-between">
+      <div class="text-2xl font-black font-serif text-fg tracking-tighter">Tasker<em class="text-accent italic font-black">.</em></div>
+      <div class="flex items-center gap-3 text-sm font-medium">
+        <span class="text-fg bg-accent-soft px-3 py-1 rounded-full text-xs font-bold">{{ username }}</span>
+        <button id="notifBtn" onclick="setupPushNotifications()" class="hidden text-muted hover:text-accent transition p-1" title="Enable notifications">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+        </button>
+        <a href="{{ url_for('logout') }}" class="text-accent hover:text-orange-700 transition pl-2 border-l border-bordercol font-serif italic text-xs tracking-wide">Exit</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-grow w-full max-w-md mx-auto px-5 py-6 flex flex-col gap-8 relative z-10">
+    
+    <section class="bg-card border border-bordercol rounded-3xl p-5 shadow-lg relative overflow-hidden">
+      <h3 class="text-lg font-black font-serif text-fg mb-1">What's on your mind?</h3>
+      <p class="text-xs text-muted mb-4 leading-relaxed tracking-wide">Type naturally. Tasker handles dates, times, colors, and reminders.</p>
+      
+      <form id="taskForm" class="flex flex-col gap-3">
+        <textarea 
+          id="task_description" 
+          maxlength="200" 
+          class="w-full h-24 bg-base/50 border-[1.5px] border-bordercol focus:border-accent focus:shadow-[0_0_0_3px_rgba(234,88,12,0.15)] text-fg px-4 py-3 rounded-2xl outline-none transition-all placeholder:text-muted resize-none font-medium text-[13px]"
+        ></textarea>
+        
+        <div class="flex justify-between items-center mt-1">
+          <span class="text-xs text-muted tracking-widest font-bold" id="charCounter">0/200</span>
+          <span id="reminderPreview" class="hidden text-[0.65rem] font-extrabold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded-full uppercase tracking-wider">🔔 <span id="reminderValue"></span></span>
+        </div>
+        
+        <button type="submit" id="addTaskBtn" class="w-full bg-accent text-white font-bold py-3.5 px-4 rounded-full mt-2 transition duration-200 shadow-[0_2px_8px_rgba(234,88,12,0.3)]">
+          Add Task
+        </button>
+      </form>
+    </section>
+
+    <!-- Motivational quote -->
+    <div class="bg-gradient-to-br from-amber-500/10 to-accent/10 border border-amber-500/20 rounded-2xl p-5 shadow-sm">
+      <p id="quoteText" class="font-serif italic text-amber-500 text-sm leading-relaxed">"The secret of getting ahead is getting started."</p>
+      <cite id="quoteAuthor" class="block mt-2 text-xs font-sans text-muted font-medium not-italic">— Mark Twain</cite>
+    </div>
+
+    <section class="flex flex-col gap-4 mt-2">
+      <div class="flex items-baseline justify-between mb-2 px-1">
+        <div class="flex flex-col">
+          <h2 class="text-2xl font-black font-serif text-fg tracking-tight">Your Tasks</h2>
+          <span id="taskCount" class="text-xs text-muted font-medium">0 active</span>
+        </div>
+        <div class="inline-flex flex-col items-end gap-1 text-xs font-bold tabular-nums">
+          <span id="clockDate" class="text-accent font-serif italic tracking-wide"></span>
+          <span id="clockTime" class="text-muted tracking-widest px-1"></span>
+        </div>
+      </div>
+      
+      <ul id="taskList" class="flex flex-col gap-3.5 pb-8"></ul>
+    </section>
+
+  </main>
+
+  <script>
+    // --- UI/UX Enhancements ---
+    const taskInput = document.getElementById('task_description');
+    const charCounter = document.getElementById('charCounter');
+    
+    // Dynamic Placeholders
+    const prompts = [
+      "gym next monday 7am legs, blue",
+      "groceries in 2 hours yellow, milk eggs chicken rice",
+      "submit project by Friday evening, orange",
+      "call mom tomorrow at noon pink",
+      "doctor appointment next tuesday 9am, red",
+      "read 20 pages of book tonight, purple",
+      "fix production bug before standup, green"
+    ];
+    taskInput.placeholder = 'Try: ' + prompts[Math.floor(Math.random() * prompts.length)];
+
+    // Real-time Hex Parsing
+    const colorMap = {
+      blue: '#87CEEB',
+      red: '#f05656',
+      green: '#6CE5A9',
+      pink: '#F8C8DC',
+      orange: '#ff7f00',
+      purple: '#A96CE5',
+      yellow: '#FDDA0D'
+    };
+
+    function extractColor(text) {
+      const matches = text.toLowerCase().match(/\b(blue|red|green|pink|orange|purple|yellow)\b/g);
+      if (matches && matches.length > 0) return colorMap[matches[matches.length - 1]];
+      return '#FFFFFF';
+    }
+
+    function parseReminder(text) {
+      const t = text.toLowerCase();
+      const rel = t.match(/(?:remind|notify|alert)\s+(?:me\s+)?(\d+)\s*(m|min|mins|minute|minutes|h|hr|hrs|hour|hours)\b/);
+      if (rel) {
+        const val = parseInt(rel[1]);
+        const unit = rel[2];
+        if (unit.startsWith('h')) {
+          const clamped = Math.min(val, 24);
+          return { offsetHours: clamped, absoluteTime: null, display: `${clamped}h` };
+        } else {
+          const hours = val / 60;
+          const clamped = Math.min(hours, 24);
+          return { offsetHours: clamped, absoluteTime: null, display: `${val}m` };
+        }
+      }
+      const abs = t.match(/(?:remind|notify|alert)\s+(?:me\s+)?at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/);
+      if (abs) {
+        const hour = parseInt(abs[1]);
+        const mins = abs[2] ? parseInt(abs[2]) : 0;
+        const period = abs[3].toUpperCase();
+        const display = mins > 0 ? `${hour}:${String(mins).padStart(2,'0')}${period}` : `${hour}${period}`;
+        const absoluteTime = `${hour}:${String(mins).padStart(2,'0')} ${period}`;
+        return { offsetHours: null, absoluteTime, display };
+      }
+      return { offsetHours: 0, absoluteTime: null, display: null };
+    }
+
+    taskInput.addEventListener('input', (e) => {
+      const text = e.target.value.toLowerCase();
+      charCounter.textContent = `${text.length}/200`;
+      const regex = /\b(blue|red|green|pink|orange|purple|yellow)\b/g;
+      const matches = text.match(regex);
+
+      if (matches && matches.length > 0) {
+        const activeColor = matches[matches.length - 1];
+        e.target.style.color = colorMap[activeColor];
+      } else {
+        e.target.style.color = '';
+      }
+      
+      const reminder = parseReminder(e.target.value);
+      const preview = document.getElementById('reminderPreview');
+      if (reminder.display) {
+        document.getElementById('reminderValue').textContent = reminder.display;
+        preview.classList.remove('hidden');
+      } else {
+        preview.classList.add('hidden');
+      }
+    });
+
+    // Mobile Button Press Feedback
+    const btn = document.getElementById('addTaskBtn');
+    ['touchstart','mousedown'].forEach(e => btn.addEventListener(e, () => btn.classList.add('btn-pressed')));
+    ['touchend','touchcancel','mouseup','mouseleave'].forEach(e => btn.addEventListener(e, () => btn.classList.remove('btn-pressed')));
+
+    // --- Core Tasker Logic ---
+    let addTaskCooldown = false;
+    const ADD_TASK_COOLDOWN_MS = 3000; 
+
+    function buildUserTzMetadata() {
+      const now = new Date();
+      return {
+        "todaysDate (yyyy/mm/dd): ": now.toLocaleDateString('en-CA'),
+        "current time: ": now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
+        "current day: ": now.toLocaleDateString('en-US', { weekday: 'long' }),
+        "utc_offset_minutes": now.getTimezoneOffset()
+      };
+    }
+
+    async function loadTasks() {
+      try {
+        const res = await fetch('/tasks');
+        const tasks = await res.json();
+        const list = document.getElementById('taskList');
+        list.innerHTML = '';
+
+        const now = new Date();
+        const pastDueTasks = [];
+        const upcomingTasks = [];
+
+        tasks.forEach(task => {
+          const [id, __, name, time, desc, due, color, reminder_display] = task;
+          let isPastDue = false;
+
+          if (due) {
+            const cleanDate = due.replace(/ 00:00:00.*$/, '').trim(); 
+            const timeStr = time ? time.trim() : '11:59 PM'; 
+            const taskDateTime = new Date(`${cleanDate} ${timeStr}`);
+            
+            if (!isNaN(taskDateTime) && taskDateTime < now) {
+              isPastDue = true;
+            }
+          }
+
+          if (isPastDue) pastDueTasks.push(task);
+          else upcomingTasks.push(task);
+        });
+
+        document.getElementById('taskCount').textContent = `${upcomingTasks.length} active`;
+
+        if (tasks.length === 0) {
+          list.innerHTML = `<div class="text-center py-10 text-muted font-serif italic text-sm">Nothing here yet.</div>`;
+          return;
+        }
+
+        const appendTaskToDOM = (task, isPastDue, animationIndex) => {
+          const [id, __, name, time, desc, due, color, reminder_display] = task;
+          
+          const dueDateDisplay = due ? due.replace(/ 00:00:00.*$/, '') : '';
+          const timeDisplay = time ? ' • ' + time : '';
+          const fullDateTime = `${dueDateDisplay}${timeDisplay}`.trim();
+
+          const li = document.createElement('li');
+          
+          const containerBorder = isPastDue 
+            ? 'border-red-900/40 shadow-sm shadow-red-900/10' 
+            : 'border-bordercol shadow-sm shadow-black/20';
+            
+          li.className = `list-none task-enter bg-card border ${containerBorder} rounded-2xl px-5 py-4 transition-all duration-200 ease-out transform-gpu relative overflow-hidden`;
+          li.style.animationDelay = `${animationIndex * 50}ms`;
+
+          const dateStyle = isPastDue 
+            ? 'text-red-400 border-red-400/20 bg-red-400/10' 
+            : 'text-fg border-bordercol bg-base';
+
+          li.innerHTML = `
+            <details class="group">
+              <summary class="flex flex-col gap-1 outline-none cursor-pointer relative z-10 w-full">
+                <div class="flex items-center gap-3">
+                  <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:${color || '#ea580c'};"></span>
+                  <div class="font-serif font-extrabold text-[1.05rem] leading-tight text-fg truncate">${name}</div>
+                </div>
+                
+                <div class="flex items-center gap-2 mt-2 ml-[18px]">
+                  ${fullDateTime ? `<span class="text-[0.65rem] font-bold border px-2.5 py-0.5 rounded-full ${dateStyle}">${fullDateTime}</span>` : ''}
+                  ${reminder_display ? `<span class="text-[0.65rem] font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 rounded-full uppercase">🔔 ${reminder_display}</span>` : ''}
+                </div>
+              </summary>
+              <div class="task-details mt-4 text-muted text-[13px] leading-relaxed border-t border-bordercol pt-3 ml-[18px]">
+                ${desc}
+                <div class="mt-4 flex justify-end">
+                  <button class="text-muted font-medium text-xs hover:text-accent focus:text-accent px-3 py-1.5 rounded-md transition" onclick="deleteTask(${id})">
+                    Remove
+                  </button>
+                </div>
+              </div>
+            </details>
+          `;
+
+          addTapFeedback(li);
+          list.appendChild(li);
+        };
+
+        let staggerIndex = 0;
+
+        if (pastDueTasks.length > 0) {
+          pastDueTasks.forEach(task => { appendTaskToDOM(task, true, staggerIndex++); });
+          const divider = document.createElement('li');
+          divider.className = "list-none relative flex items-center py-5 w-full";
+          divider.innerHTML = `
+            <div class="flex-grow border-t border-accent/30"></div>
+            <span class="shrink-0 mx-4 font-serif italic text-accent text-[0.7rem] font-bold tracking-widest uppercase">
+              Past Due
+            </span>
+            <div class="flex-grow border-t border-accent/30"></div>
+          `;
+          list.appendChild(divider);
+        }
+
+        upcomingTasks.forEach(task => { appendTaskToDOM(task, false, staggerIndex++); });
+
+      } catch (err) {
+        console.error("Error loading tasks:", err);
+      }
+    }
+
+    function addTapFeedback(el) {
+      const summary = el.querySelector('summary');
+      if (summary) {
+        summary.addEventListener('touchstart', () => el.classList.add('tap-active'), {passive: true});
+        summary.addEventListener('touchend', () => setTimeout(() => el.classList.remove('tap-active'), 50));
+        summary.addEventListener('touchcancel', () => el.classList.remove('tap-active'));
+      }
+    }
+
+    async function deleteTask(id) {
+      const res = await fetch('/tasks/' + id, { method: 'DELETE' });
+      if (res.ok) loadTasks();
+    }
+
+    document.getElementById('taskForm').addEventListener('submit', async e => {
+      e.preventDefault();
+
+      if (addTaskCooldown) return;
+      addTaskCooldown = true;
+      setTimeout(() => { addTaskCooldown = false; }, ADD_TASK_COOLDOWN_MS);
+      
+      const desc = taskInput.value;
+      if (desc.length < 10 || desc.length > 200) return alert('Task description must be 10–200 characters');
+
+      const reminder = parseReminder(desc);
+      const res = await fetch('/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          task_description: desc,
+          user_tz_metadata: buildUserTzMetadata(),
+          color: extractColor(desc),
+          notif_time_offset: reminder.offsetHours,
+          notif_absolute_time: reminder.absoluteTime,
+          reminder_display: reminder.display
+        })
+      });
+
+      if (res.ok) {
+        taskInput.value = '';
+        taskInput.style.color = '';
+        charCounter.textContent = '0/200';
+        document.getElementById('reminderPreview').classList.add('hidden');
+        taskInput.placeholder = 'Try: ' + prompts[Math.floor(Math.random() * prompts.length)];
+        loadTasks();
+      } else {
+        alert('Failed to add task');
+      }
+    });
+
+    // --- Clock & Quotes ---
+    function renderClock(animate=false){
+      const now = new Date();
+      const date = now.toLocaleDateString(undefined, { weekday:"short", month:"short", day:"numeric" }).toUpperCase();
+      const time = now.toLocaleTimeString(undefined, { hour:"2-digit", minute:"2-digit" });
+    
+      const elDate = document.getElementById("clockDate");
+      const elTime = document.getElementById("clockTime");
+    
+      if (!elDate || !elTime) return;
+    
+      elDate.textContent = date;
+      elTime.textContent = time;
+    
+      if (animate){
+        elTime.classList.remove("snap");
+        void elTime.offsetWidth; 
+        elTime.classList.add("snap");
+      }
+    }
+    
+    renderClock(false);
+
+    function scheduleNextClockTick(){
+      const now = Date.now();
+      const msToNextMinute = 60000 - (now % 60000);
+      const bufferMs = 80;
+
+      setTimeout(() => {
+        renderClock(true);
+        scheduleNextClockTick();
+      }, msToNextMinute + bufferMs);
+    }
+
+    scheduleNextClockTick();
+
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) renderClock(false);
+    });
+
+    // Daily Quote
+    const dailyQuotes = [
+      { text: "I love deadlines. I like the whooshing sound they make as they fly by.", author: "Douglas Adams" },
+      { text: "I am so clever that sometimes I don't understand a single word of what I am saying.", author: "Oscar Wilde" },
+      { text: "Procrastination is the art of keeping up with yesterday.", author: "Don Marquis" },
+      { text: "Never put off till tomorrow what may be done day after tomorrow just as well.", author: "Mark Twain" },
+      { text: "Anyone can do any amount of work, provided it isn't the work he is supposed to be doing at that moment.", author: "Robert Benchley" }
+    ];
+    const rq = dailyQuotes[Math.floor(Math.random() * dailyQuotes.length)];
+    document.getElementById('quoteText').textContent = '"' + rq.text + '"';
+    document.getElementById('quoteAuthor').textContent = '— ' + rq.author;
+    
+    // --- Push Notifications ---
+    async function setupPushNotifications() {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+
+      const btn = document.getElementById('notifBtn');
+
+      try {
+        const reg = await navigator.serviceWorker.register('/sw.js');
+
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') return;
+
+        const existing = await reg.pushManager.getSubscription();
+        if (existing) { if (btn) btn.classList.add('hidden'); return; }
+
+        const keyRes = await fetch('/push/vapid-public-key');
+        const keyData = await keyRes.json();
+        if (!keyData.public_key) return;
+
+        const rawKey = atob(keyData.public_key.replace(/-/g, '+').replace(/_/g, '/'));
+        const vapidKey = new Uint8Array(rawKey.length);
+        for (let i = 0; i < rawKey.length; i++) vapidKey[i] = rawKey.charCodeAt(i);
+
+        const sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: vapidKey
+        });
+
+        const subJson = sub.toJSON();
+        await fetch('/push/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            endpoint: subJson.endpoint,
+            keys: subJson.keys
+          })
+        });
+
+        if (btn) btn.classList.add('hidden');
+      } catch (err) {
+        console.error('Push setup failed:', err);
+      }
+    }
+
+    async function initNotifButton() {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+      if (Notification.permission === 'granted') {
+        const reg = await navigator.serviceWorker.getRegistration('/sw.js');
+        if (reg) {
+          const existing = await reg.pushManager.getSubscription();
+          if (existing) return; 
+        }
+      }
+      const btn = document.getElementById('notifBtn');
+      if (btn) btn.classList.remove('hidden');
+    }
+
+    // Initial Load
+    loadTasks();
+    initNotifButton();
+  </script>
+</body>
+</html>
