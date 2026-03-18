@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <title>TASKER // CONCEPT B — EDITORIAL</title>
+  <title>Dashboard | Tasker.</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,600;9..144,800;9..144,900&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
@@ -464,8 +464,8 @@
       </div>
 
       <div class="daily-quote">
-        <p>"The secret of getting ahead is getting started."</p>
-        <cite>— Mark Twain</cite>
+        <p id="quoteText">"The secret of getting ahead is getting started."</p>
+        <cite id="quoteAuthor">— Mark Twain</cite>
       </div>
     </div>
   </main>
@@ -488,6 +488,18 @@
     });
     renderClock(false);
     scheduleNextClockTick();
+
+    /* ── Daily Quote ── */
+    const dailyQuotes = [
+      { text: "I love deadlines. I like the whooshing sound they make as they fly by.", author: "Douglas Adams" },
+      { text: "I am so clever that sometimes I don't understand a single word of what I am saying.", author: "Oscar Wilde" },
+      { text: "Procrastination is the art of keeping up with yesterday.", author: "Don Marquis" },
+      { text: "Never put off till tomorrow what may be done day after tomorrow just as well.", author: "Mark Twain" },
+      { text: "Anyone can do any amount of work, provided it isn't the work he is supposed to be doing at that moment.", author: "Robert Benchley" }
+    ];
+    const rq = dailyQuotes[Math.floor(Math.random() * dailyQuotes.length)];
+    document.getElementById('quoteText').textContent = '"' + rq.text + '"';
+    document.getElementById('quoteAuthor').textContent = '— ' + rq.author;
 
     /* ── Color ── */
     const prompts = ["gym next monday 7am legs, blue", "groceries in 2 hours yellow, milk eggs chicken rice", "submit project by Friday evening, orange", "call mom tomorrow at noon pink", "doctor appointment next tuesday 9am, red", "read 20 pages of book tonight, purple", "fix production bug before standup, green"];
