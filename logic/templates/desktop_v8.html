@@ -33,7 +33,9 @@
 
     .task-section { display:flex; flex-direction:column; min-height:0; }
 
-    #taskList { flex:1; min-height:0; overflow-y:auto; padding-right:6px; }
+    #taskList { flex:1; min-height:0; overflow-y:auto; padding-right:6px;   scrollbar-width: none;
+}
+    #taskList::-webkit-scrollbar { display: none; }
 
     .section-head { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:24px; }
     .section-head h2 { font-size:24px; font-weight:800; letter-spacing:-0.5px; }
@@ -137,7 +139,7 @@
   </header>
 
   <main>
-    <div class="task-section">
+    <div>
       <div class="section-head">
         <h2>Tasks <span style="font-size:14px;font-weight:500;color:var(--muted);font-family:'Azeret Mono',monospace;" id="taskCount"></span></h2>
         <div class="clock"><span class="accent" id="clockDate"></span><br><span id="clockTime"></span></div>

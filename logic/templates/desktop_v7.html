@@ -62,7 +62,9 @@
       min-height: 0;
       overflow-y: auto;
       padding-right: 6px;
-    }
+      scrollbar-width: none;
+}
+    #taskList::-webkit-scrollbar { display: none; }
     .prompt-line { color: var(--dim); margin-bottom:16px; font-size:11px; }
     .prompt-line .cmd { color: var(--green); }
 
