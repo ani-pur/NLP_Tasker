@@ -635,10 +635,7 @@
       document.getElementById('statOverdue').textContent = pastDue.length;
       document.getElementById('statTotal').textContent = tasks.length;
 
-      if (tasks.length === 0) {
-        list.innerHTML = `<div style="text-align:center;padding:60px 0;color:var(--muted);font-size:13px;">No tasks yet.</div>`;
-        return;
-      }
+
 
       function renderCard(task) {
         const [id, __, task_name, task_time, task_description, due_date, color, reminder_display] = task;
