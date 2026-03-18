@@ -84,12 +84,18 @@
 
   <header class="w-full border-b border-slate-800/80 bg-slate-900/80 backdrop-blur-xl sticky top-0 z-50">
     <div class="px-5 h-16 flex items-center justify-between">
-      <div class="text-2xl font-extrabold text-white tracking-tighter">Tasker.</div>
-      <div class="flex items-center gap-4 text-sm font-medium">
-        <select onchange="if(this.value)window.location=this.value" class="bg-slate-800/50 text-slate-400 text-xs px-2 py-1 rounded-md outline-none border border-slate-700">
-          <option value="/switch/3" selected>Default Theme</option>
-          <option value="/switch/5">Editorial Theme</option>
+      <div class="relative inline-block">
+        <select onchange="if(this.value)window.location=this.value" style="appearance:none;-webkit-appearance:none;background:transparent;border:none;font-size:1.5rem;font-weight:800;letter-spacing:-0.05em;color:white;cursor:pointer;padding-right:20px;outline:none;font-family:'Inter',sans-serif;">
+          <option value="" selected>Tasker.</option>
+          <option value="/switch/5">Editorial</option>
+          <option value="/switch/6">Glass</option>
+          <option value="/switch/4">Brutalist</option>
+          <option value="/switch/7">Terminal</option>
+          <option value="/switch/8">Midnight</option>
         </select>
+        <svg style="position:absolute;right:2px;top:50%;transform:translateY(-50%);pointer-events:none;" class="text-accent" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <div class="flex items-center gap-4 text-sm font-medium">
         <span class="text-slate-400 bg-slate-800/50 px-2 py-1 rounded-md">{{ username }}</span>
         <button id="notifBtn" onclick="setupPushNotifications()" class="hidden text-slate-500 hover:text-accent transition p-1" title="Enable notifications">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>

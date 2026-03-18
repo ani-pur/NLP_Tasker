@@ -39,11 +39,9 @@
 
   <header class="w-full border-b border-slate-800/80 bg-slate-900/50 backdrop-blur-xl shrink-0 z-50">
     <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-      <div class="text-2xl font-extrabold text-white tracking-tighter">Tasker.</div>
-      <div class="flex items-center gap-5 text-sm font-medium">
-        <span class="text-slate-400">{{ username }}</span>
-        <select onchange="if(this.value)window.location=this.value" class="bg-slate-800 text-slate-400 text-xs border border-slate-700 rounded px-2 py-1 cursor-pointer hover:text-white transition">
-          <option value="" selected>Theme: Default</option>
+      <div class="relative inline-flex items-center">
+        <select onchange="if(this.value)window.location=this.value" class="appearance-none bg-transparent text-2xl font-extrabold text-white tracking-tighter cursor-pointer pr-6 outline-none">
+          <option value="" selected>Tasker.</option>
           <option value="/switch/2">OG (Retired)</option>
           <option value="/switch/4">Brutalist</option>
           <option value="/switch/5">Editorial</option>
@@ -51,6 +49,10 @@
           <option value="/switch/7">Terminal</option>
           <option value="/switch/8">Midnight</option>
         </select>
+        <svg class="absolute right-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <div class="flex items-center gap-5 text-sm font-medium">
+        <span class="text-slate-400">{{ username }}</span>
         <a href="https://github.com/ani-pur/NLP_Tasker/blob/main/README.md" target="_blank" rel="noopener" class="text-slate-500 hover:text-white transition duration-200">README</a>
         <a href="{{ url_for('logout') }}" class="text-red-400/80 hover:text-red-400 transition duration-200">Logout</a>
       </div>

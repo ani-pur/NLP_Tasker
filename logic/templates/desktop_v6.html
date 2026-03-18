@@ -24,7 +24,6 @@
       color: var(--fg);
       font-family: 'Sora', sans-serif;
       font-size: 14px;
-      min-height: 100vh;
       height: 100vh;
       overflow: hidden;
       display: flex;
@@ -77,8 +76,7 @@
 
     /* ── Header ── */
     header {
-      position: sticky;
-      top: 0;
+      flex-shrink: 0;
       z-index: 50;
       padding: 16px 32px;
       display: flex;
@@ -355,8 +353,7 @@
 
     /* ── Input panel ── */
     .input-panel {
-      position: sticky;
-      top: 80px;
+      overflow-y: auto;
     }
 
     .input-card {
@@ -478,11 +475,9 @@
   </div>
 
   <header>
-    <div class="logo">tasker.</div>
-    <div class="nav-links">
-      <span class="user-chip">{{ username }}</span>
-      <select onchange="if(this.value)window.location=this.value" style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:5px 12px;cursor:pointer;">
-        <option value="" selected>Theme: Glass</option>
+    <div class="logo" style="position:relative;display:inline-block;">
+      <select onchange="if(this.value)window.location=this.value" style="appearance:none;-webkit-appearance:none;background:transparent;border:none;font-size:22px;font-weight:800;letter-spacing:-0.5px;background:linear-gradient(135deg,#818cf8,#c084fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;cursor:pointer;padding-right:22px;outline:none;">
+        <option value="" selected>tasker.</option>
         <option value="/switch/3">Default</option>
         <option value="/switch/2">OG (Retired)</option>
         <option value="/switch/4">Brutalist</option>
@@ -490,6 +485,10 @@
         <option value="/switch/7">Terminal</option>
         <option value="/switch/8">Midnight</option>
       </select>
+      <svg style="position:absolute;right:2px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--accent);" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+    </div>
+    <div class="nav-links">
+      <span class="user-chip">{{ username }}</span>
       <a href="{{ url_for('logout') }}" class="exit">Exit</a>
     </div>
   </header>

@@ -13,7 +13,6 @@
       color: var(--green);
       font-family: 'Fira Code', monospace;
       font-size: 13px;
-      min-height: 100vh;
       height: 100vh;
       overflow: hidden;
       display: flex;
@@ -35,6 +34,7 @@
       padding: 12px 24px;
       display: flex; justify-content: space-between; align-items: center;
       font-size: 12px;
+      flex-shrink: 0;
     }
     .logo { font-weight:700; font-size:16px; }
     .logo span { color: var(--dim); }
@@ -124,11 +124,9 @@
 </head>
 <body>
   <header>
-    <div class="logo">tasker<span>.sh</span></div>
-    <div class="nav">
-      <span class="user">{{ username }}</span>
-      <select onchange="if(this.value)window.location=this.value" style="background:var(--bg);border:1px solid var(--dim);color:var(--green);font-family:'Fira Code',monospace;font-size:11px;padding:2px 8px;cursor:pointer;display:inline;">
-        <option value="" selected>theme:terminal</option>
+    <div class="logo" style="position:relative;display:inline-block;">
+      <select onchange="if(this.value)window.location=this.value" style="appearance:none;-webkit-appearance:none;background:transparent;border:none;font-family:'Fira Code',monospace;font-weight:700;font-size:16px;color:var(--green);cursor:pointer;padding-right:20px;outline:none;">
+        <option value="" selected>tasker.sh</option>
         <option value="/switch/3">default</option>
         <option value="/switch/2">og (retired)</option>
         <option value="/switch/4">brutalist</option>
@@ -136,6 +134,10 @@
         <option value="/switch/6">glass</option>
         <option value="/switch/8">midnight</option>
       </select>
+      <svg style="position:absolute;right:0;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--dim);" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+    </div>
+    <div class="nav">
+      <span class="user">{{ username }}</span>
       <a href="{{ url_for('logout') }}" style="color:#ef4444;">exit</a>
     </div>
   </header>

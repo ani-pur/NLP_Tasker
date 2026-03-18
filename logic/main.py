@@ -265,6 +265,8 @@ def index():
     if is_mobile():
         if ui_version == 5:
             return render_template('mobile_2.html', username=session['username'])
+        elif ui_version == 6:
+            return render_template('mobile_3.html', username=session['username'])
         else:
             return render_template('mobile_1.html', username=session['username'])
 

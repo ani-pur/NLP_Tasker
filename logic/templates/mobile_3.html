@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="manifest" href="/pwa/manifest.webmanifest">
+  <meta name="theme-color" content="#050508">
+  <title>Tasker.</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #050508;
+      --surface: rgba(255,255,255,0.04);
+      --surface-hover: rgba(255,255,255,0.07);
+      --border: rgba(255,255,255,0.08);
+      --border-hover: rgba(255,255,255,0.14);
+      --fg: #e4e4e7;
+      --muted: #71717a;
+      --accent: #818cf8;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      font-family: 'Sora', sans-serif;
+      font-size: 14px;
+      -webkit-tap-highlight-color: transparent;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Mesh background */
+    .mesh-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .mesh-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.45;
+      animation: float 20s ease-in-out infinite;
+    }
+
+    .mesh-orb:nth-child(1) {
+      width: 300px; height: 300px;
+      background: radial-gradient(circle, #818cf850 0%, transparent 70%);
+      top: -8%; left: -10%;
+      animation-delay: 0s;
+    }
+
+    .mesh-orb:nth-child(2) {
+      width: 350px; height: 350px;
+      background: radial-gradient(circle, #f4364c30 0%, transparent 70%);
+      bottom: -10%; right: -8%;
+      animation-delay: -7s;
+    }
+
+    .mesh-orb:nth-child(3) {
+      width: 250px; height: 250px;
+      background: radial-gradient(circle, #06b6d420 0%, transparent 70%);
+      top: 40%; left: 50%;
+      animation-delay: -14s;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(20px, -15px) scale(1.05); }
+      66% { transform: translate(-15px, 10px) scale(0.95); }
+    }
+
+    /* Animations */
+    .task-enter {
+      animation: slideUp 0.5s cubic-bezier(0.23, 1, 0.32, 1) both;
+    }
+    @keyframes slideUp {
+      0%   { opacity: 0; transform: translateY(20px) scale(0.96); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .snap { animation: snap 180ms ease-out; }
+    @keyframes snap {
+      0%   { opacity: 0; transform: translateY(-4px) scale(1.05); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    summary { list-style: none; }
+    summary::-webkit-details-marker { display: none; }
+
+    .task-details {
+      animation: expand 0.2s ease-out;
+    }
+    @keyframes expand {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .tap-active {
+      background-color: rgba(0, 0, 0, 0.3) !important;
+      transform: scale(0.985);
+    }
+
+    .btn-pressed {
+      transform: translateY(1px) scale(0.98);
+      opacity: 0.85;
+    }
+
+    /* Header */
+    header {
+      width: 100%;
+      flex-shrink: 0;
+      z-index: 50;
+      padding: 0 20px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(5,5,8,0.6);
+      backdrop-filter: blur(24px) saturate(180%);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+    }
+
+    .logo-wrap {
+      position: relative;
+      display: inline-block;
+    }
+
+    .logo-wrap select {
+      appearance: none;
+      -webkit-appearance: none;
+      background: transparent;
+      border: none;
+      font-family: 'Sora', sans-serif;
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #818cf8, #c084fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      cursor: pointer;
+      padding-right: 20px;
+      outline: none;
+    }
+
+    .logo-wrap svg {
+      position: absolute;
+      right: 2px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+      color: var(--accent);
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+    }
+
+    .user-chip {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--accent);
+      background: rgba(129,140,248,0.1);
+      border: 1px solid rgba(129,140,248,0.2);
+      padding: 4px 12px;
+      border-radius: 8px;
+    }
+
+    .notif-btn {
+      display: none;
+      color: var(--muted);
+      padding: 4px;
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+
+    .logout-link {
+      color: #f87171;
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 12px;
+    }
+
+    /* Main */
+    main {
+      flex-grow: 1;
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Input card */
+    .input-card {
+      background: var(--surface);
+      backdrop-filter: blur(24px) saturate(150%);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 20px;
+    }
+
+    .input-title {
+      font-size: 17px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .input-subtitle {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 14px;
+      line-height: 1.5;
+    }
+
+    textarea {
+      width: 100%;
+      height: 80px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-family: 'Sora', sans-serif;
+      font-size: 13px;
+      color: var(--fg);
+      resize: none;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(129,140,248,0.1);
+    }
+
+    textarea::placeholder { color: #3f3f46; }
+
+    .input-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 10px;
+      gap: 8px;
+    }
+
+    .char-counter {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    .reminder-preview {
+      display: none;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      font-weight: 500;
+      color: #fbbf24;
+      background: rgba(120,53,15,0.2);
+      border: 1px solid rgba(251,191,36,0.2);
+      padding: 4px 10px;
+      border-radius: 6px;
+    }
+
+    .submit-btn {
+      background: linear-gradient(135deg, #818cf8, #6366f1);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 12px 0;
+      width: 100%;
+      font-family: 'Sora', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 2px 12px rgba(129,140,248,0.25);
+      margin-top: 10px;
+    }
+
+    /* Stats strip */
+    .stats-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .stat-box {
+      background: var(--surface);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -1px;
+    }
+
+    .stat-label {
+      font-size: 9px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 2px;
+    }
+
+    /* Tasks */
+    .tasks-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+
+    .section-title {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    .task-count-badge {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 3px 8px;
+      border-radius: 6px;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+
+    .clock-display {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      text-align: right;
+      line-height: 1.5;
+    }
+
+    .clock-display .date { color: var(--accent); font-weight: 600; }
+
+    #taskList {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 12px 0 32px 0;
+      list-style: none;
+    }
+
+    #taskList li { list-style: none; }
+
+    .task-card {
+      background: var(--surface);
+      backdrop-filter: blur(20px) saturate(150%);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px 18px;
+      transition: all 0.15s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .task-card .color-bar {
+      position: absolute;
+      left: 0;
+      top: 10px;
+      bottom: 10px;
+      width: 3px;
+      border-radius: 0 3px 3px 0;
+    }
+
+    .task-name {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      line-height: 1.3;
+      padding-left: 10px;
+    }
+
+    .task-meta {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 6px;
+      padding-left: 10px;
+    }
+
+    .time-pill {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--muted);
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+
+    .time-pill.overdue {
+      color: #f87171;
+      background: rgba(248,113,113,0.08);
+      border-color: rgba(248,113,113,0.2);
+    }
+
+    .reminder-badge {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      font-weight: 500;
+      color: #fbbf24;
+      background: rgba(120,53,15,0.2);
+      border: 1px solid rgba(251,191,36,0.2);
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+
+    .task-expand {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+      border-top: 1px solid var(--border);
+      padding: 12px 10px 0 10px;
+    }
+
+    .delete-btn {
+      background: none;
+      border: 1px solid rgba(248,113,113,0.2);
+      color: #f87171;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 6px 14px;
+      border-radius: 6px;
+      margin-top: 10px;
+      float: right;
+      transition: all 0.15s;
+    }
+
+    /* Past due divider */
+    .past-due-divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      list-style: none;
+    }
+
+    .past-due-divider::before, .past-due-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(to right, transparent, rgba(248,113,113,0.3), transparent);
+    }
+
+    .divider-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: #f87171;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="mesh-bg">
+    <div class="mesh-orb"></div>
+    <div class="mesh-orb"></div>
+    <div class="mesh-orb"></div>
+  </div>
+
+  <header>
+    <div class="logo-wrap">
+      <select onchange="if(this.value)window.location=this.value">
+        <option value="" selected>tasker.</option>
+        <option value="/switch/3">Default</option>
+        <option value="/switch/5">Editorial</option>
+        <option value="/switch/4">Brutalist</option>
+        <option value="/switch/7">Terminal</option>
+        <option value="/switch/8">Midnight</option>
+      </select>
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+    </div>
+    <div class="nav-right">
+      <span class="user-chip">{{ username }}</span>
+      <button id="notifBtn" onclick="setupPushNotifications()" class="notif-btn" title="Enable notifications">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+      </button>
+      <a href="{{ url_for('logout') }}" class="logout-link">Exit</a>
+    </div>
+  </header>
+
+  <main>
+
+    <div class="input-card">
+      <div class="input-title">New Task</div>
+      <div class="input-subtitle">Just type. Dates, times, colors, reminders — Tasker extracts everything.</div>
+      <form id="taskForm">
+        <textarea id="taskInput" maxlength="200"></textarea>
+        <div class="input-actions">
+          <span class="char-counter" id="charCounter">0/200</span>
+          <span id="reminderPreview" class="reminder-preview">🔔 <span id="reminderValue"></span></span>
+        </div>
+        <button type="submit" id="submitBtn" class="submit-btn">Add Task</button>
+      </form>
+    </div>
+
+    <div class="stats-strip">
+      <div class="stat-box">
+        <div class="stat-value" style="color:#818cf8;" id="statActive">0</div>
+        <div class="stat-label">Active</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value" style="color:#f87171;" id="statOverdue">0</div>
+        <div class="stat-label">Overdue</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value" style="color:#34d399;" id="statTotal">0</div>
+        <div class="stat-label">Total</div>
+      </div>
+    </div>
+
+    <section>
+      <div class="tasks-header">
+        <div>
+          <span class="section-title">Tasks</span>
+          <span class="task-count-badge" id="taskCountBadge">0</span>
+        </div>
+        <div class="clock-display">
+          <div class="date" id="clockDate"></div>
+          <div id="clockTime"></div>
+        </div>
+      </div>
+
+      <ul id="taskList"></ul>
+    </section>
+
+  </main>
+
+  <script>
+    // --- Dynamic Placeholders ---
+    const taskInput = document.getElementById('taskInput');
+    const prompts = [
+      "gym next monday 7am legs, blue",
+      "groceries in 2 hours yellow, milk eggs chicken rice",
+      "submit project by Friday evening, orange",
+      "call mom tomorrow at noon pink",
+      "doctor appointment next tuesday 9am, red",
+      "read 20 pages of book tonight, purple",
+      "fix production bug before standup, green"
+    ];
+    taskInput.placeholder = 'Try: ' + prompts[Math.floor(Math.random() * prompts.length)];
+
+    // --- Color ---
+    const colorMap = {
+      blue: '#87CEEB', red: '#f05656', green: '#6CE5A9',
+      pink: '#F8C8DC', orange: '#ff7f00', purple: '#A96CE5', yellow: '#FDDA0D'
+    };
+
+    function extractColor(text) {
+      const matches = text.toLowerCase().match(/\b(blue|red|green|pink|orange|purple|yellow)\b/g);
+      if (matches && matches.length > 0) return colorMap[matches[matches.length - 1]];
+      return '#FFFFFF';
+    }
+
+    // --- Reminder ---
+    function parseReminder(text) {
+      const t = text.toLowerCase();
+      const rel = t.match(/(?:remind|notify|alert)\s+(?:me\s+)?(\d+)\s*(m|min|mins|minute|minutes|h|hr|hrs|hour|hours)\b/);
+      if (rel) {
+        const val = parseInt(rel[1]);
+        const unit = rel[2];
+        if (unit.startsWith('h')) {
+          const clamped = Math.min(val, 24);
+          return { offsetHours: clamped, absoluteTime: null, display: `${clamped}h` };
+        } else {
+          const hours = val / 60;
+          const clamped = Math.min(hours, 24);
+          return { offsetHours: clamped, absoluteTime: null, display: `${val}m` };
+        }
+      }
+      const abs = t.match(/(?:remind|notify|alert)\s+(?:me\s+)?at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/);
+      if (abs) {
+        const hour = parseInt(abs[1]);
+        const mins = abs[2] ? parseInt(abs[2]) : 0;
+        const period = abs[3].toUpperCase();
+        const display = mins > 0 ? `${hour}:${String(mins).padStart(2,'0')}${period}` : `${hour}${period}`;
+        const absoluteTime = `${hour}:${String(mins).padStart(2,'0')} ${period}`;
+        return { offsetHours: null, absoluteTime, display };
+      }
+      return { offsetHours: 0, absoluteTime: null, display: null };
+    }
+
+    // --- Input listeners ---
+    taskInput.addEventListener('input', (e) => {
+      const text = e.target.value;
+      document.getElementById('charCounter').textContent = `${text.length}/200`;
+      const matches = text.toLowerCase().match(/\b(blue|red|green|pink|orange|purple|yellow)\b/g);
+      e.target.style.color = matches ? colorMap[matches[matches.length - 1]] : '';
+      const reminder = parseReminder(text);
+      const preview = document.getElementById('reminderPreview');
+      if (reminder.display) {
+        document.getElementById('reminderValue').textContent = reminder.display;
+        preview.style.display = 'inline-block';
+      } else {
+        preview.style.display = 'none';
+      }
+    });
+
+    // Button press feedback
+    const btn = document.getElementById('submitBtn');
+    ['touchstart','mousedown'].forEach(e => btn.addEventListener(e, () => btn.classList.add('btn-pressed')));
+    ['touchend','touchcancel','mouseup','mouseleave'].forEach(e => btn.addEventListener(e, () => btn.classList.remove('btn-pressed')));
+
+    // --- Core ---
+    let addTaskCooldown = false;
+    const ADD_TASK_COOLDOWN_MS = 3000;
+
+    function buildUserTzMetadata() {
+      const now = new Date();
+      return {
+        "todaysDate (yyyy/mm/dd): ": now.toLocaleDateString('en-CA'),
+        "current time: ": now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
+        "current day: ": now.toLocaleDateString('en-US', { weekday: 'long' }),
+        "utc_offset_minutes": now.getTimezoneOffset()
+      };
+    }
+
+    async function loadTasks() {
+      try {
+        const res = await fetch('/tasks');
+        const tasks = await res.json();
+        const list = document.getElementById('taskList');
+        list.innerHTML = '';
+
+        const now = new Date();
+        const pastDueTasks = [];
+        const upcomingTasks = [];
+
+        tasks.forEach(task => {
+          const [id, __, name, time, desc, due, color, reminder_display] = task;
+          let isPastDue = false;
+          if (due) {
+            const cleanDate = due.replace(/ 00:00:00.*$/, '').trim();
+            const timeStr = time ? time.trim() : '11:59 PM';
+            const taskDateTime = new Date(`${cleanDate} ${timeStr}`);
+            if (!isNaN(taskDateTime) && taskDateTime < now) isPastDue = true;
+          }
+          if (isPastDue) pastDueTasks.push(task);
+          else upcomingTasks.push(task);
+        });
+
+        // Update stats
+        document.getElementById('taskCountBadge').textContent = tasks.length;
+        document.getElementById('statActive').textContent = upcomingTasks.length;
+        document.getElementById('statOverdue').textContent = pastDueTasks.length;
+        document.getElementById('statTotal').textContent = tasks.length;
+
+        let staggerIndex = 0;
+
+        const appendTask = (task, isPastDue, idx) => {
+          const [id, __, name, time, desc, due, color, reminder_display] = task;
+          const dueDateDisplay = due ? due.replace(/ 00:00:00.*$/, '') : '';
+          const timeDisplay = time ? ' \u00b7 ' + time : '';
+          const fullDateTime = `${dueDateDisplay}${timeDisplay}`.trim();
+
+          const li = document.createElement('li');
+          li.className = 'task-enter';
+          li.style.animationDelay = `${idx * 50}ms`;
+
+          const cardBorder = isPastDue ? 'border-color:rgba(248,113,113,0.3);' : '';
+
+          li.innerHTML = `
+            <details class="group">
+              <summary style="outline:none;cursor:pointer;">
+                <div class="task-card" style="${cardBorder}">
+                  <div class="color-bar" style="background:${color || '#818cf8'};"></div>
+                  <div class="task-name" style="color:${color || '#818cf8'}">${name}</div>
+                  <div class="task-meta">
+                    ${fullDateTime ? `<span class="time-pill${isPastDue ? ' overdue' : ''}">${fullDateTime}</span>` : ''}
+                    ${reminder_display ? `<span class="reminder-badge">\ud83d\udd14 ${reminder_display}</span>` : ''}
+                  </div>
+                </div>
+              </summary>
+              <div class="task-expand task-details">
+                ${desc}
+                <button class="delete-btn" onclick="deleteTask(${id})">delete</button>
+                <div style="clear:both;"></div>
+              </div>
+            </details>
+          `;
+
+          addTapFeedback(li);
+          list.appendChild(li);
+        };
+
+        pastDueTasks.forEach(task => appendTask(task, true, staggerIndex++));
+
+        if (pastDueTasks.length > 0) {
+          const divider = document.createElement('li');
+          divider.className = 'past-due-divider';
+          divider.innerHTML = `<span class="divider-label">Past Due</span>`;
+          list.appendChild(divider);
+        }
+
+        upcomingTasks.forEach(task => appendTask(task, false, staggerIndex++));
+      } catch (err) {
+        console.error("Error loading tasks:", err);
+      }
+    }
+
+    function addTapFeedback(el) {
+      el.addEventListener('touchstart', () => el.classList.add('tap-active'), {passive: true});
+      el.addEventListener('touchend', () => setTimeout(() => el.classList.remove('tap-active'), 50));
+      el.addEventListener('touchcancel', () => el.classList.remove('tap-active'));
+    }
+
+    async function deleteTask(id) {
+      const res = await fetch('/tasks/' + id, { method: 'DELETE' });
+      if (res.ok) loadTasks();
+    }
+
+    document.getElementById('taskForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      if (addTaskCooldown) return;
+      addTaskCooldown = true;
+      setTimeout(() => { addTaskCooldown = false; }, ADD_TASK_COOLDOWN_MS);
+
+      const desc = taskInput.value;
+      if (desc.length < 10 || desc.length > 200) return alert('Task description must be 10\u2013200 characters');
+
+      const reminder = parseReminder(desc);
+      const res = await fetch('/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          task_description: desc,
+          user_tz_metadata: buildUserTzMetadata(),
+          color: extractColor(desc),
+          notif_time_offset: reminder.offsetHours,
+          notif_absolute_time: reminder.absoluteTime,
+          reminder_display: reminder.display
+        })
+      });
+
+      if (res.ok) {
+        taskInput.value = '';
+        taskInput.style.color = '';
+        document.getElementById('charCounter').textContent = '0/200';
+        document.getElementById('reminderPreview').style.display = 'none';
+        taskInput.placeholder = 'Try: ' + prompts[Math.floor(Math.random() * prompts.length)];
+        loadTasks();
+      } else {
+        alert('Failed to add task');
+      }
+    });
+
+    // --- Clock ---
+    function renderClock(animate = false) {
+      const now = new Date();
+      const day = now.toLocaleDateString(undefined, { weekday: 'short' }).toUpperCase();
+      const mon = now.toLocaleDateString(undefined, { month: 'short' }).toUpperCase();
+      const d = String(now.getDate()).padStart(2, '0');
+      document.getElementById('clockDate').textContent = `${day}, ${mon} ${d}`;
+      const el = document.getElementById('clockTime');
+      el.textContent = now.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true });
+      if (animate) { el.classList.remove('snap'); void el.offsetWidth; el.classList.add('snap'); }
+    }
+
+    function scheduleNextClockTick() {
+      const msToNextMinute = (60000 - (Date.now() % 60000)) + 80;
+      setTimeout(() => { renderClock(true); scheduleNextClockTick(); }, msToNextMinute);
+    }
+
+    renderClock(false);
+    scheduleNextClockTick();
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) renderClock(false); });
+
+    // --- Push Notifications ---
+    async function setupPushNotifications() {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+      const btn = document.getElementById('notifBtn');
+      try {
+        const reg = await navigator.serviceWorker.register('/sw.js');
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') return;
+        const existing = await reg.pushManager.getSubscription();
+        if (existing) { if (btn) btn.style.display = 'none'; return; }
+        const keyRes = await fetch('/push/vapid-public-key');
+        const keyData = await keyRes.json();
+        if (!keyData.public_key) return;
+        const rawKey = atob(keyData.public_key.replace(/-/g, '+').replace(/_/g, '/'));
+        const vapidKey = new Uint8Array(rawKey.length);
+        for (let i = 0; i < rawKey.length; i++) vapidKey[i] = rawKey.charCodeAt(i);
+        const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: vapidKey });
+        const subJson = sub.toJSON();
+        await fetch('/push/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint: subJson.endpoint, keys: subJson.keys }) });
+        if (btn) btn.style.display = 'none';
+      } catch (err) { console.error('Push setup failed:', err); }
+    }
+
+    async function initNotifButton() {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+      if (Notification.permission === 'granted') {
+        const reg = await navigator.serviceWorker.getRegistration('/sw.js');
+        if (reg) {
+          const existing = await reg.pushManager.getSubscription();
+          if (existing) return;
+        }
+      }
+      const btn = document.getElementById('notifBtn');
+      if (btn) btn.style.display = 'block';
+    }
+
+    loadTasks();
+    initNotifButton();
+  </script>
+</body>
+</html>

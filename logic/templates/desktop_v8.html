@@ -8,11 +8,12 @@
   <style>
     :root { --bg:#09090b; --surface:#18181b; --border:#27272a; --fg:#fafafa; --muted:#71717a; }
     * { margin:0; padding:0; box-sizing:border-box; }
-    body { background:var(--bg); color:var(--fg); font-family:'Manrope',sans-serif; min-height:100vh; height:100vh; overflow:hidden; display:flex; flex-direction:column; }
+    body { background:var(--bg); color:var(--fg); font-family:'Manrope',sans-serif; height:100vh; overflow:hidden; display:flex; flex-direction:column; }
 
     header {
       padding:16px 32px; display:flex; justify-content:space-between; align-items:center;
       border-bottom:1px solid var(--border);
+      flex-shrink:0;
     }
     .logo { font-size:20px; font-weight:800; letter-spacing:-0.5px; }
     .logo span {
@@ -84,7 +85,7 @@
     .divider::before,.divider::after { content:''; flex:1; height:1px; background:linear-gradient(to right, transparent, rgba(248,113,113,0.3), transparent); }
 
     /* ── Input ── */
-    .input-panel { position:sticky; top:80px; }
+    .input-panel { overflow-y:auto; }
     .input-box {
       background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:24px;
     }
@@ -122,11 +123,9 @@
 </head>
 <body>
   <header>
-    <div class="logo">tasker<span>.</span></div>
-    <div class="nav">
-      <span class="user-tag">{{ username }}</span>
-      <select onchange="if(this.value)window.location=this.value" style="font-family:'Azeret Mono',monospace;font-size:11px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:4px 12px;cursor:pointer;">
-        <option value="" selected>Theme: Midnight</option>
+    <div class="logo" style="position:relative;display:inline-block;">
+      <select onchange="if(this.value)window.location=this.value" style="appearance:none;-webkit-appearance:none;background:transparent;border:none;font-size:20px;font-weight:800;letter-spacing:-0.5px;color:var(--fg);cursor:pointer;padding-right:22px;outline:none;">
+        <option value="" selected>tasker.</option>
         <option value="/switch/3">Default</option>
         <option value="/switch/2">OG (Retired)</option>
         <option value="/switch/4">Brutalist</option>
@@ -134,6 +133,10 @@
         <option value="/switch/6">Glass</option>
         <option value="/switch/7">Terminal</option>
       </select>
+      <svg style="position:absolute;right:2px;top:50%;transform:translateY(-50%);pointer-events:none;" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="url(#grd)" stroke-width="2.5"><defs><linearGradient id="grd" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#f472b6"/><stop offset="50%" stop-color="#818cf8"/><stop offset="100%" stop-color="#34d399"/></linearGradient></defs><path d="M6 9l6 6 6-6"/></svg>
+    </div>
+    <div class="nav">
+      <span class="user-tag">{{ username }}</span>
       <a href="{{ url_for('logout') }}" style="color:#f87171;">exit</a>
     </div>
   </header>

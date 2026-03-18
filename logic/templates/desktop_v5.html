@@ -25,7 +25,6 @@
       color: var(--fg);
       font-family: 'DM Sans', sans-serif;
       font-size: 14px;
-      min-height: 100vh;
       height: 100vh;
       overflow: hidden;
       display: flex;
@@ -52,8 +51,7 @@
       border-bottom: 1px solid var(--border);
       background: rgba(18,18,16,0.8);
       backdrop-filter: blur(20px);
-      position: sticky;
-      top: 0;
+      flex-shrink: 0;
       z-index: 50;
     }
 
@@ -304,8 +302,7 @@
 
     /* ── Input panel ── */
     .input-panel {
-      position: sticky;
-      top: 100px;
+      overflow-y: auto;
     }
 
     .input-card {
@@ -420,11 +417,9 @@
 <body>
 
   <header>
-    <div class="logo">Tasker<em>.</em></div>
-    <div class="nav-links">
-      <span class="user-chip">{{ username }}</span>
-      <select onchange="if(this.value)window.location=this.value" style="font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:var(--muted);background:var(--bg);border:1px solid var(--border);border-radius:100px;padding:5px 14px;cursor:pointer;">
-        <option value="" selected>Theme: Editorial</option>
+    <div class="logo" style="position:relative;display:inline-block;">
+      <select onchange="if(this.value)window.location=this.value" style="appearance:none;-webkit-appearance:none;background:transparent;border:none;font-family:'Fraunces',serif;font-size:24px;font-weight:900;letter-spacing:-0.5px;color:var(--fg);cursor:pointer;padding-right:22px;outline:none;">
+        <option value="" selected>Tasker.</option>
         <option value="/switch/3">Default</option>
         <option value="/switch/2">OG (Retired)</option>
         <option value="/switch/4">Brutalist</option>
@@ -432,6 +427,10 @@
         <option value="/switch/7">Terminal</option>
         <option value="/switch/8">Midnight</option>
       </select>
+      <svg style="position:absolute;right:2px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--accent);" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+    </div>
+    <div class="nav-links">
+      <span class="user-chip">{{ username }}</span>
       <a href="{{ url_for('logout') }}" class="exit">Log out</a>
     </div>
   </header>
@@ -495,7 +494,17 @@
       { text: "I am so clever that sometimes I don't understand a single word of what I am saying.", author: "Oscar Wilde" },
       { text: "Procrastination is the art of keeping up with yesterday.", author: "Don Marquis" },
       { text: "Never put off till tomorrow what may be done day after tomorrow just as well.", author: "Mark Twain" },
-      { text: "Anyone can do any amount of work, provided it isn't the work he is supposed to be doing at that moment.", author: "Robert Benchley" }
+      { text: "Anyone can do any amount of work, provided it isn't the work he is supposed to be doing at that moment.", author: "Robert Benchley" },
+      { text: "I always arrive late at the office, but I make up for it by leaving early.", author: "Charles Lamb" },
+      { text: "Hard work never killed anybody, but why take a chance?", author: "Edgar Bergen" },
+      { text: "I choose a lazy person to do a hard job. Because a lazy person will find an easy way to do it.", author: "Bill Gates" },
+      { text: "By working faithfully eight hours a day you may eventually get to be boss and work twelve hours a day.", author: "Robert Frost" },
+      { text: "The trouble with having an open mind, of course, is that people will insist on coming along and trying to put things in it.", author: "Terry Pratchett" },
+      { text: "I have not failed. I've just found 10,000 ways that won't work.", author: "Thomas Edison" },
+      { text: "A clear conscience is a sure sign of a bad memory.", author: "Mark Twain" },
+      { text: "The road to success is dotted with many tempting parking spaces.", author: "Will Rogers" },
+      { text: "If at first you don't succeed, then skydiving definitely isn't for you.", author: "Steven Wright" },
+      { text: "Age is of no importance unless you're a cheese.", author: "Billie Burke" }
     ];
     const rq = dailyQuotes[Math.floor(Math.random() * dailyQuotes.length)];
     document.getElementById('quoteText').textContent = '"' + rq.text + '"';
