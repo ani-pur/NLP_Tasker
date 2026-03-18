@@ -42,7 +42,7 @@
     .nav a:hover { color: var(--green); }
     .nav .user { color: var(--green); border: 1px solid var(--dim); padding: 2px 8px; }
 
-    main { display:grid; grid-template-columns:1fr 340px; flex:1; min-height:0; overflow:hidden; }
+    main { width:100%; max-width:1200px; margin:0 auto; display:grid; grid-template-columns:1fr 340px; flex:1; min-height:0; overflow:hidden; }
     @media(max-width:768px) { main { grid-template-columns:1fr; } }
     @media(max-width:768px) {
       body { height:auto; overflow:auto; }
@@ -128,7 +128,6 @@
       <select onchange="if(this.value)window.location=this.value" style="appearance:none;-webkit-appearance:none;background:transparent;border:none;font-family:'Fira Code',monospace;font-weight:700;font-size:16px;color:var(--green);cursor:pointer;padding-right:20px;outline:none;">
         <option value="" selected>tasker.sh</option>
         <option value="/switch/3">default</option>
-        <option value="/switch/2">og (retired)</option>
         <option value="/switch/4">brutalist</option>
         <option value="/switch/5">editorial</option>
         <option value="/switch/6">glass</option>

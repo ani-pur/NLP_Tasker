@@ -28,7 +28,7 @@
       border:1px solid var(--border); padding:4px 12px; border-radius:6px;
     }
 
-    main { max-width:1100px; margin:0 auto; padding:36px 32px; display:grid; grid-template-columns:1fr 360px; gap:36px; flex:1; min-height:0; overflow:hidden; }
+    main { width:100%; max-width:1200px; margin:0 auto; padding:36px 32px; display:grid; grid-template-columns:1fr 360px; gap:36px; flex:1; min-height:0; overflow:hidden; }
     @media(max-width:768px) { main { grid-template-columns:1fr; padding:20px 16px; } }
     @media(max-width:768px) { body { height:auto; overflow:auto; } main { overflow:visible; } }
 
@@ -127,7 +127,6 @@
       <select onchange="if(this.value)window.location=this.value" style="appearance:none;-webkit-appearance:none;background:transparent;border:none;font-size:20px;font-weight:800;letter-spacing:-0.5px;color:var(--fg);cursor:pointer;padding-right:22px;outline:none;">
         <option value="" selected>tasker.</option>
         <option value="/switch/3">Default</option>
-        <option value="/switch/2">OG (Retired)</option>
         <option value="/switch/4">Brutalist</option>
         <option value="/switch/5">Editorial</option>
         <option value="/switch/6">Glass</option>
@@ -277,7 +276,10 @@
 
       document.getElementById('taskCount').textContent = tasks.length > 0 ? `(${tasks.length})` : '';
 
-
+      if (tasks.length === 0) {
+        list.innerHTML = '<div style="text-align:center;padding:60px 0;color:var(--muted);font-size:13px;">No tasks yet</div>';
+        return;
+      }
 
       function renderCard(task) {
         const [id, __, task_name, task_time, task_description, due_date, color, reminder_display] = task;

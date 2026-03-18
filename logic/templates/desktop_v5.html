@@ -96,7 +96,8 @@
 
     /* ── Layout ── */
     main {
-      max-width: 1100px;
+      width: 100%;
+      max-width: 1200px;
       margin: 0 auto;
       padding: 48px 40px;
       display: grid;
@@ -421,7 +422,6 @@
       <select onchange="if(this.value)window.location=this.value" style="appearance:none;-webkit-appearance:none;background:transparent;border:none;font-family:'Fraunces',serif;font-size:24px;font-weight:900;letter-spacing:-0.5px;color:var(--fg);cursor:pointer;padding-right:22px;outline:none;">
         <option value="" selected>Tasker.</option>
         <option value="/switch/3">Default</option>
-        <option value="/switch/2">OG (Retired)</option>
         <option value="/switch/4">Brutalist</option>
         <option value="/switch/6">Glass</option>
         <option value="/switch/7">Terminal</option>
@@ -582,6 +582,11 @@
       });
 
       document.getElementById('taskCount').textContent = `${upcoming.length} active`;
+
+      if (tasks.length === 0) {
+        list.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 0;"><span style="font-family:Fraunces,serif;font-size:48px;font-weight:900;color:var(--border);opacity:0.4;">0</span><span style="font-size:12px;color:var(--muted);font-style:italic;font-family:Fraunces,serif;margin-top:4px;">Nothing here yet.</span></div>';
+        return;
+      }
 
       function renderCard(task) {
         const [id, __, task_name, task_time, task_description, due_date, color, reminder_display] = task;

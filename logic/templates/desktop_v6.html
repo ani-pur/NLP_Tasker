@@ -127,6 +127,7 @@
 
     /* ── Layout ── */
     main {
+      width: 100%;
       max-width: 1200px;
       margin: 0 auto;
       padding: 36px 32px;
@@ -479,7 +480,6 @@
       <select onchange="if(this.value)window.location=this.value" style="appearance:none;-webkit-appearance:none;background:transparent;border:none;font-size:22px;font-weight:800;letter-spacing:-0.5px;background:linear-gradient(135deg,#818cf8,#c084fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;cursor:pointer;padding-right:22px;outline:none;">
         <option value="" selected>tasker.</option>
         <option value="/switch/3">Default</option>
-        <option value="/switch/2">OG (Retired)</option>
         <option value="/switch/4">Brutalist</option>
         <option value="/switch/5">Editorial</option>
         <option value="/switch/7">Terminal</option>
@@ -634,7 +634,10 @@
       document.getElementById('statOverdue').textContent = pastDue.length;
       document.getElementById('statTotal').textContent = tasks.length;
 
-
+      if (tasks.length === 0) {
+        list.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 0;"><span style="font-size:48px;font-weight:800;color:var(--muted);opacity:0.15;">0</span><span style="font-family:IBM Plex Mono,monospace;font-size:11px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:4px;">No tasks</span></div>';
+        return;
+      }
 
       function renderCard(task) {
         const [id, __, task_name, task_time, task_description, due_date, color, reminder_display] = task;
