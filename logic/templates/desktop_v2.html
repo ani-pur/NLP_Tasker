@@ -281,6 +281,20 @@
                     return { offsetHours: clamped, absoluteTime: null, display: `${val}m` };
                 }
             }
+            // relative to now: "remind me in 30 min", "notify me in 2 hours"
+            const relIn = t.match(/(?:remind|notify|alert)\s+(?:me\s+)?in\s+(\d+)\s*(m|min|mins|minute|minutes|h|hr|hrs|hour|hours)\b/);
+            if (relIn) {
+                const val = parseInt(relIn[1]);
+                const unit = relIn[2];
+                const ms = unit.startsWith('h') ? val * 3600000 : val * 60000;
+                const target = new Date(Date.now() + ms);
+                let h = target.getHours(), m = target.getMinutes();
+                const period = h >= 12 ? 'PM' : 'AM';
+                h = h % 12 || 12;
+                const display = m > 0 ? `${h}:${String(m).padStart(2,'0')}${period}` : `${h}${period}`;
+                const absoluteTime = `${h}:${String(m).padStart(2,'0')} ${period}`;
+                return { offsetHours: null, absoluteTime, display };
+            }
             const abs = t.match(/(?:remind|notify|alert)\s+(?:me\s+)?at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/);
             if (abs) {
                 const hour = parseInt(abs[1]);

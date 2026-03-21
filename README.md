@@ -3,7 +3,7 @@ Author: Anirudh Purohit
 ## NEW:
 - MOBILE PUSH NOTIFICATIONS! Look for the little bell icon on the tasker mobile app! (Installation instructions below)
 
-Never let a deadline sneak up on you. Tasker's got a 3 hour reminder baked in for every single task, and if you want to fine tune it, just say "remind me X mins/hours before" for a custom ping at whatever time works for you.
+Never let a deadline sneak up on you. Tasker's got a 3 hour reminder baked in for every single task, and if you want to fine tune it, just say "remind me X mins/hours before", "remind me in X mins/hours" for a reminder relative to right now, or "remind me at X:XXam/pm" for an exact time.
 
 ### Coming soon: 
 - edit button to edit tasks lol
@@ -34,42 +34,5 @@ Step 3: Enable 'open as web app' (on ios) / agree to install prompt (on android)
 ✅
 
  
-
-## Screenshots
-
-### v3:
-
-<img width="1119" height="835" alt="image" src="https://github.com/user-attachments/assets/7d22a374-fe6c-4fca-8766-554c5935a6a6" />
-
-<img width="755" height="521" alt="image" src="https://github.com/user-attachments/assets/d1bb8ed7-8482-470d-84a9-62b32f5d6aa4" />
-
-<img width="1468" height="875" alt="image" src="https://github.com/user-attachments/assets/2c235f6e-f13e-487a-93eb-3ace09c09881" />
-
-
-
-
-### v2.5: 
-
-<img width="1295" height="648" alt="image" src="https://github.com/user-attachments/assets/0061ffd6-6ec4-4754-aa3a-55544798b7ed" />
-
-<img width="2543" height="554" alt="image" src="https://github.com/user-attachments/assets/916d0f39-2370-4fd8-adce-5174cc1dd014" />
-
-<img width="280" height="600" alt="image" src="https://github.com/user-attachments/assets/813e2c04-e681-4c84-b051-bebb1db750f2" />
-
-
-
-
-### v2:
-![image](https://github.com/user-attachments/assets/5c4302be-927e-46ac-89e5-09f6022c153f)
-![image](https://github.com/user-attachments/assets/fd7f6fba-d2ff-4913-ba9e-83ac3624ab72)
-![image](https://github.com/user-attachments/assets/f40bc4ea-1a7f-4ae4-8b64-8a0797b81df4)
-
-### v1:
-![image](https://github.com/user-attachments/assets/2e90706c-0b1d-4adc-93f3-25b578a86598)
-![image](https://github.com/user-attachments/assets/4fb92ee7-39b6-47af-83cd-d63723697f12)
-![image](https://github.com/user-attachments/assets/7e854af8-19e0-4eac-9da6-5c2b17352d7f)
-
-
-
 
 
