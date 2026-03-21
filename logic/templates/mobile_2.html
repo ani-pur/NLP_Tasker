@@ -3,19 +3,27 @@
 <head>
   <meta charset="UTF-8">
   <link rel="manifest" href="/pwa/manifest.webmanifest">
-  <meta name="theme-color" content="#111520">
-  <title>Tasker.</title>
+  <meta name="theme-color" content="#121210">
+  <title>Dashboard | Tasker.</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=DM+Sans:wght@300..700&display=swap" rel="stylesheet">
   
   <script>
     tailwind.config = {
       theme: {
         extend: {
-          fontFamily: { sans: ['Inter', 'sans-serif'] },
-          colors: { base: '#111520', accent: '#fcd34d', 'accent-pressed': '#eab308' }
+          fontFamily: { sans: ['DM Sans', 'sans-serif'], serif: ['Fraunces', 'serif'] },
+          colors: { 
+            base: '#121210', 
+            fg: '#e7e5e4',
+            accent: '#ea580c', 
+            'accent-soft': '#431407',
+            muted: '#78716c',
+            card: '#1c1a17',
+            bordercol: '#2e2a27'
+          }
         }
       }
     }
@@ -23,8 +31,17 @@
 
   <style>
     body { 
-      background-color: #111520; 
+      background-color: #121210; 
       -webkit-tap-highlight-color: transparent; 
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      opacity: 0.3;
+      pointer-events: none;
+      z-index: 9999;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
     }
 
     /* Clock snap animation */
@@ -41,15 +58,6 @@
     @keyframes slideUp {
       0%   { opacity: 0; transform: translateY(20px) scale(0.96); }
       100% { opacity: 1; transform: translateY(0) scale(1); }
-    }
-
-    /* Faster pulsing clock separator */
-    .pulse-fast {
-      animation: fastPulse 1.5s ease-in-out infinite;
-    }
-    @keyframes fastPulse {
-      0%, 100% { opacity: 0.3; }
-      50%      { opacity: 1; text-shadow: 0 0 8px rgba(252,211,77,0.8); }
     }
 
     /* Custom Accordion Logic */
@@ -70,66 +78,82 @@
 
     /* Tap Feedback Classes */
     .tap-active {
-      background-color: rgba(0, 0, 0, 0.4) !important; 
+      background-color: rgba(255, 255, 255, 0.05) !important; 
       transform: scale(0.985);
     }
     
     .btn-pressed {
-      background-color: #eab308 !important; 
+      background-color: #c2410c !important; 
       transform: translateY(1px) scale(0.98);
+      box-shadow: 0 4px 16px rgba(234,88,12,0.4);
     }
   </style>
 </head>
-<body class="text-slate-300 antialiased selection:bg-accent selection:text-base min-h-screen flex flex-col">
+<body class="text-fg antialiased selection:bg-accent selection:text-base min-h-screen flex flex-col relative">
 
-  <header class="w-full border-b border-slate-800/80 bg-slate-900/80 backdrop-blur-xl sticky top-0 z-50">
+  <header class="w-full border-b border-bordercol bg-base/90 backdrop-blur-xl sticky top-0 z-50">
     <div class="px-5 h-16 flex items-center justify-between">
       <div class="relative inline-block">
-        <select onchange="if(this.value)window.location=this.value" style="appearance:none;-webkit-appearance:none;background:transparent;border:none;font-size:1.5rem;font-weight:800;letter-spacing:-0.05em;color:white;cursor:pointer;padding-right:20px;outline:none;font-family:'Inter',sans-serif;">
+        <select onchange="if(this.value)window.location=this.value" style="appearance:none;-webkit-appearance:none;background:transparent;border:none;font-family:'Fraunces',serif;font-size:1.5rem;font-weight:900;letter-spacing:-0.05em;color:#e7e5e4;cursor:pointer;padding-right:20px;outline:none;">
           <option value="" selected>Tasker.</option>
-          <option value="/switch/5">Editorial</option>
+          <option value="/switch/3">Default</option>
           <option value="/switch/6">Glass</option>
         </select>
-        <svg style="position:absolute;right:2px;top:50%;transform:translateY(-50%);pointer-events:none;" class="text-accent" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+        <svg style="position:absolute;right:2px;top:50%;transform:translateY(-50%);pointer-events:none;color:#ea580c;" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
       </div>
-      <div class="flex items-center gap-4 text-sm font-medium">
-        <span class="text-slate-400 bg-slate-800/50 px-2 py-1 rounded-md">{{ username }}</span>
-        <button id="notifBtn" onclick="setupPushNotifications()" class="hidden text-slate-500 hover:text-accent transition p-1" title="Enable notifications">
+      <div class="flex items-center gap-3 text-sm font-medium">
+        <span class="text-fg bg-accent-soft px-3 py-1 rounded-full text-xs font-bold">{{ username }}</span>
+        <button id="notifBtn" onclick="setupPushNotifications()" class="hidden text-muted hover:text-accent transition p-1" title="Enable notifications">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
         </button>
-        <a href="{{ url_for('logout') }}" class="text-red-400 hover:text-red-300 transition pl-1 border-l border-slate-700">Logout</a>
+        <a href="{{ url_for('logout') }}" class="text-accent hover:text-orange-700 transition pl-2 border-l border-bordercol font-serif italic text-xs tracking-wide">Exit</a>
       </div>
     </div>
   </header>
 
-  <main class="flex-grow w-full max-w-md mx-auto px-4 py-6 flex flex-col gap-8">
+  <main class="flex-grow w-full max-w-md mx-auto px-5 py-6 flex flex-col gap-8 relative z-10">
     
-    <section class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 shadow-xl relative overflow-hidden">
-      <h3 class="text-base font-bold text-white mb-3">Describe Task</h3>
+    <section class="bg-card border border-bordercol rounded-3xl p-5 shadow-lg relative overflow-hidden">
+      <h3 class="text-lg font-black font-serif text-fg mb-1">What's on your mind?</h3>
+      <p class="text-xs text-muted mb-4 leading-relaxed tracking-wide">Type naturally. Tasker handles dates, times, colors, and reminders.</p>
+      
       <form id="taskForm" class="flex flex-col gap-3">
         <textarea 
           id="task_description" 
           maxlength="200" 
-          class="w-full h-20 bg-slate-950/50 border border-slate-800 focus:border-accent/50 focus:ring-1 focus:ring-accent/50 text-slate-200 px-4 py-3 rounded-xl outline-none transition-colors placeholder:text-slate-600 resize-none font-medium text-sm"
+          class="w-full h-24 bg-base/50 border-[1.5px] border-bordercol focus:border-accent focus:shadow-[0_0_0_3px_rgba(234,88,12,0.15)] text-fg px-4 py-3 rounded-2xl outline-none transition-all placeholder:text-muted resize-none font-medium text-[13px]"
         ></textarea>
-        <span id="reminderPreview" class="hidden text-xs font-semibold text-amber-400/90 bg-amber-900/20 border border-amber-800/30 px-2.5 py-1 rounded-md self-start">🔔 <span id="reminderValue"></span></span>
-        <button type="submit" id="addTaskBtn" class="w-full bg-accent text-slate-900 font-bold py-3 px-4 rounded-xl transition duration-150 shadow-lg">
+        
+        <div class="flex justify-between items-center mt-1">
+          <span class="text-xs text-muted tracking-widest font-bold" id="charCounter">0/200</span>
+          <span id="reminderPreview" class="hidden text-[0.65rem] font-extrabold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded-full uppercase tracking-wider">🔔 <span id="reminderValue"></span></span>
+        </div>
+        
+        <button type="submit" id="addTaskBtn" class="w-full bg-accent text-white font-bold py-3.5 px-4 rounded-full mt-2 transition duration-200 shadow-[0_2px_8px_rgba(234,88,12,0.3)]">
           Add Task
         </button>
       </form>
     </section>
 
-    <section class="flex flex-col gap-4">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-3 px-1">
-        <h2 class="text-xl font-bold text-white tracking-tight">Your Tasks</h2>
-        <div class="inline-flex items-center gap-2 text-xs font-bold tabular-nums">
-          <span id="clockDate" class="text-accent tracking-widest uppercase"></span>
-          <span class="text-accent pulse-fast">|</span>
-          <span id="clockTime" class="text-slate-300 tracking-widest"></span>
+    <!-- Motivational quote -->
+    <div class="bg-gradient-to-br from-amber-500/10 to-accent/10 border border-amber-500/20 rounded-2xl p-5 shadow-sm">
+      <p id="quoteText" class="font-serif italic text-amber-500 text-sm leading-relaxed">"The secret of getting ahead is getting started."</p>
+      <cite id="quoteAuthor" class="block mt-2 text-xs font-sans text-muted font-medium not-italic">— Mark Twain</cite>
+    </div>
+
+    <section class="flex flex-col gap-4 mt-2">
+      <div class="flex items-baseline justify-between mb-2 px-1">
+        <div class="flex flex-col">
+          <h2 class="text-2xl font-black font-serif text-fg tracking-tight">Your Tasks</h2>
+          <span id="taskCount" class="text-xs text-muted font-medium">0 active</span>
+        </div>
+        <div class="inline-flex flex-col items-end gap-1 text-xs font-bold tabular-nums">
+          <span id="clockDate" class="text-accent font-serif italic tracking-wide"></span>
+          <span id="clockTime" class="text-muted tracking-widest px-1"></span>
         </div>
       </div>
       
-      <ul id="taskList" class="flex flex-col gap-3 pb-8"></ul>
+      <ul id="taskList" class="flex flex-col gap-3.5 pb-8"></ul>
     </section>
 
   </main>
@@ -137,6 +161,7 @@
   <script>
     // --- UI/UX Enhancements ---
     const taskInput = document.getElementById('task_description');
+    const charCounter = document.getElementById('charCounter');
     
     // Dynamic Placeholders
     const prompts = [
@@ -169,7 +194,6 @@
 
     function parseReminder(text) {
       const t = text.toLowerCase();
-      // relative: "remind me 30 min before", "notify 2 hours prior"
       const rel = t.match(/(?:remind|notify|alert)\s+(?:me\s+)?(\d+)\s*(m|min|mins|minute|minutes|h|hr|hrs|hour|hours)\b/);
       if (rel) {
         const val = parseInt(rel[1]);
@@ -183,7 +207,6 @@
           return { offsetHours: clamped, absoluteTime: null, display: `${val}m` };
         }
       }
-      // absolute: "remind at 2pm", "remind me at 3:30am"
       const abs = t.match(/(?:remind|notify|alert)\s+(?:me\s+)?at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/);
       if (abs) {
         const hour = parseInt(abs[1]);
@@ -198,6 +221,7 @@
 
     taskInput.addEventListener('input', (e) => {
       const text = e.target.value.toLowerCase();
+      charCounter.textContent = `${text.length}/200`;
       const regex = /\b(blue|red|green|pink|orange|purple|yellow)\b/g;
       const matches = text.match(regex);
 
@@ -207,7 +231,7 @@
       } else {
         e.target.style.color = '';
       }
-      // reminder preview
+      
       const reminder = parseReminder(e.target.value);
       const preview = document.getElementById('reminderPreview');
       if (reminder.display) {
@@ -248,7 +272,6 @@
         const pastDueTasks = [];
         const upcomingTasks = [];
 
-        // 1. Sort using our fixed AM/PM string parser
         tasks.forEach(task => {
           const [id, __, name, time, desc, due, color, reminder_display] = task;
           let isPastDue = false;
@@ -267,77 +290,78 @@
           else upcomingTasks.push(task);
         });
 
-        // 2. Render Helper
-    const appendTaskToDOM = (task, isPastDue, animationIndex) => {
-      const [id, __, name, time, desc, due, color, reminder_display] = task;
-      
-      const dueDateDisplay = due ? due.replace(/ 00:00:00.*$/, '') : '';
-      const timeDisplay = time ? ' • ' + time : '';
-      const fullDateTime = `${dueDateDisplay}${timeDisplay}`.trim();
+        document.getElementById('taskCount').textContent = `${upcomingTasks.length} active`;
 
-      const li = document.createElement('li');
-      
-      // FIX 1: Use standard Tailwind shadows instead of arbitrary RGBA, and add list-none
-      const containerBorder = isPastDue 
-        ? 'border-red-900/50 shadow-lg shadow-red-900/20' 
-        : 'border-slate-800/40';
-        
-      li.className = `list-none task-enter bg-black/20 border ${containerBorder} rounded-xl px-4 py-4 transition-transform duration-100 ease-out transform-gpu`;
-      li.style.animationDelay = `${animationIndex * 50}ms`;
-      
-      // FIX 2: Drop the arbitrary drop-shadow text effect causing layout flashes
-      const dateStyle = isPastDue 
-        ? 'text-red-400 font-semibold' 
-        : 'text-sky-300/80';
+        if (tasks.length === 0) {
+          list.innerHTML = `<div class="text-center py-10 text-muted font-serif italic text-sm">Nothing here yet.</div>`;
+          return;
+        }
 
-      li.innerHTML = `
-        <details class="group">
-          <summary class="flex flex-col gap-1 outline-none cursor-pointer">
-            <div class="font-bold text-[1.05rem] leading-tight" style="color:${color || '#fcd34d'}">${name}</div>
-            <div class="flex items-center gap-1.5 mt-0.5">
-              ${fullDateTime ? `<span class="text-xs font-medium ${dateStyle}">${fullDateTime}</span>` : ''}
-              ${reminder_display ? `<span class="text-xs font-semibold text-amber-400/80 bg-amber-900/20 border border-amber-800/30 px-1.5 py-0.5 rounded" title="Reminder">🔔 ${reminder_display}</span>` : ''}
-            </div>
-          </summary>
-          <div class="task-details mt-3 text-slate-400 text-sm leading-relaxed border-t border-slate-800/40 pt-3">
-            ${desc}
-            <div class="mt-4 flex justify-end">
-              <button class="text-red-400 font-bold text-xs tracking-widest uppercase px-5 py-2.5 bg-red-400/10 active:bg-red-400/20 rounded-lg transition" onclick="deleteTask(${id})">
-                Delete
-              </button>
-            </div>
-          </div>
-        </details>
-      `;
+        const appendTaskToDOM = (task, isPastDue, animationIndex) => {
+          const [id, __, name, time, desc, due, color, reminder_display] = task;
+          
+          const dueDateDisplay = due ? due.replace(/ 00:00:00.*$/, '') : '';
+          const timeDisplay = time ? ' • ' + time : '';
+          const fullDateTime = `${dueDateDisplay}${timeDisplay}`.trim();
 
-      addTapFeedback(li);
-      list.appendChild(li);
-    };
+          const li = document.createElement('li');
+          
+          const containerBorder = isPastDue 
+            ? 'border-red-900/40 shadow-sm shadow-red-900/10' 
+            : 'border-bordercol shadow-sm shadow-black/20';
+            
+          li.className = `list-none task-enter bg-card border ${containerBorder} rounded-2xl px-5 py-4 transition-all duration-200 ease-out transform-gpu relative overflow-hidden`;
+          li.style.animationDelay = `${animationIndex * 50}ms`;
 
-    // 3. Inject into the DOM sequentially 
-    let staggerIndex = 0;
+          const dateStyle = isPastDue 
+            ? 'text-red-400 border-red-400/20 bg-red-400/10' 
+            : 'text-fg border-bordercol bg-base';
 
-    pastDueTasks.forEach(task => {
-      appendTaskToDOM(task, true, staggerIndex++);
-    });
+          li.innerHTML = `
+            <details class="group">
+              <summary class="flex flex-col gap-1 outline-none cursor-pointer relative z-10 w-full">
+                <div class="flex items-center gap-3">
+                  <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:${color || '#ea580c'};"></span>
+                  <div class="font-serif font-extrabold text-[1.05rem] leading-tight text-fg truncate">${name}</div>
+                </div>
+                
+                <div class="flex items-center gap-2 mt-2 ml-[18px]">
+                  ${fullDateTime ? `<span class="text-[0.65rem] font-bold border px-2.5 py-0.5 rounded-full ${dateStyle}">${fullDateTime}</span>` : ''}
+                  ${reminder_display ? `<span class="text-[0.65rem] font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 rounded-full uppercase">🔔 ${reminder_display}</span>` : ''}
+                </div>
+              </summary>
+              <div class="task-details mt-4 text-muted text-[13px] leading-relaxed border-t border-bordercol pt-3 ml-[18px]">
+                ${desc}
+                <div class="mt-4 flex justify-end">
+                  <button class="text-muted font-medium text-xs hover:text-accent focus:text-accent px-3 py-1.5 rounded-md transition" onclick="deleteTask(${id})">
+                    Remove
+                  </button>
+                </div>
+              </div>
+            </details>
+          `;
 
-    if (pastDueTasks.length > 0) {
-      const divider = document.createElement('li');
-      // FIX 3: Add list-none to the divider and standard shadows
-      divider.className = "list-none relative flex items-center py-4 w-full";
-      divider.innerHTML = `
-        <div class="flex-grow border-t border-red-500/50 shadow-sm shadow-red-500/50"></div>
-        <span class="shrink-0 mx-3 px-3 py-1 bg-slate-900 text-red-400 text-[0.65rem] font-bold tracking-widest uppercase border border-red-500/50 rounded-full shadow-sm shadow-red-500/30">
-          Past Due
-        </span>
-        <div class="flex-grow border-t border-red-500/50 shadow-sm shadow-red-500/50"></div>
-      `;
-      list.appendChild(divider);
-    }
+          addTapFeedback(li);
+          list.appendChild(li);
+        };
 
-    upcomingTasks.forEach(task => {
-      appendTaskToDOM(task, false, staggerIndex++);
-    });
+        let staggerIndex = 0;
+
+        if (pastDueTasks.length > 0) {
+          pastDueTasks.forEach(task => { appendTaskToDOM(task, true, staggerIndex++); });
+          const divider = document.createElement('li');
+          divider.className = "list-none relative flex items-center py-5 w-full";
+          divider.innerHTML = `
+            <div class="flex-grow border-t border-accent/30"></div>
+            <span class="shrink-0 mx-4 font-serif italic text-accent text-[0.7rem] font-bold tracking-widest uppercase">
+              Past Due
+            </span>
+            <div class="flex-grow border-t border-accent/30"></div>
+          `;
+          list.appendChild(divider);
+        }
+
+        upcomingTasks.forEach(task => { appendTaskToDOM(task, false, staggerIndex++); });
 
       } catch (err) {
         console.error("Error loading tasks:", err);
@@ -345,9 +369,12 @@
     }
 
     function addTapFeedback(el) {
-      el.addEventListener('touchstart', () => el.classList.add('tap-active'), {passive: true});
-      el.addEventListener('touchend', () => setTimeout(() => el.classList.remove('tap-active'), 50));
-      el.addEventListener('touchcancel', () => el.classList.remove('tap-active'));
+      const summary = el.querySelector('summary');
+      if (summary) {
+        summary.addEventListener('touchstart', () => el.classList.add('tap-active'), {passive: true});
+        summary.addEventListener('touchend', () => setTimeout(() => el.classList.remove('tap-active'), 50));
+        summary.addEventListener('touchcancel', () => el.classList.remove('tap-active'));
+      }
     }
 
     async function deleteTask(id) {
@@ -382,6 +409,7 @@
       if (res.ok) {
         taskInput.value = '';
         taskInput.style.color = '';
+        charCounter.textContent = '0/200';
         document.getElementById('reminderPreview').classList.add('hidden');
         taskInput.placeholder = 'Try: ' + prompts[Math.floor(Math.random() * prompts.length)];
         loadTasks();
@@ -390,7 +418,7 @@
       }
     });
 
-    // --- Clock Logic ---
+    // --- Clock & Quotes ---
     function renderClock(animate=false){
       const now = new Date();
       const date = now.toLocaleDateString(undefined, { weekday:"short", month:"short", day:"numeric" }).toUpperCase();
@@ -429,6 +457,28 @@
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) renderClock(false);
     });
+
+    // Daily Quote
+    const dailyQuotes = [
+      { text: "I love deadlines. I like the whooshing sound they make as they fly by.", author: "Douglas Adams" },
+      { text: "I am so clever that sometimes I don't understand a single word of what I am saying.", author: "Oscar Wilde" },
+      { text: "Procrastination is the art of keeping up with yesterday.", author: "Don Marquis" },
+      { text: "Never put off till tomorrow what may be done day after tomorrow just as well.", author: "Mark Twain" },
+      { text: "Anyone can do any amount of work, provided it isn't the work he is supposed to be doing at that moment.", author: "Robert Benchley" },
+      { text: "I always arrive late at the office, but I make up for it by leaving early.", author: "Charles Lamb" },
+      { text: "Hard work never killed anybody, but why take a chance?", author: "Edgar Bergen" },
+      { text: "The road to success is dotted with many tempting parking spaces.", author: "Will Rogers" },
+      { text: "If at first you don't succeed, then skydiving definitely isn't for you.", author: "Steven Wright" },
+      { text: "Age is of no importance unless you're a cheese.", author: "Billie Burke" },
+      { text: "I choose a lazy person to do a hard job. Because a lazy person will find an easy way to do it.", author: "Bill Gates" },
+      { text: "By working faithfully eight hours a day you may eventually get to be boss and work twelve hours a day.", author: "Robert Frost" },
+      { text: "The trouble with having an open mind, of course, is that people will insist on coming along and trying to put things in it.", author: "Terry Pratchett" },
+      { text: "I have not failed. I've just found 10,000 ways that won't work.", author: "Thomas Edison" },
+      { text: "A clear conscience is a sure sign of a bad memory.", author: "Mark Twain" }
+    ];
+    const rq = dailyQuotes[Math.floor(Math.random() * dailyQuotes.length)];
+    document.getElementById('quoteText').textContent = '"' + rq.text + '"';
+    document.getElementById('quoteAuthor').textContent = '— ' + rq.author;
     
     // --- Push Notifications ---
     async function setupPushNotifications() {
@@ -474,14 +524,13 @@
       }
     }
 
-    // Show notification bell if push is supported but not yet subscribed
     async function initNotifButton() {
       if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
       if (Notification.permission === 'granted') {
         const reg = await navigator.serviceWorker.getRegistration('/sw.js');
         if (reg) {
           const existing = await reg.pushManager.getSubscription();
-          if (existing) return; // already subscribed, keep hidden
+          if (existing) return; 
         }
       }
       const btn = document.getElementById('notifBtn');

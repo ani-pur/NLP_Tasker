@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <title>TASKER // CONCEPT C — GLASS</title>
+  <title>Dashboard | Tasker.</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
@@ -24,8 +24,10 @@
       color: var(--fg);
       font-family: 'Sora', sans-serif;
       font-size: 14px;
-      min-height: 100vh;
-      overflow-x: hidden;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
 
     /* ── Gradient mesh background ── */
@@ -74,8 +76,7 @@
 
     /* ── Header ── */
     header {
-      position: sticky;
-      top: 0;
+      flex-shrink: 0;
       z-index: 50;
       padding: 16px 32px;
       display: flex;
@@ -126,6 +127,7 @@
 
     /* ── Layout ── */
     main {
+      width: 100%;
       max-width: 1200px;
       margin: 0 auto;
       padding: 36px 32px;
@@ -134,11 +136,39 @@
       gap: 32px;
       position: relative;
       z-index: 1;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
     }
 
     @media (max-width: 768px) {
       main { grid-template-columns: 1fr; padding: 20px 16px; }
     }
+
+    @media (max-width: 768px) {
+      body {
+        height: auto;
+        overflow: auto;
+      }
+      main {
+        overflow: visible;
+      }
+    }
+
+    .task-section {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    #taskList {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding-right: 6px;
+      scrollbar-width: none;
+}
+    #taskList::-webkit-scrollbar { display: none; }
 
     /* ── Section header ── */
     .section-header {
@@ -168,7 +198,7 @@
 
     .clock-display {
       font-family: 'IBM Plex Mono', monospace;
-      font-size: 11px;
+      font-size: 17px;
       color: var(--muted);
       text-align: right;
       line-height: 1.6;
@@ -182,8 +212,8 @@
       backdrop-filter: blur(20px) saturate(150%);
       border: 1px solid var(--border);
       border-radius: 16px;
-      padding: 18px 20px;
-      margin-bottom: 12px;
+      padding: 12px 20px;
+      margin-bottom: 10px;
       transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
       position: relative;
       overflow: hidden;
@@ -234,15 +264,15 @@
       color: var(--muted);
       font-size: 12.5px;
       line-height: 1.6;
-      margin-top: 6px;
+      margin-top: 4px;
       padding-left: 12px;
     }
 
     .task-footer {
       display: flex;
-      justify-content: space-between;
+      justify-content: flex-end;
       align-items: center;
-      margin-top: 12px;
+      margin-top: 6px;
       padding-left: 12px;
     }
 
@@ -324,8 +354,7 @@
 
     /* ── Input panel ── */
     .input-panel {
-      position: sticky;
-      top: 80px;
+      overflow-y: auto;
     }
 
     .input-card {
@@ -436,6 +465,13 @@
       letter-spacing: 1px;
       margin-top: 2px;
     }
+
+    /* ── Dropdown readability ── */
+    select option {
+      background: #0c0c10;
+      color: #e4e4e7;
+      -webkit-text-fill-color: #e4e4e7;
+    }
   </style>
 </head>
 <body>
@@ -447,18 +483,16 @@
   </div>
 
   <header>
-    <div class="logo">tasker.</div>
+    <div class="logo" style="position:relative;display:inline-block;">
+      <select onchange="if(this.value)window.location=this.value" style="appearance:none;-webkit-appearance:none;background:transparent;border:none;font-size:22px;font-weight:800;letter-spacing:-0.5px;background:linear-gradient(135deg,#818cf8,#c084fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;cursor:pointer;padding-right:22px;outline:none;">
+        <option value="" selected>tasker.</option>
+        <option value="/switch/3">Default</option>
+        <option value="/switch/5">Editorial</option>
+      </select>
+      <svg style="position:absolute;right:2px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--accent);" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+    </div>
     <div class="nav-links">
       <span class="user-chip">{{ username }}</span>
-      <select onchange="if(this.value)window.location=this.value" style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:5px 12px;cursor:pointer;">
-        <option value="" selected>Theme: Glass</option>
-        <option value="/switch/3">Default</option>
-        <option value="/switch/2">OG (Retired)</option>
-        <option value="/switch/4">Brutalist</option>
-        <option value="/switch/5">Editorial</option>
-        <option value="/switch/7">Terminal</option>
-        <option value="/switch/8">Midnight</option>
-      </select>
       <a href="{{ url_for('logout') }}" class="exit">Exit</a>
     </div>
   </header>
@@ -605,7 +639,7 @@
       document.getElementById('statTotal').textContent = tasks.length;
 
       if (tasks.length === 0) {
-        list.innerHTML = `<div style="text-align:center;padding:60px 0;color:var(--muted);font-size:13px;">No tasks yet.</div>`;
+        list.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 0;"><span style="font-size:48px;font-weight:800;color:var(--muted);opacity:0.15;">0</span><span style="font-family:IBM Plex Mono,monospace;font-size:11px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:4px;">No tasks</span></div>';
         return;
       }
 
@@ -620,13 +654,13 @@
           <div class="color-bar" style="background:${color};"></div>
           <div class="task-header">
             <div class="task-name" style="color:${color};">${task_name}</div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              ${reminder_display ? `<span class="reminder-badge">🔔 ${reminder_display}</span>` : ''}
+              <span class="time-pill${isPast ? ' overdue' : ''}">${dueDateDisplay}${task_time ? ' · ' + task_time : ''}</span>
+            </div>
           </div>
           <div class="task-desc">${task_description}</div>
           <div class="task-footer">
-            <div style="display:flex;align-items:center;gap:6px;">
-              <span class="time-pill${isPast ? ' overdue' : ''}">${dueDateDisplay}${task_time ? ' · ' + task_time : ''}</span>
-              ${reminder_display ? `<span class="reminder-badge">🔔 ${reminder_display}</span>` : ''}
-            </div>
             <button class="delete-btn" onclick="deleteTask(${id})">delete</button>
           </div>
         `;
