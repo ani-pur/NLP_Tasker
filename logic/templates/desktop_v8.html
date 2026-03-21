@@ -40,7 +40,7 @@
 
     .section-head { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:24px; }
     .section-head h2 { font-size:24px; font-weight:800; letter-spacing:-0.5px; }
-    .clock { font-family:'Azeret Mono',monospace; font-size:11px; color:var(--muted); text-align:right; }
+    .clock { font-family:'Azeret Mono',monospace; font-size:17px; color:var(--muted); text-align:right; }
     .clock .accent { color:#818cf8; }
 
     /* ── Gradient border cards ── */
@@ -119,6 +119,12 @@
     .color-tag.active { border-color:rgba(255,255,255,0.6); transform:scale(1.1); }
 
     .empty-state { text-align:center; padding:60px 0; color:var(--muted); font-size:13px; }
+
+    /* ── Dropdown readability ── */
+    select option {
+      background: #18181b;
+      color: #fafafa;
+    }
   </style>
 </head>
 <body>
