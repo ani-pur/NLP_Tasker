@@ -212,8 +212,8 @@
       backdrop-filter: blur(20px) saturate(150%);
       border: 1px solid var(--border);
       border-radius: 16px;
-      padding: 18px 20px;
-      margin-bottom: 12px;
+      padding: 12px 20px;
+      margin-bottom: 10px;
       transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
       position: relative;
       overflow: hidden;
@@ -264,15 +264,15 @@
       color: var(--muted);
       font-size: 12.5px;
       line-height: 1.6;
-      margin-top: 6px;
+      margin-top: 4px;
       padding-left: 12px;
     }
 
     .task-footer {
       display: flex;
-      justify-content: space-between;
+      justify-content: flex-end;
       align-items: center;
-      margin-top: 12px;
+      margin-top: 6px;
       padding-left: 12px;
     }
 
@@ -654,13 +654,13 @@
           <div class="color-bar" style="background:${color};"></div>
           <div class="task-header">
             <div class="task-name" style="color:${color};">${task_name}</div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              ${reminder_display ? `<span class="reminder-badge">🔔 ${reminder_display}</span>` : ''}
+              <span class="time-pill${isPast ? ' overdue' : ''}">${dueDateDisplay}${task_time ? ' · ' + task_time : ''}</span>
+            </div>
           </div>
           <div class="task-desc">${task_description}</div>
           <div class="task-footer">
-            <div style="display:flex;align-items:center;gap:6px;">
-              <span class="time-pill${isPast ? ' overdue' : ''}">${dueDateDisplay}${task_time ? ' · ' + task_time : ''}</span>
-              ${reminder_display ? `<span class="reminder-badge">🔔 ${reminder_display}</span>` : ''}
-            </div>
             <button class="delete-btn" onclick="deleteTask(${id})">delete</button>
           </div>
         `;
