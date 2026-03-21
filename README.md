@@ -3,14 +3,14 @@ Author: Anirudh Purohit
 ## NEW:
 - MOBILE PUSH NOTIFICATIONS! Look for the little bell icon on the tasker mobile app! (Installation instructions below)
 
-Never let a deadline sneak up on you. Tasker's got a 3 hour reminder baked in for every single task, and if you want to fine tune it, just say "remind me X mins/hours before", "remind me in X mins/hours" for a reminder relative to right now, or "remind me at X:XXam/pm" for an exact time.
+Never let a deadline sneak up on you. Tasker's got a 3 hour reminder baked in for every single task, and if you want a custom one on top, just say "remind me X mins/hours before", "remind me *in* X mins/hours" for a reminder relative to right now, or "remind me *at* X:XXam/pm" for an exact time within 24h of deadline.
 
 ### Coming soon: 
 - edit button to edit tasks lol
 - sorting options (currently sorts earliest - latest due)
 
 ### Known bugs:
-- ~~Tasks on the same day may be sorted wrong on the dashboard~~ fixed january 17th
+- Notifications are buggy for some desktop browsers (working well on chromium
 
 ## What is Tasker?
 
@@ -33,6 +33,14 @@ Step 3: Enable 'open as web app' (on ios) / agree to install prompt (on android)
 
 ✅
 
- 
+## Screenshots: 
+### (NEW) Editorial theme:
+Has a few funny quotes that change on each page load:
+<img width="1920" height="723" alt="image" src="https://github.com/user-attachments/assets/9aa9c4bc-2576-48b8-8c89-32ca3ab91bae" />
+
+### (NEW) Glass theme:
+<img width="1920" height="723" alt="image" src="https://github.com/user-attachments/assets/0b59594b-d848-414c-9111-02d4e5d206ed" />
+
+And more! Sign up to have a look :)
 
 
