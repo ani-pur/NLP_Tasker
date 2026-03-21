@@ -197,6 +197,13 @@
       transform: translateY(-2px);
     }
 
+    .task-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      gap: 12px;
+    }
+
     .task-card .accent-dot {
       width: 8px;
       height: 8px;
@@ -226,7 +233,7 @@
 
     .task-footer {
       display: flex;
-      justify-content: space-between;
+      justify-content: flex-end;
       align-items: center;
       margin-top: 14px;
       margin-left: 18px;
@@ -428,10 +435,7 @@
       <select onchange="if(this.value)window.location=this.value" style="appearance:none;-webkit-appearance:none;background:transparent;border:none;font-family:'Fraunces',serif;font-size:24px;font-weight:900;letter-spacing:-0.5px;color:var(--fg);cursor:pointer;padding-right:22px;outline:none;">
         <option value="" selected>Tasker.</option>
         <option value="/switch/3">Default</option>
-        <option value="/switch/4">Brutalist</option>
         <option value="/switch/6">Glass</option>
-        <option value="/switch/7">Terminal</option>
-        <option value="/switch/8">Midnight</option>
       </select>
       <svg style="position:absolute;right:2px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--accent);" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
     </div>
@@ -601,16 +605,18 @@
         const card = document.createElement('div');
         card.className = 'task-card';
         card.innerHTML = `
-          <div>
-            <span class="accent-dot" style="background:${color};"></span>
-            <span class="task-name">${task_name}</span>
+          <div class="task-header">
+            <div>
+              <span class="accent-dot" style="background:${color};"></span>
+              <span class="task-name">${task_name}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              ${reminder_display ? `<span class="reminder-pill">🔔 ${reminder_display}</span>` : ''}
+              <span class="task-date-pill${isPast ? ' overdue' : ''}">${dueDateDisplay}${task_time ? ' · ' + task_time : ''}</span>
+            </div>
           </div>
           <div class="task-desc">${task_description}</div>
           <div class="task-footer">
-            <div style="display:flex;align-items:center;gap:6px;">
-              <span class="task-date-pill${isPast ? ' overdue' : ''}">${dueDateDisplay}${task_time ? ' · ' + task_time : ''}</span>
-              ${reminder_display ? `<span class="reminder-pill">🔔 ${reminder_display}</span>` : ''}
-            </div>
             <button class="delete-btn" onclick="deleteTask(${id})">Remove</button>
           </div>
         `;
