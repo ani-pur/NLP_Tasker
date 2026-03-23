@@ -27,7 +27,7 @@ Instructions:
 - Extract ONLY these fields from the user input as a pretty JSON object:
 
     1. task_name [required]: Paraphrase a short task title from user input.
-    2. task_time [optional]: 12-hour format without seconds (e.g., "4:32 PM"). If input uses relative phrases (e.g., "in 2 hours"), calculate the specific time using the provided user metadata. "Midnight" ALWAYS resolves to 11:59pm, "Evening" resolves to 6:00pm, "Morning" resolves to 8:00am. Else, null.
+    2. task_time [optional]: 12-hour format without seconds (e.g., "4:32 PM"). If input uses relative phrases (e.g., "in 2 hours"), calculate the specific time using the provided user metadata. "Midnight" resolves to 11:59pm, "Evening" resolves to 6:00pm, "Noon" resolves to 12:00pm, "Morning" resolves to 8:00am. Else, null.
     3. task_description: Preserve ALL detail and instructions from user input, only removing: due date phrases.
     4. due_date [required]: Always resolve to an absolute date. If input has relative date ("in X hours", "tomorrow"), use the appended metadata (provided below) to calculate. Format: 'DD Mon YYYY' (e.g., "01 Jul 2025").
 
