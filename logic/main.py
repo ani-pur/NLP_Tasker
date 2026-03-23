@@ -10,6 +10,7 @@ import subprocess
 import sys
 import json
 import urllib.request
+import re
 
 
 app = Flask(__name__)
@@ -316,6 +317,18 @@ def handle_tasks():
         notif_time_offset = task_data.get('notif_time_offset', 0)
         notif_absolute_time = task_data.get('notif_absolute_time')
         reminder_display = task_data.get('reminder_display')
+
+        # if frontend parsed a reminder, strip that phrase before hitting the NLP API
+        if reminder_display:
+            cleaned = re.sub(
+                r'(?:,\s*)?(?:remind|notify|alert)\s+(?:me\s+)?(?:in\s+)?\d+\s*(?:m|min|mins|minute|minutes|h|hr|hrs|hour|hours)\b',
+                '', task_data['task_description'], flags=re.IGNORECASE
+            )
+            cleaned = re.sub(
+                r'(?:,\s*)?(?:remind|notify|alert)\s+(?:me\s+)?at\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)\b',
+                '', cleaned, flags=re.IGNORECASE
+            )
+            task_data['task_description'] = cleaned.strip()
 
         # api call, response JSON from api call to be passed to tasks module
         apiResponse = api.postRequest(username, task_data)
