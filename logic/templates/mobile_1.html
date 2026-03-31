@@ -167,6 +167,18 @@
       return '#FFFFFF';
     }
 
+    function cleanDescription(text, reminder, color) {
+      let cleaned = text;
+      if (reminder && reminder.display) {
+        cleaned = cleaned.replace(/(?:,\s*)?(?:remind|notify|alert)\s+(?:me\s+)?(?:in\s+)?\d+\s*(?:m|min|mins|minute|minutes|h|hr|hrs|hour|hours)\b/gi, '');
+        cleaned = cleaned.replace(/(?:,\s*)?(?:remind|notify|alert)\s+(?:me\s+)?at\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)\b/gi, '');
+      }
+      if (color && color !== '#FFFFFF') {
+        cleaned = cleaned.replace(/\b(blue|red|green|pink|orange|purple|yellow)\b/gi, '');
+      }
+      return cleaned.replace(/,\s*,/g, ',').replace(/\s{2,}/g, ' ').replace(/^[,\s]+|[,\s]+$/g, '').trim();
+    }
+
     function parseReminder(text) {
       const t = text.toLowerCase();
       // relative: "remind me 30 min before", "notify 2 hours prior"
@@ -380,13 +392,15 @@
       if (desc.length < 10 || desc.length > 200) return alert('Task description must be 10–200 characters');
 
       const reminder = parseReminder(desc);
+      const color = extractColor(desc);
+      const cleanedDesc = cleanDescription(desc, reminder, color);
       const res = await fetch('/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          task_description: desc,
+          task_description: cleanedDesc,
           user_tz_metadata: buildUserTzMetadata(),
-          color: extractColor(desc),
+          color: color,
           notif_time_offset: reminder.offsetHours,
           notif_absolute_time: reminder.absoluteTime,
           reminder_display: reminder.display
