@@ -52,7 +52,7 @@ def warmupCall():
     try:
         # Pass timeout=5.0 (seconds) directly to the request
         emptyResponse = client.responses.create(
-            model="gpt-4.1-mini-2025-04-14",
+            model="gpt-5.4-nano-2026-03-17",
             instructions="warmup ping to handle cold-start latency, respond with 'warmed up'",
             input=" ",
             timeout=5.0 
@@ -113,15 +113,15 @@ def postRequest(username: str, userInput: dict) -> str:
     # print("\n [DEBUG] USER_TZ_METADATA: ",str(userTzData),'\n')
     response = client.responses.create(
 
-            model="gpt-4.1-mini-2025-04-14",
+            model="gpt-5.4-nano-2026-03-17",
 
             instructions=dedent(sysPrompt),
 
             input= stringInput + " \n [USER TIMEZONE METADATA] \n" + str(userTzData),
 
-            #text={ "verbosity": "low" },
+            text={ "verbosity": "low" },
             
-           # reasoning={ "effort": "minimal" }
+            reasoning={ "effort": "none" }
             
     )
 
