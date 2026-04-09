@@ -10,7 +10,7 @@ Never let a deadline sneak up on you. Tasker's got a 3 hour reminder baked in fo
 - sorting options (currently sorts earliest - latest due)
 
 ### Known bugs:
-- Notifications are buggy for some desktop browsers (working well on chromium
+- Notifications are broken for desktop browsers using WNS 
 
 ## What is Tasker?
 
