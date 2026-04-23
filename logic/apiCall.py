@@ -198,15 +198,14 @@ def _call_gemini(system_prompt: str, user_input: str) -> str:
     response = gemini_client.models.generate_content(
         model="gemini-3-flash-preview",
         contents=user_input,
-        config=types.GenerateContentConfig(
-            system_instruction=system_prompt,
-            temperature=0.1,
-            thinking_config=types.ThinkingConfig(
-                thinking_level=types.ThinkingLevel.MINIMAL
-            )
-        )
+        config={
+            "system_instruction": system_prompt,
+            "temperature": 0.1,
+            "thinking_config": {
+                "thinking_level": "minimal"
+            }
+        }
     )
-    
     return response.text
 
 
