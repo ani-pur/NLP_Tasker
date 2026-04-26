@@ -9,6 +9,8 @@ import os
 import threading
 import tempfile
 import fcntl
+import json
+import urllib.request
 
 def currentTime():
     # returns current local time formatted for logs as: [HH:MM:SS AM/PM]
@@ -29,9 +31,18 @@ LOG_PAD = "\t\t"        # to pad logs so they're actually readable lol
 
 # --- vendor hotswap state (file-based so all workers/threads share it) ---
 _VENDOR_FILE = "/tmp/nlp_tasker_vendor"
-_SLOW_COUNT_FILE = "/tmp/nlp_tasker_slow_count"
+_STREAKS_FILE = "/tmp/nlp_tasker_streaks"   # holds "slow,fast" — two counters in one file, written atomically under the same lock
+_LATE_WARMUP_LOG = "/tmp/nlp_tasker_late_warmups.log"
 _SLOW_THRESHOLD = 3.0       # seconds — warmup latency above this counts as "slow"
-_SWAP_AFTER = 5             # consecutive slow pings before flipping vendor
+_SWAP_AFTER = 3             # consecutive slow pings on the active vendor before flipping
+_WIPE_AFTER = 3             # consecutive fast pings before erasing an in-progress slow streak
+# Dual-streak intent:
+#   - slow streak hits _SWAP_AFTER  -> flip vendor, reset both streaks.
+#   - fast streak hits _WIPE_AFTER  -> wipe an unfinished slow streak (treat vendor as recovered).
+# Why two counters instead of "reset slow on any fast": one fluky fast ping shouldn't erase
+# 2 legitimate slow pings of evidence — recovery has to be sustained too.
+# Cadence note: 4 gunicorn workers share these counters under one fcntl lock, so streaks
+# accumulate across workers (effective sample interval ~30s, not 120s per worker).
 
 
 def _get_active_vendor() -> str:
@@ -43,25 +54,48 @@ def _get_active_vendor() -> str:
 
 
 def _set_active_vendor(vendor: str):
+    # atomic write: mkstemp + rename guarantees readers in other workers
+    # never see a half-written file (rename is atomic on the same filesystem).
     fd, tmp = tempfile.mkstemp(dir="/tmp")
     with os.fdopen(fd, "w") as f:
         f.write(vendor)
     os.rename(tmp, _VENDOR_FILE)
 
 
-def _get_slow_count() -> int:
+def _get_streaks() -> tuple[int, int]:
+    # returns (slow_streak, fast_streak). Missing/corrupt file => fresh slate.
     try:
-        with open(_SLOW_COUNT_FILE, "r") as f:
-            return int(f.read().strip())
+        with open(_STREAKS_FILE, "r") as f:
+            slow, fast = f.read().strip().split(",")
+            return int(slow), int(fast)
     except (FileNotFoundError, ValueError):
-        return 0
+        return 0, 0
 
 
-def _set_slow_count(n: int):
+def _discord_swap_ping(old: str, new: str, pid: int):
+    # fire-and-forget notification on vendor swap. daemon thread + 5s timeout so it can't
+    # hang the warmup loop or pile up if discord is unreachable. mirrors discord_ping in main.py.
+    def _send():
+        url = os.environ.get("DISCORD_WEBHOOK_URL")
+        if not url:
+            return
+        payload = json.dumps({"content": f"[VENDOR SWAP] {old.upper()} -> {new.upper()} (pid {pid})"}).encode("utf-8")
+        headers = {"Content-Type": "application/json", "User-Agent": "TaskerApp/1.0"}
+        req = urllib.request.Request(url, data=payload, headers=headers)
+        try:
+            urllib.request.urlopen(req, timeout=5)
+        except Exception as e:
+            print(f"{currentTime()} [PID {pid}] swap webhook failed: {e}")
+
+    threading.Thread(target=_send, daemon=True).start()
+
+
+def _set_streaks(slow: int, fast: int):
+    # atomic write so concurrent readers in other workers never see a torn "slow,fa" state
     fd, tmp = tempfile.mkstemp(dir="/tmp")
     with os.fdopen(fd, "w") as f:
-        f.write(str(n))
-    os.rename(tmp, _SLOW_COUNT_FILE)
+        f.write(f"{slow},{fast}")
+    os.rename(tmp, _STREAKS_FILE)
 
 
 sysPrompt="""You are an information extraction engine. Understand all instructions thoroughly.
@@ -129,25 +163,51 @@ def warmupCall():
     # --- check active vendor's latency, decide if we need to swap ---
     active_latency = openai_latency if active == "openai" else gemini_latency
 
-    # file lock on slow count for exact swap-at-threshold across workers
-    lock_fd = os.open(_SLOW_COUNT_FILE + ".lock", os.O_CREAT | os.O_RDWR)
+    # vendor-agnostic file log: any cycle where EITHER vendor pinged slow gets a line.
+    # decoupled from stdout/swap logic so we can monitor the inactive vendor's health too
+    # (otherwise a swap to gemini hides openai latency from view entirely).
+    openai_late = openai_latency >= _SLOW_THRESHOLD
+    gemini_late = gemini_latency >= _SLOW_THRESHOLD
+    if openai_late or gemini_late:
+        line = (f"{currentTime()} [PID {pid}] active={active} "
+                f"openai={openai_latency:.2f}s {'LATE' if openai_late else 'ok'} "
+                f"gemini={gemini_latency:.2f}s {'LATE' if gemini_late else 'ok'}\n")
+        try:
+            # O_APPEND writes are atomic on Linux for small payloads, safe across all gunicorn workers
+            fd = os.open(_LATE_WARMUP_LOG, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644)
+            os.write(fd, line.encode())
+            os.close(fd)
+        except Exception as log_err:
+            print(f"{currentTime()} [PID {pid}] failed writing late warmup log: {log_err}")
+
+    # Single fcntl lock guards the whole read-modify-write of the streaks file so 4 workers
+    # can't race and undercount/overcount toward the swap threshold.
+    lock_fd = os.open(_STREAKS_FILE + ".lock", os.O_CREAT | os.O_RDWR)
     try:
         fcntl.flock(lock_fd, fcntl.LOCK_EX)
-        count = _get_slow_count()
+        slow_streak, fast_streak = _get_streaks()
 
         if active_latency >= _SLOW_THRESHOLD:
-            count += 1
-            _set_slow_count(count)
-            print(f"{currentTime()} [PID {pid}] LATE WARMUP [{active}]: {active_latency:.2f}s (consecutive: {count}/{_SWAP_AFTER})")
+            # active vendor is slow: build slow streak, reset fast streak (fast recovery is broken).
+            slow_streak += 1
+            fast_streak = 0
+            _set_streaks(slow_streak, fast_streak)
+            print(f"{currentTime()} [PID {pid}] LATE WARMUP [{active}]: {active_latency:.2f}s (consecutive: {slow_streak}/{_SWAP_AFTER})")
 
-            if count >= _SWAP_AFTER:
+            if slow_streak >= _SWAP_AFTER:
                 new_vendor = "gemini" if active == "openai" else "openai"
                 _set_active_vendor(new_vendor)
-                _set_slow_count(0)
+                _set_streaks(0, 0)   # fresh slate for the new active vendor
                 print(f"{currentTime()} [PID {pid}] *** SWAPPED TO {new_vendor.upper()} ***")
+                _discord_swap_ping(active, new_vendor, pid)
         else:
-            if count > 0:
-                _set_slow_count(0)
+            # active vendor is fast. Build the fast streak; only wipe the slow streak once
+            # we've seen _WIPE_AFTER consecutive fast pings — one fluky fast ping is not
+            # enough to erase real slow evidence.
+            fast_streak += 1
+            if fast_streak >= _WIPE_AFTER and slow_streak > 0:
+                slow_streak = 0
+            _set_streaks(slow_streak, fast_streak)
     finally:
         fcntl.flock(lock_fd, fcntl.LOCK_UN)
         os.close(lock_fd)
