@@ -126,9 +126,6 @@ def warmupCall():
         gemini_latency = 5.0
         print(f"{currentTime()} [PID {pid}] GEMINI WARMUP FAILED: {e}")
 
-    # --- log both ---
-    print(f"{currentTime()} [PID {pid}] WARMUP openai={openai_latency:.2f}s  gemini={gemini_latency:.2f}s  active={active}")
-
     # --- check active vendor's latency, decide if we need to swap ---
     active_latency = openai_latency if active == "openai" else gemini_latency
 
@@ -234,9 +231,5 @@ def postRequest(username: str, userInput: dict) -> str:
         else:
             result = _call_gemini(sysPrompt, full_input)
         vendor = fallback
-
-    end_time=time.time()
-    internalClock = end_time-start_time
-    print(currentTime(), username, f'api RESPONSE [{vendor}]:', internalClock)
 
     return result
