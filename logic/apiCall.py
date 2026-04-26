@@ -232,4 +232,7 @@ def postRequest(username: str, userInput: dict) -> str:
             result = _call_gemini(sysPrompt, full_input)
         vendor = fallback
 
+    internalClock = time.time() - start_time
+    print(currentTime(), username, f'api RESPONSE [{vendor}]:', internalClock)
+
     return result
