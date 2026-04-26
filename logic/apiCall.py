@@ -236,8 +236,10 @@ def keep_warm_loop():
 
 # When Gunicorn forks a worker, it imports this file
 # Each worker fires warmup call and hopefully all children threads per worker can share the warm socket, unless I am understanding ts horribly wrong
-warmup_thread = threading.Thread(target=keep_warm_loop, daemon=True)
-warmup_thread.start()
+# Guard: don't start the warmup loop when this file is run as a CLI (vendorMenu) — would needlessly ping vendors for the menu's lifetime.
+if __name__ != "__main__":
+    warmup_thread = threading.Thread(target=keep_warm_loop, daemon=True)
+    warmup_thread.start()
 
 
 def _call_openai(system_prompt: str, user_input: str) -> str:
@@ -296,3 +298,63 @@ def postRequest(username: str, userInput: dict) -> str:
     print(currentTime(), username, f'api RESPONSE [{vendor}]:', internalClock)
 
     return result
+
+
+# CLI: hot-swap vendor / reset streaks from inside the container.
+# Usage: docker exec -it tasker_testing python3 logic/apiCall.py
+# Uses the same fcntl lock as warmupCall so a CLI write can't race a live warmup cycle.
+def _cli_set_vendor(new_vendor: str):
+    lock_fd = os.open(_STREAKS_FILE + ".lock", os.O_CREAT | os.O_RDWR)
+    try:
+        fcntl.flock(lock_fd, fcntl.LOCK_EX)
+        _set_active_vendor(new_vendor)
+        _set_streaks(0, 0)   # reset both streaks so the new active vendor starts clean
+    finally:
+        fcntl.flock(lock_fd, fcntl.LOCK_UN)
+        os.close(lock_fd)
+    print(f"vendor -> {new_vendor}, streaks reset to 0,0")
+
+
+def _cli_reset_streaks():
+    lock_fd = os.open(_STREAKS_FILE + ".lock", os.O_CREAT | os.O_RDWR)
+    try:
+        fcntl.flock(lock_fd, fcntl.LOCK_EX)
+        _set_streaks(0, 0)
+    finally:
+        fcntl.flock(lock_fd, fcntl.LOCK_UN)
+        os.close(lock_fd)
+    print("streaks reset to 0,0 (vendor unchanged)")
+
+
+def vendorMenu():
+    while True:
+        print("\n vendor / streak controls:")
+        print("\t 1. show current state")
+        print("\t 2. swap to openai (resets streaks)")
+        print("\t 3. swap to gemini (resets streaks)")
+        print("\t 4. reset streaks only")
+        print("\t 5. exit")
+        try:
+            choice = int(input("choice: "))
+        except (ValueError, EOFError):
+            print("invalid input")
+            continue
+
+        if choice == 1:
+            slow, fast = _get_streaks()
+            print(f"  vendor:  {_get_active_vendor()}")
+            print(f"  streaks: slow={slow} fast={fast}")
+        elif choice == 2:
+            _cli_set_vendor("openai")
+        elif choice == 3:
+            _cli_set_vendor("gemini")
+        elif choice == 4:
+            _cli_reset_streaks()
+        elif choice == 5:
+            break
+        else:
+            print("invalid choice")
+
+
+if __name__ == "__main__":
+    vendorMenu()
