@@ -1408,11 +1408,23 @@
                             setTimeout(() => last.remove(), 320);
                             break;
                         }
-                        const count = Array.from(list.children).filter(c => !c.classList.contains('exiting')).length;
+                        
+                        // Increment stat cards
                         const activeEl = d.querySelector('[data-stat="active"]');
                         const totalEl = d.querySelector('[data-stat="total"]');
-                        if (activeEl) activeEl.textContent = count;
-                        if (totalEl) totalEl.textContent = count;
+                        if (activeEl) activeEl.textContent = parseInt(activeEl.textContent || "0") + 1;
+                        if (totalEl) totalEl.textContent = parseInt(totalEl.textContent || "0") + 1;
+
+                        // Increment glass badge
+                        const badgeEl = d.querySelector('.title-badge');
+                        if (badgeEl) badgeEl.textContent = parseInt(badgeEl.textContent || "0") + 1;
+
+                        // Increment editorial subcount
+                        const subcountEl = d.querySelector('.dash-subcount');
+                        if (subcountEl) {
+                            const val = parseInt(subcountEl.textContent || "0");
+                            subcountEl.textContent = (val + 1) + ' active';
+                        }
                     });
                     await sleep(2200);
                     await eraseString();
