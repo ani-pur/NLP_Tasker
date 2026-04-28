@@ -1,2 +1,6 @@
-
+*.md
 *.json
+*.yml
+*.yaml
+.claude
+
