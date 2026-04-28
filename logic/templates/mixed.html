@@ -607,7 +607,7 @@
                         <div class="dash-list-col">
                             <div class="dash-list-head">
                                 <div class="dash-title">Your Tasks</div>
-                                <div class="dash-clock">MON, APR 27 · 10:12 PM</div>
+                                <div class="dash-clock">TUE, APR 28 · 10:12 PM</div>
                             </div>
                             <div class="dash-cards" data-list>
                                 <article class="dash-card" data-color="blue">
@@ -659,7 +659,7 @@
                         <div class="dash-list-col">
                             <div class="dash-list-head">
                                 <div class="dash-title">tasks <em class="title-badge">10</em></div>
-                                <div class="dash-clock">MON, APR 27<br>10:12 PM</div>
+                                <div class="dash-clock">TUE, APR 28<br>10:12 PM</div>
                             </div>
                             <div class="dash-cards" data-list>
                                 <article class="dash-card" data-color="blue">
@@ -686,7 +686,7 @@
                         <div class="dash-side-col">
                             <div class="dash-panel">
                                 <h3 class="dash-panel-title">New Task</h3>
-                                <p class="dash-panel-sub">Just type. Dates, times, colors — extracted automatically.</p>
+                                <p class="dash-panel-sub">Just type. Dates, times, colors, all extracted automatically.</p>
                                 <div class="dash-input-wrap">
                                     <div class="dash-input empty" data-input><span data-typed></span><span class="caret">|</span></div>
                                     <span class="dash-counter"><span data-count>0</span>/200</span>
@@ -716,7 +716,7 @@
                         <div class="dash-list-col">
                             <div class="dash-list-head">
                                 <div class="dash-title">Your Tasks<span class="dash-subcount">8 active</span></div>
-                                <div class="dash-clock">Monday, Apr 27<span class="clock-time">10:12 PM</span></div>
+                                <div class="dash-clock">Tuesday, Apr 28<span class="clock-time">10:12 PM</span></div>
                             </div>
                             <div class="dash-cards" data-list>
                                 <article class="dash-card" data-color="blue">
@@ -753,7 +753,7 @@
                             </div>
                             <div class="dash-quote">
                                 <p>"It works on my machine. Ship my machine."</p>
-                                <span>— Every Developer</span>
+                                <span>~ Every Developer</span>
                             </div>
                         </div>
                     </div>
@@ -785,7 +785,6 @@
             const pills = document.querySelectorAll('.theme-pills .pill');
             const themes = ['default', 'glass', 'editorial'];
             let userInteracted = false;
-            let cycleTimer = null;
             let active = 'default';
 
             function setActive(name) {
@@ -802,25 +801,16 @@
                 setActive(p.dataset.pill);
             }));
 
-            function startAutoCycle() {
-                if (cycleTimer) return;
-                cycleTimer = setInterval(() => {
-                    if (userInteracted) return;
-                    const idx = (themes.indexOf(active) + 1) % themes.length;
-                    setActive(themes[idx]);
-                }, 12000);
-            }
-
             setActive('default');
-            startAutoCycle();
 
             // ---------------- typewriter ----------------
             const examples = [
-                { text: "submit homework 6 by tomorrow 5pm, remind me 3 hours earlier", title: "Submit homework 6",  desc: "submit homework 6", color: null,     date: "Tue, 28 Apr · 05:00 PM" },
-                { text: "gym next monday 7am legs, blue",                               title: "Leg day at the gym", desc: "gym legs",          color: "blue",   date: "Mon, 04 May · 07:00 AM" },
-                { text: "doctor appointment tuesday 8am, red, remind 1 hour before",   title: "Doctor appointment", desc: "doctor appointment",color: "red",    date: "Tue, 28 Apr · 08:00 AM" },
-                { text: "fix prod bug before standup, green",                          title: "Fix the prod bug",   desc: "fix prod bug",      color: "green",  date: "Tue, 28 Apr · 09:00 AM" },
-                { text: "call mom this sunday 6pm, purple, remind me 30 min earlier",  title: "Call mom",           desc: "call mom",          color: "purple", date: "Sun, 03 May · 06:00 PM" },
+                { text: "gym next monday 7am legs, focus on squats and deadlifts, blue, remind 30 min before",        title: "Leg day at the gym", desc: "gym legs, focus on squats and deadlifts",         color: "blue",   date: "Mon, 04 May · 07:00 AM" },
+                { text: "groceries tomorrow morning at the store, yellow, milk eggs chicken rice and bread",          title: "Grocery run",        desc: "groceries at the store, milk eggs chicken rice and bread", color: "yellow", date: "Wed, 29 Apr · 08:00 AM" },
+                { text: "doctor appointment next tuesday 9am for annual physical and bloodwork, red, remind me 1 hour before", title: "Doctor appointment", desc: "doctor appointment for annual physical and bloodwork", color: "red",    date: "Tue, 05 May · 09:00 AM" },
+                { text: "submit final project deliverables by friday evening on canvas, orange",                       title: "Submit project",     desc: "submit final project deliverables on canvas",     color: "orange", date: "Fri, 01 May · 06:00 PM" },
+                { text: "call mom tomorrow at noon to confirm thanksgiving plans, pink, remind at 11:45am",            title: "Call mom",           desc: "call mom to confirm thanksgiving plans",          color: "pink",   date: "Wed, 29 Apr · 12:00 PM" },
+                { text: "read 20 pages of crime and punishment tonight before bed, purple",                            title: "Tonight's reading",  desc: "read 20 pages of crime and punishment before bed",color: "purple", date: "Tue, 28 Apr · 11:59 PM" },
             ];
 
             const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -967,6 +957,14 @@
                     await eraseString();
                     await sleep(350);
                     i++;
+
+                    // every 2 examples, advance theme (unless user picked one)
+                    if (i % 2 === 0 && !userInteracted) {
+                        await sleep(700);
+                        const idx = (themes.indexOf(active) + 1) % themes.length;
+                        setActive(themes[idx]);
+                        await sleep(800);
+                    }
                 }
             }
             setTimeout(loop, 800);
