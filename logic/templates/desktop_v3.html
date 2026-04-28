@@ -130,7 +130,7 @@
     function cleanDescription(text, reminder, color) {
       let cleaned = text;
       if (reminder && reminder.display) {
-        cleaned = cleaned.replace(/(?:,\s*)?(?:remind|notify|alert)\s+(?:me\s+)?(?:in\s+)?\d+\s*(?:m|min|mins|minute|minutes|h|hr|hrs|hour|hours)\b/gi, '');
+        cleaned = cleaned.replace(/(?:,\s*)?(?:remind|notify|alert)\s+(?:me\s+)?(?:in\s+)?\d+\s*(?:m|mi|min|minu|minut|minute|minutes|h|ho|hou|hour|hours|hr|hrs)\b/gi, '');
         cleaned = cleaned.replace(/(?:,\s*)?(?:remind|notify|alert)\s+(?:me\s+)?at\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)\b/gi, '');
       }
       if (color && color !== '#FFFFFF') {
@@ -142,7 +142,7 @@
     function parseReminder(text) {
       const t = text.toLowerCase();
       // relative: "remind me 30 min before", "notify 2 hours prior"
-      const rel = t.match(/(?:remind|notify|alert)\s+(?:me\s+)?(\d+)\s*(m|min|mins|minute|minutes|h|hr|hrs|hour|hours)\b/);
+      const rel = t.match(/(?:remind|notify|alert)\s+(?:me\s+)?(\d+)\s*(m|mi|min|minu|minut|minute|minutes|h|ho|hou|hour|hours|hr|hrs)\b/);
       if (rel) {
         const val = parseInt(rel[1]);
         const unit = rel[2];
@@ -156,7 +156,7 @@
         }
       }
       // relative to now: "remind me in 30 min", "notify me in 2 hours"
-      const relIn = t.match(/(?:remind|notify|alert)\s+(?:me\s+)?in\s+(\d+)\s*(m|min|mins|minute|minutes|h|hr|hrs|hour|hours)\b/);
+      const relIn = t.match(/(?:remind|notify|alert)\s+(?:me\s+)?in\s+(\d+)\s*(m|mi|min|minu|minut|minute|minutes|h|ho|hou|hour|hours|hr|hrs)\b/);
       if (relIn) {
         const val = parseInt(relIn[1]);
         const unit = relIn[2];
