@@ -584,7 +584,7 @@
 
         <section id="demo" class="mb-16 md:mb-24">
             <div class="flex items-center justify-between flex-wrap gap-4 mb-6 md:mb-8">
-                <h2 class="text-sm font-semibold tracking-[0.2em] uppercase text-slate-500">A live look — pick a theme</h2>
+                <h2 class="text-sm font-semibold tracking-[0.2em] uppercase text-slate-500">Watch it work.</h2>
                 <div class="theme-pills inline-flex items-center gap-1 p-1 rounded-full border border-slate-800 bg-slate-900/40 backdrop-blur-sm" role="tablist" aria-label="Theme switcher">
                     <button class="pill" data-pill="default" aria-selected="true">default</button>
                     <button class="pill" data-pill="glass" aria-selected="false">glass</button>
@@ -695,9 +695,9 @@
                                 <button class="dash-add" type="button">Add Task</button>
                             </div>
                             <div class="dash-stats">
-                                <div class="stat" data-kind="active"><strong data-stat="active">8</strong><span>ACTIVE</span></div>
-                                <div class="stat" data-kind="overdue"><strong data-stat="overdue">2</strong><span>OVERDUE</span></div>
-                                <div class="stat" data-kind="total"><strong data-stat="total">10</strong><span>TOTAL</span></div>
+                                <div class="stat" data-kind="active"><strong data-stat="active">3</strong><span>ACTIVE</span></div>
+                                <div class="stat" data-kind="overdue"><strong data-stat="overdue">0</strong><span>OVERDUE</span></div>
+                                <div class="stat" data-kind="total"><strong data-stat="total">3</strong><span>TOTAL</span></div>
                             </div>
                         </div>
                     </div>
@@ -808,7 +808,7 @@
                     if (userInteracted) return;
                     const idx = (themes.indexOf(active) + 1) % themes.length;
                     setActive(themes[idx]);
-                }, 6000);
+                }, 12000);
             }
 
             setActive('default');
@@ -924,15 +924,6 @@
                 return a;
             }
 
-            function bumpStats(theme) {
-                if (theme !== 'glass') return;
-                const dash = document.querySelector('.dash[data-theme="glass"]');
-                const a = dash.querySelector('[data-stat="active"]');
-                const t = dash.querySelector('[data-stat="total"]');
-                a.textContent = String(parseInt(a.textContent, 10) + 1);
-                t.textContent = String(parseInt(t.textContent, 10) + 1);
-            }
-
             async function typeString(s) {
                 let cur = '';
                 for (let i = 0; i < s.length; i++) {
@@ -972,8 +963,6 @@
                             break;
                         }
                     });
-                    bumpStats('glass');
-
                     await sleep(2200);
                     await eraseString();
                     await sleep(350);
