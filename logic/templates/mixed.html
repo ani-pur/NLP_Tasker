@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tasker | Let Tasker remember it</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Sora:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=DM+Sans:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,800;0,9..144,900;1,9..144,500&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             theme: {
@@ -26,20 +26,538 @@
             will-change: transform, background-position;
             animation: grid-drift 12s linear infinite;
         }
+        @keyframes grid-drift { 0% { background-position: 0 0; } 100% { background-position: 48px 48px; } }
+        .orb { will-change: transform; transition: transform 0.15s cubic-bezier(0.1, 0.5, 0.3, 1); }
 
-        @keyframes grid-drift {
-            0% { background-position: 0 0; }
-            100% { background-position: 48px 48px; }
+        /* ============== LIVE DEMO — three scoped mini-dashboards ============== */
+
+        /* pills */
+        .theme-pills .pill {
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            padding: 6px 14px;
+            border-radius: 999px;
+            color: #94a3b8;
+            background: transparent;
+            transition: all 0.25s ease;
+            cursor: pointer;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+        .theme-pills .pill:hover { color: #e2e8f0; }
+        .theme-pills .pill[aria-selected="true"][data-pill="default"]   { background:#fcd34d; color:#111520; box-shadow:0 0 18px rgba(252,211,77,0.35); }
+        .theme-pills .pill[aria-selected="true"][data-pill="glass"]     { background:#818cf8; color:#0a0a14; box-shadow:0 0 18px rgba(129,140,248,0.4); }
+        .theme-pills .pill[aria-selected="true"][data-pill="editorial"] { background:#ea580c; color:#fff7ed; box-shadow:0 0 18px rgba(234,88,12,0.4); }
+
+        /* stage — all three dashes stacked, only the active one is visible */
+        .dash-stage {
+            position: relative;
+            min-height: 520px;
+        }
+        @media (max-width: 800px) { .dash-stage { min-height: 720px; } }
+
+        .dash {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(8px);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+            border-radius: 18px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .dash[data-active="true"] {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
         }
 
-        .orb {
-            will-change: transform;
-            transition: transform 0.15s cubic-bezier(0.1, 0.5, 0.3, 1);
+        /* =========================== DEFAULT (v3) =========================== */
+        .dash[data-theme="default"] {
+            background: linear-gradient(180deg, rgba(15,23,42,0.6), rgba(11,15,28,0.6));
+            border: 1px solid rgba(148,163,184,0.10);
+            font-family: 'Inter', sans-serif;
+            color: #cbd5e1;
         }
+        .dash[data-theme="default"] .dash-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 22px;
+            border-bottom: 1px solid rgba(148,163,184,0.10);
+            background: rgba(15,23,42,0.4);
+            backdrop-filter: blur(12px);
+        }
+        .dash[data-theme="default"] .dash-brand {
+            font-size: 18px; font-weight: 800; color: #ffffff; letter-spacing: -0.02em;
+        }
+        .dash[data-theme="default"] .dash-bar-right { display: flex; gap: 16px; font-size: 12px; font-weight: 500; color: #94a3b8; }
+        .dash[data-theme="default"] .dash-bar-right .dash-logout { color: #fcd34d; }
+        .dash[data-theme="default"] .dash-readme { display: none; }
+        @media (min-width: 640px) { .dash[data-theme="default"] .dash-readme { display: inline; } }
+
+        .dash[data-theme="default"] .dash-body {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+            padding: 22px;
+            flex: 1;
+            min-height: 0;
+        }
+        @media (min-width: 800px) {
+            .dash[data-theme="default"] .dash-body { grid-template-columns: 1.7fr 1fr; gap: 22px; padding: 26px; }
+        }
+
+        .dash[data-theme="default"] .dash-list-head {
+            display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 14px; gap: 12px;
+        }
+        .dash[data-theme="default"] .dash-title {
+            font-size: 24px; font-weight: 800; color: #ffffff; letter-spacing: -0.02em; line-height: 1;
+        }
+        .dash[data-theme="default"] .dash-clock {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 11px; font-weight: 600; color: #fcd34d;
+            text-transform: uppercase; letter-spacing: 0.08em;
+            background: rgba(252,211,77,0.08);
+            border: 1px solid rgba(252,211,77,0.18);
+            padding: 6px 10px; border-radius: 6px;
+            white-space: nowrap;
+        }
+        .dash[data-theme="default"] .dash-cards { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; padding-right: 4px; }
+        .dash[data-theme="default"] .dash-card {
+            background: rgba(15,23,42,0.6);
+            border: 1px solid rgba(148,163,184,0.12);
+            border-radius: 12px;
+            padding: 14px 16px;
+            display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: start;
+            backdrop-filter: blur(8px);
+        }
+        .dash[data-theme="default"] .dash-card-title {
+            font-size: 15px; font-weight: 700; line-height: 1.3; margin: 0 0 4px 0; letter-spacing: -0.01em;
+        }
+        .dash[data-theme="default"] .dash-card[data-color="blue"]   .dash-card-title { color: #87CEEB; }
+        .dash[data-theme="default"] .dash-card[data-color="red"]    .dash-card-title { color: #f05656; }
+        .dash[data-theme="default"] .dash-card[data-color="green"]  .dash-card-title { color: #6CE5A9; }
+        .dash[data-theme="default"] .dash-card[data-color="orange"] .dash-card-title { color: #ff7f00; }
+        .dash[data-theme="default"] .dash-card[data-color="purple"] .dash-card-title { color: #A96CE5; }
+        .dash[data-theme="default"] .dash-card-desc {
+            font-size: 12.5px; color: #94a3b8; line-height: 1.5; margin: 0;
+        }
+        .dash[data-theme="default"] .dash-card-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+        .dash[data-theme="default"] .dash-bell {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 10px; font-weight: 600; color: #fbbf24;
+            background: rgba(120,53,15,0.25);
+            border: 1px solid rgba(251,191,36,0.25);
+            padding: 4px 8px; border-radius: 6px; letter-spacing: 0.03em;
+        }
+        .dash[data-theme="default"] .dash-date {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 10px; font-weight: 600; color: #7dd3fc;
+            background: rgba(56,189,248,0.10);
+            border: 1px solid rgba(56,189,248,0.22);
+            padding: 4px 8px; border-radius: 6px; white-space: nowrap;
+        }
+
+        .dash[data-theme="default"] .dash-panel {
+            background: rgba(15,23,42,0.5);
+            border: 1px solid rgba(148,163,184,0.10);
+            border-radius: 14px;
+            padding: 18px;
+        }
+        .dash[data-theme="default"] .dash-panel-title { font-size: 16px; font-weight: 800; color: #ffffff; margin: 0 0 12px 0; letter-spacing: -0.01em; }
+        .dash[data-theme="default"] .dash-input-wrap { position: relative; margin-bottom: 12px; }
+        .dash[data-theme="default"] .dash-input {
+            min-height: 84px; padding: 12px 14px;
+            background: rgba(0,0,0,0.25);
+            border: 1px solid rgba(148,163,184,0.12);
+            border-radius: 10px;
+            font-family: 'Inter', sans-serif; font-size: 13px; color: #e2e8f0; line-height: 1.5;
+            white-space: pre-wrap; word-break: break-word;
+        }
+        .dash[data-theme="default"] .dash-input:empty::before,
+        .dash[data-theme="default"] .dash-input.empty::before {
+            content: 'Try: fix production bug before standup, green';
+            color: #475569;
+        }
+        .dash[data-theme="default"] .dash-counter { position: absolute; bottom: 6px; right: 10px; font-size: 10px; color: #64748b; font-family: 'IBM Plex Mono', monospace; pointer-events: none; }
+        .dash[data-theme="default"] .dash-add {
+            width: 100%; padding: 10px 14px; background: #fcd34d; color: #111520;
+            border: none; border-radius: 10px; font-weight: 700; font-size: 14px;
+            cursor: pointer; box-shadow: 0 0 15px rgba(252,211,77,0.15);
+        }
+
+        /* =========================== GLASS (v6) ============================ */
+        .dash[data-theme="glass"] {
+            background: linear-gradient(180deg, rgba(20,18,32,0.65), rgba(8,6,16,0.6));
+            border: 1px solid rgba(129,140,248,0.18);
+            font-family: 'Sora', sans-serif;
+            color: #c7c7d4;
+            backdrop-filter: blur(20px) saturate(140%);
+        }
+        .dash[data-theme="glass"] .dash-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 22px;
+            border-bottom: 1px solid rgba(129,140,248,0.14);
+            background: rgba(20,18,32,0.5);
+        }
+        .dash[data-theme="glass"] .dash-brand {
+            font-family: 'Sora', sans-serif;
+            font-size: 18px; font-weight: 700; color: #ffffff; letter-spacing: -0.02em;
+            text-transform: lowercase;
+        }
+        .dash[data-theme="glass"] .dash-bar-right { display: flex; gap: 16px; font-size: 11px; font-weight: 500; color: #8b8fa8; font-family: 'IBM Plex Mono', monospace; }
+        .dash[data-theme="glass"] .dash-bar-right .dash-logout { color: #818cf8; }
+        .dash[data-theme="glass"] .dash-readme { display: none; }
+        @media (min-width: 640px) { .dash[data-theme="glass"] .dash-readme { display: inline; } }
+
+        .dash[data-theme="glass"] .dash-body {
+            display: grid; grid-template-columns: 1fr; gap: 16px; padding: 22px; flex: 1; min-height: 0;
+        }
+        @media (min-width: 800px) {
+            .dash[data-theme="glass"] .dash-body { grid-template-columns: 1.7fr 1fr; gap: 22px; padding: 26px; }
+        }
+
+        .dash[data-theme="glass"] .dash-list-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; gap: 12px; }
+        .dash[data-theme="glass"] .dash-title {
+            font-family: 'Sora', sans-serif;
+            font-size: 26px; font-weight: 700; color: #ffffff;
+            letter-spacing: -0.02em; line-height: 1;
+            text-transform: lowercase;
+        }
+        .dash[data-theme="glass"] .dash-title .title-badge {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 11px; font-weight: 600; font-style: normal;
+            color: #818cf8;
+            background: rgba(129,140,248,0.10);
+            border: 1px solid rgba(129,140,248,0.22);
+            padding: 2px 8px; border-radius: 6px;
+            margin-left: 8px; vertical-align: middle;
+        }
+        .dash[data-theme="glass"] .dash-clock {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 11px; font-weight: 600; color: #818cf8;
+            text-transform: uppercase; letter-spacing: 0.10em;
+            text-align: right; line-height: 1.5;
+        }
+
+        .dash[data-theme="glass"] .dash-cards { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; padding-right: 4px; }
+        .dash[data-theme="glass"] .dash-card {
+            position: relative;
+            background: rgba(28,24,46,0.5);
+            border: 1px solid rgba(129,140,248,0.12);
+            border-radius: 12px;
+            padding: 12px 18px 12px 22px;
+            display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: start;
+            backdrop-filter: blur(20px) saturate(150%);
+        }
+        .dash[data-theme="glass"] .dash-card::before {
+            content: ""; position: absolute; left: 0; top: 10px; bottom: 10px;
+            width: 3px; border-radius: 0 3px 3px 0;
+            background: #94a3b8;
+        }
+        .dash[data-theme="glass"] .dash-card[data-color="blue"]::before   { background: #87CEEB; }
+        .dash[data-theme="glass"] .dash-card[data-color="red"]::before    { background: #f05656; }
+        .dash[data-theme="glass"] .dash-card[data-color="green"]::before  { background: #6CE5A9; }
+        .dash[data-theme="glass"] .dash-card[data-color="orange"]::before { background: #ff7f00; }
+        .dash[data-theme="glass"] .dash-card[data-color="purple"]::before { background: #A96CE5; }
+        .dash[data-theme="glass"] .dash-card-title {
+            font-family: 'Sora', sans-serif;
+            font-size: 16px; font-weight: 700; line-height: 1.3; margin: 0 0 4px 0; letter-spacing: -0.02em;
+        }
+        .dash[data-theme="glass"] .dash-card[data-color="blue"]   .dash-card-title { color: #87CEEB; }
+        .dash[data-theme="glass"] .dash-card[data-color="red"]    .dash-card-title { color: #f05656; }
+        .dash[data-theme="glass"] .dash-card[data-color="green"]  .dash-card-title { color: #6CE5A9; }
+        .dash[data-theme="glass"] .dash-card[data-color="orange"] .dash-card-title { color: #ff7f00; }
+        .dash[data-theme="glass"] .dash-card[data-color="purple"] .dash-card-title { color: #A96CE5; }
+        .dash[data-theme="glass"] .dash-card-desc { font-size: 12.5px; color: #8b8fa8; line-height: 1.5; margin: 0; }
+        .dash[data-theme="glass"] .dash-card-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+        .dash[data-theme="glass"] .dash-bell {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 10px; font-weight: 600; color: #fbbf24;
+            background: rgba(120,53,15,0.25);
+            border: 1px solid rgba(251,191,36,0.22);
+            padding: 4px 8px; border-radius: 6px;
+        }
+        .dash[data-theme="glass"] .dash-date {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 10px; font-weight: 600; color: #8b8fa8;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(129,140,248,0.14);
+            padding: 4px 8px; border-radius: 6px; white-space: nowrap;
+        }
+
+        .dash[data-theme="glass"] .dash-side-col { display: flex; flex-direction: column; gap: 12px; }
+        .dash[data-theme="glass"] .dash-panel {
+            background: rgba(28,24,46,0.5);
+            border: 1px solid rgba(129,140,248,0.14);
+            border-radius: 14px;
+            padding: 18px;
+        }
+        .dash[data-theme="glass"] .dash-panel-title { font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 700; color: #ffffff; margin: 0 0 4px 0; letter-spacing: -0.01em; }
+        .dash[data-theme="glass"] .dash-panel-sub { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #8b8fa8; margin: 0 0 12px 0; line-height: 1.5; }
+        .dash[data-theme="glass"] .dash-input-wrap { position: relative; margin-bottom: 12px; }
+        .dash[data-theme="glass"] .dash-input {
+            min-height: 80px; padding: 12px 14px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(129,140,248,0.14);
+            border-radius: 10px;
+            font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #c7c7d4; line-height: 1.5;
+            white-space: pre-wrap; word-break: break-word;
+        }
+        .dash[data-theme="glass"] .dash-input:empty::before,
+        .dash[data-theme="glass"] .dash-input.empty::before {
+            content: 'gym next monday 7am legs, blue';
+            color: #4d4f6a;
+        }
+        .dash[data-theme="glass"] .dash-counter { position: absolute; bottom: 6px; right: 10px; font-size: 10px; color: #64657f; font-family: 'IBM Plex Mono', monospace; pointer-events: none; }
+        .dash[data-theme="glass"] .dash-add {
+            width: 100%; padding: 10px 14px; background: #818cf8; color: #0a0a14;
+            border: none; border-radius: 10px; font-family: 'Sora', sans-serif;
+            font-weight: 700; font-size: 14px; cursor: pointer;
+            box-shadow: 0 0 18px rgba(129,140,248,0.25);
+        }
+        .dash[data-theme="glass"] .dash-stats {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+        }
+        .dash[data-theme="glass"] .dash-stats .stat {
+            background: rgba(28,24,46,0.5);
+            border: 1px solid rgba(129,140,248,0.14);
+            border-radius: 10px;
+            padding: 12px 6px;
+            text-align: center;
+        }
+        .dash[data-theme="glass"] .dash-stats .stat strong {
+            display: block; font-family: 'IBM Plex Mono', monospace;
+            font-size: 22px; font-weight: 700; color: #818cf8;
+            line-height: 1;
+        }
+        .dash[data-theme="glass"] .dash-stats .stat span {
+            display: block; font-family: 'IBM Plex Mono', monospace;
+            font-size: 9px; letter-spacing: 0.18em; color: #8b8fa8;
+            margin-top: 4px;
+        }
+        .dash[data-theme="glass"] .dash-stats .stat[data-kind="overdue"] strong { color: #f05656; }
+
+        /* ========================= EDITORIAL (v5) ========================== */
+        .dash[data-theme="editorial"] {
+            background: linear-gradient(180deg, rgba(28,18,12,0.7), rgba(13,9,7,0.7));
+            border: 1px solid rgba(234,88,12,0.16);
+            font-family: 'DM Sans', sans-serif;
+            color: #d6c9bc;
+            backdrop-filter: blur(14px);
+        }
+        .dash[data-theme="editorial"] .dash-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 22px;
+            border-bottom: 1px solid rgba(234,88,12,0.14);
+            background: rgba(28,18,12,0.4);
+        }
+        .dash[data-theme="editorial"] .dash-brand {
+            font-family: 'Fraunces', Georgia, serif;
+            font-size: 20px; font-weight: 800; color: #ffffff; letter-spacing: -0.02em;
+        }
+        .dash[data-theme="editorial"] .dash-bar-right { display: flex; gap: 16px; font-size: 12px; font-weight: 500; color: #b8a695; font-family: 'DM Sans', sans-serif; }
+        .dash[data-theme="editorial"] .dash-bar-right .dash-logout { color: #ea580c; }
+        .dash[data-theme="editorial"] .dash-readme { display: none; }
+        @media (min-width: 640px) { .dash[data-theme="editorial"] .dash-readme { display: inline; } }
+
+        .dash[data-theme="editorial"] .dash-body {
+            display: grid; grid-template-columns: 1fr; gap: 16px; padding: 22px; flex: 1; min-height: 0;
+        }
+        @media (min-width: 800px) {
+            .dash[data-theme="editorial"] .dash-body { grid-template-columns: 1.7fr 1fr; gap: 22px; padding: 26px; }
+        }
+
+        .dash[data-theme="editorial"] .dash-list-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; gap: 12px; }
+        .dash[data-theme="editorial"] .dash-title {
+            font-family: 'Fraunces', Georgia, serif;
+            font-size: 30px; font-weight: 800; color: #ffffff;
+            letter-spacing: -0.01em; line-height: 1;
+        }
+        .dash[data-theme="editorial"] .dash-title .dash-subcount {
+            display: block; font-family: 'DM Sans', sans-serif;
+            font-size: 11px; font-weight: 400; color: #8c7a6b;
+            margin-top: 6px; letter-spacing: 0;
+        }
+        .dash[data-theme="editorial"] .dash-clock {
+            font-family: 'Fraunces', Georgia, serif;
+            font-style: italic; font-size: 14px; font-weight: 500;
+            color: #ea580c;
+            text-align: right; line-height: 1.4;
+        }
+        .dash[data-theme="editorial"] .dash-clock .clock-time {
+            display: block; color: #b8a695; font-style: normal;
+            font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500;
+            margin-top: 2px;
+        }
+
+        .dash[data-theme="editorial"] .dash-cards { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; padding-right: 4px; }
+        .dash[data-theme="editorial"] .dash-card {
+            background: rgba(33,23,15,0.6);
+            border: 1px solid rgba(234,88,12,0.12);
+            border-radius: 16px;
+            padding: 14px 22px;
+            display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: start;
+        }
+        .dash[data-theme="editorial"] .dash-card-title {
+            font-family: 'Fraunces', Georgia, serif;
+            font-size: 17px; font-weight: 800; line-height: 1.3; margin: 0 0 4px 0;
+            color: #ffffff; letter-spacing: -0.01em;
+        }
+        .dash[data-theme="editorial"] .dash-card-title .dot {
+            display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+            margin-right: 10px; vertical-align: middle; transform: translateY(-2px);
+            background: #94a3b8;
+        }
+        .dash[data-theme="editorial"] .dash-card[data-color="blue"]   .dot { background: #87CEEB; }
+        .dash[data-theme="editorial"] .dash-card[data-color="red"]    .dot { background: #f05656; }
+        .dash[data-theme="editorial"] .dash-card[data-color="green"]  .dot { background: #6CE5A9; }
+        .dash[data-theme="editorial"] .dash-card[data-color="orange"] .dot { background: #ff7f00; }
+        .dash[data-theme="editorial"] .dash-card[data-color="purple"] .dot { background: #A96CE5; }
+        .dash[data-theme="editorial"] .dash-card-desc { font-size: 13px; color: #b8a695; line-height: 1.55; margin: 0 0 0 18px; }
+        .dash[data-theme="editorial"] .dash-card-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+        .dash[data-theme="editorial"] .dash-bell {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 11px; font-weight: 600; color: #fbbf24;
+            background: rgba(120,53,15,0.25);
+            border: 1px solid rgba(251,191,36,0.22);
+            padding: 5px 12px; border-radius: 999px;
+        }
+        .dash[data-theme="editorial"] .dash-date {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 11px; font-weight: 600; color: #d6c9bc;
+            background: rgba(13,9,7,0.6);
+            border: 1px solid rgba(234,88,12,0.14);
+            padding: 5px 12px; border-radius: 999px; white-space: nowrap;
+        }
+
+        .dash[data-theme="editorial"] .dash-side-col { display: flex; flex-direction: column; gap: 12px; }
+        .dash[data-theme="editorial"] .dash-panel {
+            background: rgba(33,23,15,0.6);
+            border: 1px solid rgba(234,88,12,0.14);
+            border-radius: 16px;
+            padding: 18px;
+        }
+        .dash[data-theme="editorial"] .dash-panel-title {
+            font-family: 'Fraunces', Georgia, serif;
+            font-size: 18px; font-weight: 800; color: #ffffff;
+            margin: 0 0 4px 0; letter-spacing: -0.01em;
+        }
+        .dash[data-theme="editorial"] .dash-panel-sub { font-family: 'DM Sans', sans-serif; font-size: 12px; color: #8c7a6b; margin: 0 0 12px 0; line-height: 1.5; }
+        .dash[data-theme="editorial"] .dash-input-wrap { position: relative; margin-bottom: 12px; }
+        .dash[data-theme="editorial"] .dash-input {
+            min-height: 84px; padding: 12px 14px;
+            background: rgba(13,9,7,0.6);
+            border: 1px solid rgba(234,88,12,0.14);
+            border-radius: 12px;
+            font-family: 'DM Sans', sans-serif; font-size: 13px; color: #e8dcd0; line-height: 1.5;
+            white-space: pre-wrap; word-break: break-word;
+        }
+        .dash[data-theme="editorial"] .dash-input:empty::before,
+        .dash[data-theme="editorial"] .dash-input.empty::before {
+            content: 'doctor appointment next tuesday 8am, red';
+            color: #6b5849;
+        }
+        .dash[data-theme="editorial"] .dash-counter { position: absolute; bottom: 6px; right: 12px; font-size: 10px; color: #6b5849; font-family: 'DM Sans', sans-serif; pointer-events: none; }
+        .dash[data-theme="editorial"] .dash-add {
+            width: 100%; padding: 10px 14px; background: #ea580c; color: #fff7ed;
+            border: none; border-radius: 999px; font-family: 'DM Sans', sans-serif;
+            font-weight: 700; font-size: 14px; cursor: pointer;
+            box-shadow: 0 8px 24px rgba(234,88,12,0.18);
+        }
+        .dash[data-theme="editorial"] .dash-quote {
+            background: rgba(33,23,15,0.6);
+            border: 1px solid rgba(234,88,12,0.14);
+            border-radius: 16px;
+            padding: 16px 18px;
+        }
+        .dash[data-theme="editorial"] .dash-quote p {
+            font-family: 'Fraunces', Georgia, serif; font-style: italic;
+            font-size: 14px; color: #e8dcd0; line-height: 1.45; margin: 0 0 6px 0;
+        }
+        .dash[data-theme="editorial"] .dash-quote span {
+            font-family: 'DM Sans', sans-serif; font-size: 11px; color: #8c7a6b;
+        }
+
+        /* reminder preview pill — sits below the input box, hidden by default */
+        .dash-reminder-preview {
+            display: none;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 12px;
+            padding: 5px 12px;
+            font-weight: 600;
+            font-size: 11px;
+            letter-spacing: 0.03em;
+            width: max-content;
+            transition: opacity 0.2s ease;
+        }
+        .dash-reminder-preview.show { display: inline-flex; }
+        .dash[data-theme="default"] .dash-reminder-preview {
+            color: #fbbf24;
+            background: rgba(120,53,15,0.25);
+            border: 1px solid rgba(251,191,36,0.25);
+            border-radius: 6px;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+        .dash[data-theme="glass"] .dash-reminder-preview {
+            color: #fbbf24;
+            background: rgba(120,53,15,0.22);
+            border: 1px solid rgba(251,191,36,0.22);
+            border-radius: 6px;
+            font-family: 'IBM Plex Mono', monospace;
+            backdrop-filter: blur(8px);
+        }
+        .dash[data-theme="editorial"] .dash-reminder-preview {
+            color: #fbbf24;
+            background: rgba(120,53,15,0.22);
+            border: 1px solid rgba(251,191,36,0.22);
+            border-radius: 999px;
+            font-family: 'DM Sans', sans-serif;
+            padding: 5px 14px;
+        }
+
+        /* white (no color typed — matches v6's '#FFFFFF' fallback) */
+        .dash[data-theme="default"]   .dash-card[data-color="white"] .dash-card-title { color: #ffffff; }
+        .dash[data-theme="glass"]     .dash-card[data-color="white"] .dash-card-title { color: #ffffff; }
+        .dash[data-theme="glass"]     .dash-card[data-color="white"]::before          { background: #ffffff; }
+        .dash[data-theme="editorial"] .dash-card[data-color="white"] .dot             { background: #ffffff; }
+
+        /* yellow + pink (extra Tasker palette colors) */
+        .dash[data-theme="default"]   .dash-card[data-color="yellow"] .dash-card-title { color: #FDDA0D; }
+        .dash[data-theme="glass"]     .dash-card[data-color="yellow"] .dash-card-title { color: #FDDA0D; }
+        .dash[data-theme="glass"]     .dash-card[data-color="yellow"]::before          { background: #FDDA0D; }
+        .dash[data-theme="editorial"] .dash-card[data-color="yellow"] .dot             { background: #FDDA0D; }
+
+        .dash[data-theme="default"]   .dash-card[data-color="pink"] .dash-card-title { color: #F8C8DC; }
+        .dash[data-theme="glass"]     .dash-card[data-color="pink"] .dash-card-title { color: #F8C8DC; }
+        .dash[data-theme="glass"]     .dash-card[data-color="pink"]::before          { background: #F8C8DC; }
+        .dash[data-theme="editorial"] .dash-card[data-color="pink"] .dot             { background: #F8C8DC; }
+
+        /* shared caret + slide-in animation */
+        .caret {
+            display: inline-block; color: var(--caret-color, #fcd34d);
+            margin-left: 1px; font-weight: 300;
+            animation: demo-blink 1s steps(1) infinite;
+        }
+        .dash[data-theme="default"]   .caret { color: #fcd34d; }
+        .dash[data-theme="glass"]     .caret { color: #818cf8; }
+        .dash[data-theme="editorial"] .caret { color: #ea580c; }
+        @keyframes demo-blink { 50% { opacity: 0; } }
+
+        .dash-card.entering { opacity: 0; transform: translateY(-8px) scale(0.985); }
+        .dash-card.entered  { opacity: 1; transform: translateY(0) scale(1); transition: opacity 0.4s ease, transform 0.45s cubic-bezier(0.2,0.7,0.2,1); }
+        .dash-card.exiting  { opacity: 0; transform: translateY(-6px); transition: opacity 0.3s ease, transform 0.3s ease; }
+
+        /* hide scrollbars in the cards columns */
+        .dash-cards::-webkit-scrollbar { width: 6px; }
+        .dash-cards::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.15); border-radius: 3px; }
+        .dash-cards::-webkit-scrollbar-track { background: transparent; }
     </style>
 </head>
 <body class="bg-base text-slate-300 antialiased selection:bg-accent selection:text-base flex flex-col min-h-screen relative overflow-x-hidden">
-    
+
     <div class="fixed inset-0 pointer-events-none z-0">
         <div class="orb absolute top-[-5%] left-[-10%] w-[20rem] md:w-[30rem] h-[20rem] md:h-[30rem] bg-accent/10 rounded-full blur-[80px] md:blur-[120px]" data-speed="-3"></div>
         <div class="orb absolute bottom-[-10%] right-[-10%] w-[25rem] md:w-[40rem] h-[25rem] md:h-[40rem] bg-accent/5 rounded-full blur-[100px] md:blur-[150px]" data-speed="2"></div>
@@ -64,6 +582,185 @@
             Offload your mental clutter. A radically simple dashboard designed to capture your tasks instantly using Natural Language Processing (NLP).
         </p>
 
+        <section id="demo" class="mb-16 md:mb-24">
+            <div class="flex items-center justify-between flex-wrap gap-4 mb-6 md:mb-8">
+                <h2 class="text-sm font-semibold tracking-[0.2em] uppercase text-slate-500">Watch it work.</h2>
+                <div class="theme-pills inline-flex items-center gap-1 p-1 rounded-full border border-slate-800 bg-slate-900/40 backdrop-blur-sm" role="tablist" aria-label="Theme switcher">
+                    <button class="pill" data-pill="default" aria-selected="true">default</button>
+                    <button class="pill" data-pill="glass" aria-selected="false">glass</button>
+                    <button class="pill" data-pill="editorial" aria-selected="false">editorial</button>
+                </div>
+            </div>
+
+            <div class="dash-stage">
+                <!-- ============== DEFAULT ============== -->
+                <div class="dash" data-theme="default" data-active="true">
+                    <div class="dash-bar">
+                        <div class="dash-brand">Tasker.</div>
+                        <div class="dash-bar-right">
+                            <span class="dash-user">anirudh</span>
+                            <span class="dash-readme">README</span>
+                            <span class="dash-logout">Logout</span>
+                        </div>
+                    </div>
+                    <div class="dash-body">
+                        <div class="dash-list-col">
+                            <div class="dash-list-head">
+                                <div class="dash-title">Your Tasks</div>
+                                <div class="dash-clock">TUE, APR 28 · 10:12 PM</div>
+                            </div>
+                            <div class="dash-cards" data-list>
+                                <article class="dash-card" data-color="blue">
+                                    <div class="dash-card-main">
+                                        <h3 class="dash-card-title">Start SWE cheatsheet</h3>
+                                        <p class="dash-card-desc">Start SWE cheatsheet after meeting sonia</p>
+                                    </div>
+                                    <div class="dash-card-meta">
+                                        <span class="dash-bell">🔔 6PM</span>
+                                        <span class="dash-date">Sat, 25 Apr · 06:00 PM</span>
+                                    </div>
+                                </article>
+                                <article class="dash-card" data-color="red">
+                                    <div class="dash-card-main">
+                                        <h3 class="dash-card-title">Vacuum Tesla interior and visit carwash</h3>
+                                        <p class="dash-card-desc">vacuum tesla backseats and floor, there's soil and shit lol go to a carwash</p>
+                                    </div>
+                                    <div class="dash-card-meta">
+                                        <span class="dash-date">Mon, 27 Apr · 12:00 PM</span>
+                                    </div>
+                                </article>
+                            </div>
+                        </div>
+                        <div class="dash-side-col">
+                            <div class="dash-panel">
+                                <h3 class="dash-panel-title">Describe Task</h3>
+                                <div class="dash-input-wrap">
+                                    <div class="dash-input empty" data-input><span data-typed></span><span class="caret">|</span></div>
+                                    <span class="dash-counter"><span data-count>0</span>/200</span>
+                                </div>
+                                <div class="dash-reminder-preview" data-reminder-preview>🔔 <span data-reminder-label></span></div>
+                                <button class="dash-add" type="button">Add Task</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ============== GLASS ============== -->
+                <div class="dash" data-theme="glass">
+                    <div class="dash-bar">
+                        <div class="dash-brand">tasker.</div>
+                        <div class="dash-bar-right">
+                            <span class="dash-user">anirudh</span>
+                            <span class="dash-readme">README</span>
+                            <span class="dash-logout">Exit</span>
+                        </div>
+                    </div>
+                    <div class="dash-body">
+                        <div class="dash-list-col">
+                            <div class="dash-list-head">
+                                <div class="dash-title">tasks <em class="title-badge">10</em></div>
+                                <div class="dash-clock">TUE, APR 28<br>10:12 PM</div>
+                            </div>
+                            <div class="dash-cards" data-list>
+                                <article class="dash-card" data-color="blue">
+                                    <div class="dash-card-main">
+                                        <h3 class="dash-card-title">Start SWE cheatsheet</h3>
+                                        <p class="dash-card-desc">Start SWE cheatsheet after meeting sonia</p>
+                                    </div>
+                                    <div class="dash-card-meta">
+                                        <span class="dash-bell">🔔 6PM</span>
+                                        <span class="dash-date">Sat, 25 Apr · 06:00 PM</span>
+                                    </div>
+                                </article>
+                                <article class="dash-card" data-color="red">
+                                    <div class="dash-card-main">
+                                        <h3 class="dash-card-title">Vacuum Tesla interior</h3>
+                                        <p class="dash-card-desc">backseats and floor, then carwash</p>
+                                    </div>
+                                    <div class="dash-card-meta">
+                                        <span class="dash-date">Mon, 27 Apr · 12:00 PM</span>
+                                    </div>
+                                </article>
+                            </div>
+                        </div>
+                        <div class="dash-side-col">
+                            <div class="dash-panel">
+                                <h3 class="dash-panel-title">New Task</h3>
+                                <p class="dash-panel-sub">Just type. Dates, times, colors, all extracted automatically.</p>
+                                <div class="dash-input-wrap">
+                                    <div class="dash-input empty" data-input><span data-typed></span><span class="caret">|</span></div>
+                                    <span class="dash-counter"><span data-count>0</span>/200</span>
+                                </div>
+                                <div class="dash-reminder-preview" data-reminder-preview>🔔 <span data-reminder-label></span></div>
+                                <button class="dash-add" type="button">Add Task</button>
+                            </div>
+                            <div class="dash-stats">
+                                <div class="stat" data-kind="active"><strong data-stat="active">3</strong><span>ACTIVE</span></div>
+                                <div class="stat" data-kind="overdue"><strong data-stat="overdue">0</strong><span>OVERDUE</span></div>
+                                <div class="stat" data-kind="total"><strong data-stat="total">3</strong><span>TOTAL</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ============== EDITORIAL ============== -->
+                <div class="dash" data-theme="editorial">
+                    <div class="dash-bar">
+                        <div class="dash-brand">Tasker.</div>
+                        <div class="dash-bar-right">
+                            <span class="dash-user">anirudh</span>
+                            <span class="dash-logout">Log out</span>
+                        </div>
+                    </div>
+                    <div class="dash-body">
+                        <div class="dash-list-col">
+                            <div class="dash-list-head">
+                                <div class="dash-title">Your Tasks<span class="dash-subcount">8 active</span></div>
+                                <div class="dash-clock">Tuesday, Apr 28<span class="clock-time">10:12 PM</span></div>
+                            </div>
+                            <div class="dash-cards" data-list>
+                                <article class="dash-card" data-color="blue">
+                                    <div class="dash-card-main">
+                                        <h3 class="dash-card-title"><span class="dot"></span>Start SWE cheatsheet</h3>
+                                        <p class="dash-card-desc">Start SWE cheatsheet after meeting sonia</p>
+                                    </div>
+                                    <div class="dash-card-meta">
+                                        <span class="dash-bell">🔔 6PM</span>
+                                        <span class="dash-date">Sat, 25 Apr · 06:00 PM</span>
+                                    </div>
+                                </article>
+                                <article class="dash-card" data-color="red">
+                                    <div class="dash-card-main">
+                                        <h3 class="dash-card-title"><span class="dot"></span>Vacuum Tesla interior and visit carwash</h3>
+                                        <p class="dash-card-desc">vacuum tesla backseats and floor, then carwash</p>
+                                    </div>
+                                    <div class="dash-card-meta">
+                                        <span class="dash-date">Mon, 27 Apr · 12:00 PM</span>
+                                    </div>
+                                </article>
+                            </div>
+                        </div>
+                        <div class="dash-side-col">
+                            <div class="dash-panel">
+                                <h3 class="dash-panel-title">What's on your mind?</h3>
+                                <p class="dash-panel-sub">Type naturally. Tasker handles dates, times, colors, and reminders.</p>
+                                <div class="dash-input-wrap">
+                                    <div class="dash-input empty" data-input><span data-typed></span><span class="caret">|</span></div>
+                                    <span class="dash-counter"><span data-count>0</span>/200</span>
+                                </div>
+                                <div class="dash-reminder-preview" data-reminder-preview>🔔 <span data-reminder-label></span></div>
+                                <button class="dash-add" type="button">Add Task</button>
+                            </div>
+                            <div class="dash-quote">
+                                <p>"It works on my machine. Ship my machine."</p>
+                                <span>~ Every Developer</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 border-t border-slate-800 pt-12 md:pt-16">
             <div>
                 <h3 class="text-lg font-bold text-white mb-2 md:mb-3">Absolute Privacy.</h3>
@@ -81,19 +778,208 @@
     </main>
 
     <script>
+        // ===================== LIVE DEMO LOGIC =====================
+        (function () {
+            const stage = document.querySelector('.dash-stage');
+            const dashes = document.querySelectorAll('.dash');
+            const pills = document.querySelectorAll('.theme-pills .pill');
+            const themes = ['default', 'glass', 'editorial'];
+            let userInteracted = false;
+            let active = 'default';
+
+            function setActive(name) {
+                active = name;
+                dashes.forEach(d => {
+                    const on = d.getAttribute('data-theme') === name;
+                    d.setAttribute('data-active', on ? 'true' : 'false');
+                });
+                pills.forEach(p => p.setAttribute('aria-selected', p.dataset.pill === name ? 'true' : 'false'));
+            }
+
+            pills.forEach(p => p.addEventListener('click', () => {
+                userInteracted = true;
+                setActive(p.dataset.pill);
+            }));
+
+            setActive('default');
+
+            // ---------------- typewriter ----------------
+            const examples = [
+                { text: "gym next monday 7am legs, focus on squats and deadlifts, blue, remind 30 min before",        title: "Leg day at the gym", desc: "gym legs, focus on squats and deadlifts",         color: "blue",   date: "Mon, 04 May · 07:00 AM" },
+                { text: "groceries tomorrow morning at the store, yellow, milk eggs chicken rice and bread",          title: "Grocery run",        desc: "groceries at the store, milk eggs chicken rice and bread", color: "yellow", date: "Wed, 29 Apr · 08:00 AM" },
+                { text: "doctor appointment next tuesday 9am for annual physical and bloodwork, red, remind me 1 hour before", title: "Doctor appointment", desc: "doctor appointment for annual physical and bloodwork", color: "red",    date: "Tue, 05 May · 09:00 AM" },
+                { text: "submit final project deliverables by friday evening on canvas, orange",                       title: "Submit project",     desc: "submit final project deliverables on canvas",     color: "orange", date: "Fri, 01 May · 06:00 PM" },
+                { text: "call mom tomorrow at noon to confirm thanksgiving plans, pink, remind at 11:45am",            title: "Call mom",           desc: "call mom to confirm thanksgiving plans",          color: "pink",   date: "Wed, 29 Apr · 12:00 PM" },
+                { text: "read 20 pages of crime and punishment tonight before bed, purple",                            title: "Tonight's reading",  desc: "read 20 pages of crime and punishment before bed",color: "purple", date: "Tue, 28 Apr · 11:59 PM" },
+            ];
+
+            const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+            // colorMap + extractColor + parseReminder copied verbatim from desktop_v6.html
+            // (single source of truth — same regexes the real dashboard uses).
+            const colorMap = { blue: '#87CEEB', red: '#f05656', green: '#6CE5A9', pink: '#F8C8DC', orange: '#ff7f00', purple: '#A96CE5', yellow: '#FDDA0D' };
+
+            function extractColor(text) {
+                const matches = text.toLowerCase().match(/\b(blue|red|green|pink|orange|purple|yellow)\b/g);
+                if (matches && matches.length > 0) return colorMap[matches[matches.length - 1]];
+                return null;
+            }
+
+            function parseReminder(text) {
+                const t = text.toLowerCase();
+                const rel = t.match(/(?:remind|notify|alert)\s+(?:me\s+)?(\d+)\s*(m|min|mins|minute|minutes|h|hr|hrs|hour|hours)\b/);
+                if (rel) {
+                    const val = parseInt(rel[1]);
+                    const unit = rel[2];
+                    if (unit.startsWith('h')) {
+                        const clamped = Math.min(val, 24);
+                        return { display: `${clamped}h` };
+                    } else {
+                        return { display: `${val}m` };
+                    }
+                }
+                const relIn = t.match(/(?:remind|notify|alert)\s+(?:me\s+)?in\s+(\d+)\s*(m|min|mins|minute|minutes|h|hr|hrs|hour|hours)\b/);
+                if (relIn) {
+                    const val = parseInt(relIn[1]);
+                    const unit = relIn[2];
+                    const ms = unit.startsWith('h') ? val * 3600000 : val * 60000;
+                    const target = new Date(Date.now() + ms);
+                    let h = target.getHours(), m = target.getMinutes();
+                    const period = h >= 12 ? 'PM' : 'AM';
+                    h = h % 12 || 12;
+                    const display = m > 0 ? `${h}:${String(m).padStart(2,'0')}${period}` : `${h}${period}`;
+                    return { display };
+                }
+                const abs = t.match(/(?:remind|notify|alert)\s+(?:me\s+)?at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/);
+                if (abs) {
+                    const hour = parseInt(abs[1]);
+                    const mins = abs[2] ? parseInt(abs[2]) : 0;
+                    const period = abs[3].toUpperCase();
+                    const display = mins > 0 ? `${hour}:${String(mins).padStart(2,'0')}${period}` : `${hour}${period}`;
+                    return { display };
+                }
+                return null;
+            }
+
+            function activeDash() { return document.querySelector('.dash[data-active="true"]'); }
+            function activeInput() { return activeDash()?.querySelector('[data-input]'); }
+            function activeTyped() { return activeDash()?.querySelector('[data-typed]'); }
+            function activeCount() { return activeDash()?.querySelector('[data-count]'); }
+            function activeList() { return activeDash()?.querySelector('[data-list]'); }
+
+            function setText(s) {
+                // write to ALL three dashes' typed/count, so theme switch keeps state visible
+                document.querySelectorAll('[data-typed]').forEach(el => el.textContent = s);
+                document.querySelectorAll('[data-count]').forEach(el => el.textContent = String(s.length));
+                document.querySelectorAll('[data-input]').forEach(el => el.classList.toggle('empty', s.length === 0));
+
+                // recolor the typed text inline once a color word is fully typed
+                // (same approach as desktop_v6.html input listener)
+                const color = extractColor(s);
+                document.querySelectorAll('[data-typed]').forEach(el => el.style.color = color || '');
+
+                // reminder preview pill — show when parseReminder finds a clause, hide otherwise
+                const rem = parseReminder(s);
+                document.querySelectorAll('[data-reminder-preview]').forEach(el => {
+                    const label = el.querySelector('[data-reminder-label]');
+                    if (rem && rem.display) {
+                        if (label) label.textContent = rem.display;
+                        el.classList.add('show');
+                    } else {
+                        el.classList.remove('show');
+                    }
+                });
+            }
+
+            function makeCardFor(theme, ex) {
+                const a = document.createElement('article');
+                a.className = 'dash-card entering';
+                a.dataset.color = ex.color || 'white';
+                const rem = parseReminder(ex.text);
+                let titleHtml;
+                if (theme === 'editorial') {
+                    titleHtml = `<h3 class="dash-card-title"><span class="dot"></span>${ex.title}</h3>`;
+                } else {
+                    titleHtml = `<h3 class="dash-card-title">${ex.title}</h3>`;
+                }
+                a.innerHTML = `
+                    <div class="dash-card-main">
+                        ${titleHtml}
+                        <p class="dash-card-desc">${ex.desc}</p>
+                    </div>
+                    <div class="dash-card-meta">
+                        ${rem && rem.display ? `<span class="dash-bell">🔔 ${rem.display}</span>` : ''}
+                        <span class="dash-date">${ex.date}</span>
+                    </div>`;
+                return a;
+            }
+
+            async function typeString(s) {
+                let cur = '';
+                for (let i = 0; i < s.length; i++) {
+                    cur += s[i];
+                    setText(cur);
+                    await sleep(45 + Math.random() * 35);
+                }
+            }
+            async function eraseString() {
+                let cur = activeTyped()?.textContent || '';
+                while (cur.length > 0) {
+                    cur = cur.slice(0, -1);
+                    setText(cur);
+                    await sleep(18);
+                }
+            }
+
+            async function loop() {
+                let i = 0;
+                while (true) {
+                    const ex = examples[i % examples.length];
+                    await typeString(ex.text);
+                    await sleep(450);
+
+                    // append a card to EACH dash's task list (so when user switches, cards already there)
+                    dashes.forEach(d => {
+                        const list = d.querySelector('[data-list]');
+                        if (!list) return;
+                        const card = makeCardFor(d.getAttribute('data-theme'), ex);
+                        list.prepend(card);
+                        requestAnimationFrame(() => card.classList.replace('entering', 'entered'));
+                        // cap each list at 4 cards
+                        while (list.children.length > 4) {
+                            const last = list.lastElementChild;
+                            last.classList.add('exiting');
+                            setTimeout(() => last.remove(), 320);
+                            break;
+                        }
+                    });
+                    await sleep(2200);
+                    await eraseString();
+                    await sleep(350);
+                    i++;
+
+                    // every 2 examples, advance theme (unless user picked one)
+                    if (i % 2 === 0 && !userInteracted) {
+                        await sleep(700);
+                        const idx = (themes.indexOf(active) + 1) % themes.length;
+                        setActive(themes[idx]);
+                        await sleep(800);
+                    }
+                }
+            }
+            setTimeout(loop, 800);
+        })();
+
+        // ===================== parallax bg =====================
         const grid = document.getElementById('parallax-grid');
         const orbs = document.querySelectorAll('.orb');
-
-        // Only runs on devices with a mouse, keeping mobile smooth
         if (window.matchMedia("(pointer: fine)").matches) {
             document.addEventListener('mousemove', (e) => {
                 const xGrid = (e.clientX / window.innerWidth - 0.5) * 30;
                 const yGrid = (e.clientY / window.innerHeight - 0.5) * 30;
                 grid.style.transform = `translate(${xGrid * -1}px, ${yGrid * -1}px)`;
-
                 const xOrb = (window.innerWidth - e.pageX * 2) / 100;
                 const yOrb = (window.innerHeight - e.pageY * 2) / 100;
-
                 orbs.forEach(orb => {
                     const speed = orb.getAttribute('data-speed');
                     orb.style.transform = `translate(${xOrb * speed}px, ${yOrb * speed}px)`;
@@ -102,11 +988,4 @@
         }
     </script>
 </body>
-
 </html>
-
-
-
-
-
-
