@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tasker | Let Tasker remember it</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700;800&family=Sora:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,500&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             theme: {
@@ -36,6 +36,402 @@
             will-change: transform;
             transition: transform 0.15s cubic-bezier(0.1, 0.5, 0.3, 1);
         }
+
+        /* ======================= LIVE DEMO SECTION ======================= */
+        .theme-pills .pill {
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            padding: 6px 14px;
+            border-radius: 999px;
+            color: #94a3b8;
+            background: transparent;
+            transition: all 0.25s ease;
+            cursor: pointer;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+        .theme-pills .pill:hover { color: #e2e8f0; }
+        .theme-pills .pill[aria-selected="true"] {
+            background: var(--pill-active-bg, #fcd34d);
+            color: var(--pill-active-fg, #111520);
+            box-shadow: 0 0 18px var(--pill-glow, rgba(252,211,77,0.35));
+        }
+
+        /* mockup wrapper — defaults are the SOLAR theme (default.png) */
+        .demo-mockup {
+            --m-bg: #0c111c;
+            --m-surface: #141a28;
+            --m-surface-2: #1a2236;
+            --m-border: rgba(148,163,184,0.10);
+            --m-text: #e2e8f0;
+            --m-title: #ffffff;
+            --m-muted: #94a3b8;
+            --m-accent: #fcd34d;
+            --m-accent-fg: #111520;
+            --m-accent-soft: rgba(252,211,77,0.12);
+            --m-blue: #60a5fa;
+            --m-red: #f87171;
+            --m-font-display: 'Inter', sans-serif;
+            --m-font-body: 'Inter', sans-serif;
+            --m-font-meta: 'IBM Plex Mono', monospace;
+            --m-font-date: 'IBM Plex Mono', monospace;
+            --m-title-weight: 700;
+            --m-card-title-style: normal;
+            --m-card-radius: 12px;
+            --m-bullet-display: none;
+            --m-side-bar: 0px;
+
+            position: relative;
+            margin-top: 6px;
+            border: 1px solid var(--m-border);
+            border-radius: 18px;
+            background: linear-gradient(180deg, rgba(20,26,40,0.6), rgba(12,17,28,0.6));
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            overflow: hidden;
+            font-family: var(--m-font-body);
+            color: var(--m-text);
+        }
+
+        /* GLASS / cyber */
+        .demo-mockup[data-theme="glass"] {
+            --m-bg: #08070d;
+            --m-surface: rgba(20,18,32,0.55);
+            --m-surface-2: rgba(28,24,46,0.65);
+            --m-border: rgba(167,139,250,0.18);
+            --m-accent: #a78bfa;
+            --m-accent-fg: #0d0a18;
+            --m-accent-soft: rgba(167,139,250,0.12);
+            --m-font-display: 'IBM Plex Mono', monospace;
+            --m-font-body: 'IBM Plex Mono', monospace;
+            --m-font-meta: 'IBM Plex Mono', monospace;
+            --m-font-date: 'IBM Plex Mono', monospace;
+            --m-title-weight: 600;
+            --m-card-radius: 8px;
+            --m-side-bar: 3px;
+        }
+
+        /* EDITORIAL / ember */
+        .demo-mockup[data-theme="editorial"] {
+            --m-bg: #0e0a07;
+            --m-surface: #1a120c;
+            --m-surface-2: #21170f;
+            --m-border: rgba(251,146,60,0.14);
+            --m-accent: #fb923c;
+            --m-accent-fg: #1a0c04;
+            --m-accent-soft: rgba(251,146,60,0.12);
+            --m-font-display: 'Fraunces', Georgia, serif;
+            --m-font-body: 'Inter', sans-serif;
+            --m-font-meta: 'Inter', sans-serif;
+            --m-font-date: 'Inter', sans-serif;
+            --m-title-weight: 700;
+            --m-card-title-style: normal;
+            --m-card-radius: 14px;
+            --m-bullet-display: inline-block;
+            --m-side-bar: 0px;
+        }
+
+        /* shared layout */
+        .demo-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--m-border);
+            background: rgba(255,255,255,0.01);
+        }
+        .demo-brand { font-family: var(--m-font-display); font-weight: 700; color: var(--m-title); font-size: 16px; letter-spacing: -0.01em; }
+        .demo-bar-right { display: flex; align-items: center; gap: 16px; font-size: 12px; color: var(--m-muted); }
+        .demo-bar-right .demo-logout { color: var(--m-accent); }
+        .demo-readme { display: none; }
+        @media (min-width: 640px) { .demo-readme { display: inline; } }
+
+        .demo-body {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 18px;
+            padding: 22px;
+        }
+        @media (min-width: 900px) {
+            .demo-body { grid-template-columns: 1.7fr 1fr; gap: 22px; padding: 28px; }
+        }
+
+        .demo-list-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 18px;
+            gap: 12px;
+        }
+        .demo-title {
+            font-family: var(--m-font-display);
+            font-weight: var(--m-title-weight);
+            color: var(--m-title);
+            font-size: 28px;
+            line-height: 1;
+            letter-spacing: -0.02em;
+        }
+        .demo-mockup[data-theme="editorial"] .demo-title { font-size: 32px; letter-spacing: -0.01em; }
+        .demo-mockup[data-theme="glass"] .demo-title { font-size: 26px; text-transform: lowercase; }
+        .title-badge {
+            font-style: normal;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--m-accent);
+            background: var(--m-accent-soft);
+            border: 1px solid var(--m-accent-soft);
+            padding: 2px 8px;
+            border-radius: 6px;
+            margin-left: 6px;
+            vertical-align: middle;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+        .demo-subcount { display: block; font-size: 11px; color: var(--m-muted); font-family: var(--m-font-body); font-weight: 400; margin-top: 4px; letter-spacing: 0.04em; }
+
+        .demo-clock {
+            font-family: var(--m-font-date);
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            color: var(--m-accent);
+            text-align: right;
+            text-transform: uppercase;
+        }
+        .demo-mockup[data-theme="editorial"] .demo-clock {
+            font-family: 'Fraunces', Georgia, serif;
+            font-style: italic;
+            font-weight: 500;
+            text-transform: none;
+            letter-spacing: 0;
+            font-size: 14px;
+        }
+        .clock-default, .clock-glass, .clock-editorial { display: none; }
+        .demo-mockup[data-theme="default"] .clock-default,
+        .demo-mockup[data-theme="glass"] .clock-glass,
+        .demo-mockup[data-theme="editorial"] .clock-editorial { display: inline; }
+
+        /* theme-conditional element visibility */
+        .t-default, .t-glass, .t-editorial { display: none; }
+        .demo-mockup[data-theme="default"] .t-default,
+        .demo-mockup[data-theme="glass"] .t-glass,
+        .demo-mockup[data-theme="editorial"] .t-editorial { display: inline; }
+        .t-glass-or-editorial { display: none; }
+        .demo-mockup[data-theme="glass"] .t-glass-or-editorial,
+        .demo-mockup[data-theme="editorial"] .t-glass-or-editorial { display: block; }
+        .t-editorial-only, .t-glass-only { display: none; }
+        .demo-mockup[data-theme="editorial"] .t-editorial-only { display: block; }
+        .demo-mockup[data-theme="glass"] .t-glass-only { display: grid; }
+
+        /* cards */
+        .demo-cards { display: flex; flex-direction: column; gap: 12px; }
+        .demo-card {
+            position: relative;
+            background: var(--m-surface);
+            border: 1px solid var(--m-border);
+            border-radius: var(--m-card-radius);
+            padding: 16px 18px;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 12px;
+            align-items: start;
+            transition: transform 0.45s cubic-bezier(0.2,0.7,0.2,1), opacity 0.45s ease;
+        }
+        .demo-mockup[data-theme="glass"] .demo-card { padding-left: calc(18px + var(--m-side-bar)); }
+        .demo-mockup[data-theme="glass"] .demo-card[data-color="blue"]::before,
+        .demo-mockup[data-theme="glass"] .demo-card[data-color="red"]::before,
+        .demo-mockup[data-theme="glass"] .demo-card[data-color="green"]::before,
+        .demo-mockup[data-theme="glass"] .demo-card[data-color="orange"]::before,
+        .demo-mockup[data-theme="glass"] .demo-card[data-color="purple"]::before {
+            content: "";
+            position: absolute;
+            left: 0; top: 8px; bottom: 8px;
+            width: var(--m-side-bar);
+            border-radius: 4px;
+        }
+        .demo-mockup[data-theme="glass"] .demo-card[data-color="blue"]::before { background: #60a5fa; }
+        .demo-mockup[data-theme="glass"] .demo-card[data-color="red"]::before { background: #f87171; }
+        .demo-mockup[data-theme="glass"] .demo-card[data-color="green"]::before { background: #34d399; }
+        .demo-mockup[data-theme="glass"] .demo-card[data-color="orange"]::before { background: #fb923c; }
+        .demo-mockup[data-theme="glass"] .demo-card[data-color="purple"]::before { background: #a78bfa; }
+
+        .demo-card-title {
+            font-family: var(--m-font-display);
+            font-weight: var(--m-title-weight);
+            font-style: var(--m-card-title-style);
+            font-size: 15px;
+            color: var(--m-card-color, var(--m-blue));
+            margin: 0 0 6px 0;
+            letter-spacing: -0.01em;
+            line-height: 1.3;
+        }
+        .demo-mockup[data-theme="editorial"] .demo-card-title { font-size: 17px; }
+        .demo-card[data-color="blue"] .demo-card-title { color: #60a5fa; }
+        .demo-card[data-color="red"] .demo-card-title { color: #f87171; }
+        .demo-card[data-color="green"] .demo-card-title { color: #34d399; }
+        .demo-card[data-color="orange"] .demo-card-title { color: #fb923c; }
+        .demo-card[data-color="purple"] .demo-card-title { color: #a78bfa; }
+
+        .bullet {
+            display: var(--m-bullet-display);
+            color: inherit;
+            margin-right: 8px;
+            font-size: 10px;
+            vertical-align: middle;
+            transform: translateY(-1px);
+        }
+
+        .demo-card-desc {
+            margin: 0;
+            font-size: 13px;
+            color: var(--m-muted);
+            line-height: 1.5;
+            font-family: var(--m-font-body);
+        }
+        .demo-card-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+        .demo-bell {
+            font-size: 11px;
+            font-weight: 600;
+            color: #fbbf24;
+            background: rgba(120,53,15,0.25);
+            border: 1px solid rgba(251,191,36,0.25);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-family: var(--m-font-meta);
+            letter-spacing: 0.05em;
+        }
+        .demo-date {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--m-blue);
+            background: rgba(59,130,246,0.12);
+            border: 1px solid rgba(59,130,246,0.25);
+            padding: 4px 10px;
+            border-radius: 6px;
+            white-space: nowrap;
+            font-family: var(--m-font-date);
+            letter-spacing: 0.04em;
+        }
+        .demo-card[data-color="red"] .demo-date { color: #f87171; background: rgba(248,113,113,0.12); border-color: rgba(248,113,113,0.25); }
+        .demo-card[data-color="green"] .demo-date { color: #34d399; background: rgba(52,211,153,0.12); border-color: rgba(52,211,153,0.25); }
+        .demo-card[data-color="orange"] .demo-date { color: #fb923c; background: rgba(251,146,60,0.12); border-color: rgba(251,146,60,0.25); }
+        .demo-card[data-color="purple"] .demo-date { color: #a78bfa; background: rgba(167,139,250,0.12); border-color: rgba(167,139,250,0.25); }
+
+        /* side panel */
+        .demo-side-col { display: flex; flex-direction: column; gap: 14px; }
+        .demo-panel {
+            background: var(--m-surface);
+            border: 1px solid var(--m-border);
+            border-radius: var(--m-card-radius);
+            padding: 18px;
+        }
+        .demo-panel-title {
+            font-family: var(--m-font-display);
+            font-weight: var(--m-title-weight);
+            color: var(--m-title);
+            font-size: 18px;
+            margin: 0 0 6px 0;
+            letter-spacing: -0.01em;
+        }
+        .demo-mockup[data-theme="editorial"] .demo-panel-title { font-size: 20px; }
+        .demo-panel-sub { margin: 0 0 14px 0; font-size: 12px; color: var(--m-muted); line-height: 1.5; }
+        .demo-input-wrap { position: relative; margin-bottom: 14px; }
+        .demo-input {
+            min-height: 90px;
+            padding: 12px 14px;
+            background: rgba(0,0,0,0.25);
+            border: 1px solid var(--m-border);
+            border-radius: 10px;
+            font-family: var(--m-font-body);
+            font-size: 13px;
+            color: var(--m-text);
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .demo-mockup[data-theme="glass"] .demo-input { font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+        .demo-input:empty::before, .demo-input:has(#typed:empty)::before { content: ""; }
+        .caret {
+            display: inline-block;
+            color: var(--m-accent);
+            margin-left: 1px;
+            animation: demo-blink 1s steps(1) infinite;
+            font-weight: 300;
+        }
+        @keyframes demo-blink { 50% { opacity: 0; } }
+        .demo-counter { position: absolute; bottom: 6px; right: 10px; font-size: 10px; color: var(--m-muted); font-family: 'IBM Plex Mono', monospace; }
+        .demo-add {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--m-accent);
+            color: var(--m-accent-fg);
+            border: none;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 14px;
+            font-family: var(--m-font-display);
+            cursor: pointer;
+            transition: filter 0.2s ease;
+        }
+        .demo-add:hover { filter: brightness(1.08); }
+
+        /* glass-only stats */
+        .demo-stats {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+        .demo-stats .stat {
+            background: var(--m-surface);
+            border: 1px solid var(--m-border);
+            border-radius: 10px;
+            padding: 14px 8px;
+            text-align: center;
+        }
+        .demo-stats .stat strong {
+            display: block;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--m-accent);
+        }
+        .demo-stats .stat span {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 9px;
+            letter-spacing: 0.18em;
+            color: var(--m-muted);
+        }
+
+        /* editorial-only quote */
+        .demo-quote {
+            background: var(--m-surface);
+            border: 1px solid var(--m-border);
+            border-radius: 14px;
+            padding: 16px 18px;
+        }
+        .demo-quote p { margin: 0 0 6px 0; font-family: 'Fraunces', Georgia, serif; font-style: italic; color: var(--m-text); font-size: 14px; line-height: 1.45; }
+        .demo-quote span { font-size: 11px; color: var(--m-muted); }
+
+        /* slide-in animation for new typed cards */
+        .demo-card.entering {
+            opacity: 0;
+            transform: translateY(-8px) scale(0.98);
+        }
+        .demo-card.entered {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+        .demo-card.exiting {
+            opacity: 0;
+            transform: translateY(-6px);
+        }
+
+        /* pill colors per theme — applied via JS-set CSS vars on root */
+        :root {
+            --pill-active-bg: #fcd34d;
+            --pill-active-fg: #111520;
+            --pill-glow: rgba(252,211,77,0.35);
+        }
+        body.theme-glass { --pill-active-bg: #a78bfa; --pill-active-fg: #0d0a18; --pill-glow: rgba(167,139,250,0.4); }
+        body.theme-editorial { --pill-active-bg: #fb923c; --pill-active-fg: #1a0c04; --pill-glow: rgba(251,146,60,0.4); }
     </style>
 </head>
 <body class="bg-base text-slate-300 antialiased selection:bg-accent selection:text-base flex flex-col min-h-screen relative overflow-x-hidden">
@@ -64,6 +460,104 @@
             Offload your mental clutter. A radically simple dashboard designed to capture your tasks instantly using Natural Language Processing (NLP).
         </p>
 
+        <section id="demo" class="mb-16 md:mb-24">
+            <div class="flex items-center justify-between flex-wrap gap-4 mb-6 md:mb-8">
+                <h2 class="text-sm font-semibold tracking-[0.2em] uppercase text-slate-500">A live look</h2>
+                <div class="theme-pills inline-flex items-center gap-1 p-1 rounded-full border border-slate-800 bg-slate-900/40 backdrop-blur-sm" role="tablist" aria-label="Theme switcher">
+                    <button class="pill" data-pill="default" aria-selected="true">default</button>
+                    <button class="pill" data-pill="glass" aria-selected="false">glass</button>
+                    <button class="pill" data-pill="editorial" aria-selected="false">editorial</button>
+                </div>
+            </div>
+
+            <div class="demo-mockup" data-theme="default">
+                <div class="demo-bar">
+                    <div class="demo-brand">
+                        <span class="brand-default">Tasker.</span>
+                        <span class="brand-glass">tasker.</span>
+                        <span class="brand-editorial">Tasker.</span>
+                    </div>
+                    <div class="demo-bar-right">
+                        <span class="demo-user">anirudh</span>
+                        <span class="demo-readme">README</span>
+                        <span class="demo-logout">Logout</span>
+                    </div>
+                </div>
+
+                <div class="demo-body">
+                    <div class="demo-list-col">
+                        <div class="demo-list-head">
+                            <div class="demo-title">
+                                <span class="t-default">Your Tasks</span>
+                                <span class="t-glass">Tasks <em class="title-badge">10</em></span>
+                                <span class="t-editorial">Your Tasks</span>
+                                <span class="demo-subcount t-editorial-only">8 active</span>
+                            </div>
+                            <div class="demo-clock">
+                                <span class="t-default clock-default">MON, APR 27 <span class="clock-sep">·</span> 10:12 PM</span>
+                                <span class="t-glass clock-glass">MON, APR 27<br>10:12 PM</span>
+                                <span class="t-editorial clock-editorial">Monday, Apr 27 <span class="clock-sep">·</span> 10:12 PM</span>
+                            </div>
+                        </div>
+
+                        <div class="demo-cards" id="demo-cards">
+                            <article class="demo-card" data-color="blue">
+                                <div class="demo-card-main">
+                                    <h3 class="demo-card-title"><span class="bullet">●</span>Start SWE cheatsheet</h3>
+                                    <p class="demo-card-desc">Start SWE cheatsheet after meeting sonia</p>
+                                </div>
+                                <div class="demo-card-meta">
+                                    <span class="demo-bell">🔔 6PM</span>
+                                    <span class="demo-date">Sat, 25 Apr 2026 · 06:00 PM</span>
+                                </div>
+                            </article>
+                            <article class="demo-card" data-color="red">
+                                <div class="demo-card-main">
+                                    <h3 class="demo-card-title"><span class="bullet">●</span>Vacuum Tesla interior and visit carwash</h3>
+                                    <p class="demo-card-desc">vacuum tesla backseats and floor, there's soil and shit lol go to a carwash</p>
+                                </div>
+                                <div class="demo-card-meta">
+                                    <span class="demo-date">Mon, 27 Apr 2026 · 12:00 PM</span>
+                                </div>
+                            </article>
+                        </div>
+                    </div>
+
+                    <div class="demo-side-col">
+                        <div class="demo-panel">
+                            <h3 class="demo-panel-title">
+                                <span class="t-default">Describe Task</span>
+                                <span class="t-glass">New Task</span>
+                                <span class="t-editorial">What's on your mind?</span>
+                            </h3>
+                            <p class="demo-panel-sub t-glass-or-editorial">
+                                <span class="t-glass">Just type. Dates, times, colors — Tasker extracts everything.</span>
+                                <span class="t-editorial">Type naturally. Tasker handles dates, times, colors, and reminders.</span>
+                            </p>
+                            <div class="demo-input-wrap">
+                                <div class="demo-input" aria-live="polite">
+                                    <span id="typed"></span><span class="caret">|</span>
+                                </div>
+                                <span class="demo-counter"><span id="charcount">0</span>/200</span>
+                            </div>
+                            <button class="demo-add" type="button">Add Task</button>
+                        </div>
+
+                        <div class="demo-stats t-glass-only">
+                            <div class="stat"><strong>8</strong><span>ACTIVE</span></div>
+                            <div class="stat"><strong>2</strong><span>OVERDUE</span></div>
+                            <div class="stat"><strong>10</strong><span>TOTAL</span></div>
+                        </div>
+
+                        <div class="demo-quote t-editorial-only">
+                            <p>"It works on my machine. Ship my machine."</p>
+                            <span>— Every Developer</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 border-t border-slate-800 pt-12 md:pt-16">
             <div>
                 <h3 class="text-lg font-bold text-white mb-2 md:mb-3">Absolute Privacy.</h3>
@@ -81,6 +575,117 @@
     </main>
 
     <script>
+        // ===================== LIVE DEMO LOGIC =====================
+        (function () {
+            const mockup = document.querySelector('.demo-mockup');
+            const pills = document.querySelectorAll('.theme-pills .pill');
+            const themes = ['default', 'glass', 'editorial'];
+            let userInteracted = false;
+            let cycleTimer = null;
+
+            function applyTheme(name) {
+                mockup.setAttribute('data-theme', name);
+                pills.forEach(p => p.setAttribute('aria-selected', p.dataset.pill === name ? 'true' : 'false'));
+                document.body.classList.remove('theme-default', 'theme-glass', 'theme-editorial');
+                document.body.classList.add('theme-' + name);
+            }
+
+            function startAutoCycle() {
+                if (cycleTimer) return;
+                let idx = themes.indexOf(mockup.getAttribute('data-theme'));
+                cycleTimer = setInterval(() => {
+                    if (userInteracted) return;
+                    idx = (idx + 1) % themes.length;
+                    applyTheme(themes[idx]);
+                }, 5000);
+            }
+
+            pills.forEach(p => {
+                p.addEventListener('click', () => {
+                    userInteracted = true;
+                    applyTheme(p.dataset.pill);
+                });
+            });
+
+            applyTheme('default');
+            startAutoCycle();
+
+            // ---------------- typewriter ----------------
+            const examples = [
+                { text: "gym next monday 7am legs, blue",         title: "Gym — legs",                 desc: "next monday 7am, leg day", color: "blue",   bell: "7AM",   date: "Mon, 04 May 2026 · 07:00 AM" },
+                { text: "doctor appointment next tuesday 8am red", title: "Doctor appointment",         desc: "next tuesday 8am",         color: "red",    bell: "8AM",   date: "Tue, 05 May 2026 · 08:00 AM" },
+                { text: "physics homework tomorrow 11:30am",       title: "Physics homework",           desc: "due tomorrow 11:30am",     color: "orange", bell: "11:30A",date: "Tue, 28 Apr 2026 · 11:30 AM" },
+                { text: "fix prod bug before standup, green",      title: "Fix prod bug",               desc: "before standup",           color: "green",  bell: null,    date: "Tue, 28 Apr 2026 · 09:00 AM" },
+                { text: "call mom this sunday 6pm purple",         title: "Call mom",                   desc: "this sunday 6pm",          color: "purple", bell: "6PM",   date: "Sun, 03 May 2026 · 06:00 PM" },
+            ];
+
+            const typed = document.getElementById('typed');
+            const charcount = document.getElementById('charcount');
+            const cards = document.getElementById('demo-cards');
+
+            const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+            function makeCard(ex) {
+                const a = document.createElement('article');
+                a.className = 'demo-card entering';
+                a.dataset.color = ex.color;
+                a.innerHTML = `
+                    <div class="demo-card-main">
+                        <h3 class="demo-card-title"><span class="bullet">●</span>${ex.title}</h3>
+                        <p class="demo-card-desc">${ex.desc}</p>
+                    </div>
+                    <div class="demo-card-meta">
+                        ${ex.bell ? `<span class="demo-bell">🔔 ${ex.bell}</span>` : ''}
+                        <span class="demo-date">${ex.date}</span>
+                    </div>`;
+                return a;
+            }
+
+            async function typeString(s) {
+                typed.textContent = '';
+                if (charcount) charcount.textContent = '0';
+                for (let i = 0; i < s.length; i++) {
+                    typed.textContent += s[i];
+                    if (charcount) charcount.textContent = String(typed.textContent.length);
+                    await sleep(45 + Math.random() * 35);
+                }
+            }
+
+            async function eraseString() {
+                while (typed.textContent.length > 0) {
+                    typed.textContent = typed.textContent.slice(0, -1);
+                    if (charcount) charcount.textContent = String(typed.textContent.length);
+                    await sleep(18);
+                }
+            }
+
+            async function loop() {
+                let i = 0;
+                while (true) {
+                    const ex = examples[i % examples.length];
+                    await typeString(ex.text);
+                    await sleep(450);
+                    const card = makeCard(ex);
+                    cards.prepend(card);
+                    requestAnimationFrame(() => card.classList.replace('entering', 'entered'));
+                    // keep the list capped at 4 visible
+                    while (cards.children.length > 4) {
+                        const last = cards.lastElementChild;
+                        last.classList.add('exiting');
+                        await sleep(300);
+                        last.remove();
+                    }
+                    await sleep(2200);
+                    await eraseString();
+                    await sleep(350);
+                    i++;
+                }
+            }
+
+            // start typewriter after a short beat so the pill animation lands first
+            setTimeout(loop, 800);
+        })();
+
         const grid = document.getElementById('parallax-grid');
         const orbs = document.querySelectorAll('.orb');
 
