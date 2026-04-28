@@ -89,11 +89,11 @@
         }
 
         .dash-stage--desktop {
-            min-height: 520px;
+            min-height: 720px;
         }
 
         .dash-stage--mobile {
-            min-height: 820px;
+            min-height: 980px;
             display: none;
         }
 
@@ -2651,8 +2651,8 @@
                             children.forEach(c => list.appendChild(c));
 
                             requestAnimationFrame(() => card.classList.replace('entering', 'entered'));
-                            // cap each list at 4 cards
-                            while (list.children.length > 4) {
+                            // cap each list at 6 cards
+                            while (list.children.length > 6) {
                                 const last = list.lastElementChild;
                                 last.classList.add('exiting');
                                 setTimeout(() => last.remove(), 320);
