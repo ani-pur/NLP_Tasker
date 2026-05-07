@@ -16,4 +16,4 @@ COPY . .
 EXPOSE 5000
 
 # 4 workers * 10 threads = 40 concurrent connections max
-CMD ["gunicorn", "-b", "0.0.0.0:5000", "-w", "4", "--threads", "10", "--worker-class", "gthread", "logic.main:app"]
+CMD ["gunicorn", "-b", "0.0.0.0:5000", "-w", "4", "--threads", "20", "--worker-class", "gthread", "logic.main:app"]
