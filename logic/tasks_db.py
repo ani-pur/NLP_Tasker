@@ -14,7 +14,11 @@ db_pool = ThreadedConnectionPool(
     user=os.environ.get('POSTGRES_USER'),
     password=os.environ.get('POSTGRES_PASSWORD'),
     host=os.environ.get('POSTGRES_HOST'),
-    port=os.environ.get('POSTGRES_PORT')
+    port=os.environ.get('POSTGRES_PORT'),
+    keepalives=1,
+    keepalives_idle=60,
+    keepalives_interval=10,
+    keepalives_count=5,
 )
 
 # checkout pool connection
