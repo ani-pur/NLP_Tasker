@@ -12,6 +12,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+RUN adduser --system --no-create-home appuser && chown -R appuser /localtodo
+
+USER appuser
+
 # Expose Flask's default port
 EXPOSE 5000
 

@@ -1,11 +1,6 @@
-*.bat
-*.vbs
-.git/
-.gitignore
-.gitattributes
-README.md
-.git
+*.yaml
+*.yml
+.env
 __pycache__
 *.pyc
-*.log
-.env
+.git
