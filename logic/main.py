@@ -280,6 +280,17 @@ def index():
     return render_template('desktop_v3.html', username=session['username'])
 
 
+# CALENDAR VIEW
+# Single responsive template for both desktop + mobile; it just consumes the
+# existing /tasks JSON endpoint, so no new backend data plumbing is needed.
+@app.route('/calendar')
+def calendar():
+    if 'username' not in session:
+        return redirect(url_for('info'))
+    print(currentTime(), f"{session['username']} hit /calendar")
+    return render_template('calendar.html', username=session['username'])
+
+
 # UI SWITCHING
 @app.route('/switch/<int:switch_id>', methods=['GET'])
 def switch_ui(switch_id):
