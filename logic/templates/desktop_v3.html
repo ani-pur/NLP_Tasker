@@ -55,6 +55,7 @@
       <div class="flex items-center gap-5 text-sm font-medium">
         <span class="text-slate-400">{{ username }}</span>
         <a href="https://github.com/ani-pur/NLP_Tasker/blob/main/README.md" target="_blank" rel="noopener" class="text-slate-500 hover:text-white transition duration-200">README</a>
+        <a href="{{ url_for('calendar') }}" class="text-slate-500 hover:text-white transition duration-200">Calendar</a>
         <a href="{{ url_for('logout') }}" class="text-red-400/80 hover:text-red-400 transition duration-200">Logout</a>
       </div>
     </div>
