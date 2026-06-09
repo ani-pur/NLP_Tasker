@@ -141,7 +141,11 @@ def warmupCall():
         openai_latency = time.time() - openai_startTime
     except Exception as e:
         openai_latency = 5.0  # treat failure as max-slow
-        print(f"{currentTime()} [PID {pid}] OPENAI WARMUP FAILED: {e}")
+        # Only log the failure when openai is the ACTIVE vendor. With openai egress
+        # blocked at the container, the inactive vendor fails every cycle — logging
+        # that would bury real signal in noise.
+        if active == "openai":
+            print(f"{currentTime()} [PID {pid}] OPENAI WARMUP FAILED: {e}")
 
     # --- ping Gemini ---
     gemini_latency = None
@@ -158,17 +162,20 @@ def warmupCall():
         gemini_latency = time.time() - gemini_startTime
     except Exception as e:
         gemini_latency = 5.0
-        print(f"{currentTime()} [PID {pid}] GEMINI WARMUP FAILED: {e}")
+        # symmetric with openai above: only surface the failure when gemini is active.
+        if active == "gemini":
+            print(f"{currentTime()} [PID {pid}] GEMINI WARMUP FAILED: {e}")
 
     # --- check active vendor's latency, decide if we need to swap ---
     active_latency = openai_latency if active == "openai" else gemini_latency
 
-    # vendor-agnostic file log: any cycle where EITHER vendor pinged slow gets a line.
-    # decoupled from stdout/swap logic so we can monitor the inactive vendor's health too
-    # (otherwise a swap to gemini hides openai latency from view entirely).
+    # file log: only when the ACTIVE vendor pings slow. We used to log whenever EITHER
+    # vendor was late to monitor the inactive one too, but with openai egress blocked the
+    # inactive vendor is late every single cycle — that flooded the log. The line still
+    # records both latencies for context, it just no longer fires on inactive-only slowness.
     openai_late = openai_latency >= _SLOW_THRESHOLD
     gemini_late = gemini_latency >= _SLOW_THRESHOLD
-    if openai_late or gemini_late:
+    if active_latency >= _SLOW_THRESHOLD:
         line = (f"{currentTime()} [PID {pid}] active={active} "
                 f"openai={openai_latency:.2f}s {'LATE' if openai_late else 'ok'} "
                 f"gemini={gemini_latency:.2f}s {'LATE' if gemini_late else 'ok'}\n")
