@@ -466,6 +466,43 @@
       margin-top: 2px;
     }
 
+    /* ── Edit modal ── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+      z-index: 200; display: none; align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      width: 440px; max-width: 100%; background: rgba(12,12,16,0.96);
+      border: 1px solid var(--border); border-radius: 20px; padding: 26px;
+      backdrop-filter: blur(30px) saturate(160%);
+      box-shadow: 0 24px 60px -20px rgba(0,0,0,0.8);
+      animation: modalIn 0.22s cubic-bezier(0.23, 1, 0.32, 1);
+    }
+    @keyframes modalIn { 0% { opacity: 0; transform: translateY(12px) scale(0.97); } 100% { opacity: 1; transform: none; } }
+    .modal h3 { font-size: 20px; font-weight: 800; letter-spacing: -0.4px; margin-bottom: 18px; }
+    .modal label { display: block; font-family: 'IBM Plex Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin: 14px 0 6px; }
+    .modal input, .modal textarea {
+      width: 100%; background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+      border-radius: 10px; padding: 10px 12px; font-family: 'Sora', sans-serif; font-size: 14px;
+      color: var(--fg); outline: none; transition: all 0.2s;
+    }
+    .modal input:focus, .modal textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(129,140,248,0.1); }
+    .modal textarea { height: 80px; resize: none; }
+    .modal input[type="date"], .modal input[type="time"] { color-scheme: dark; }
+    .modal .row { display: flex; gap: 12px; }
+    .modal .row > div { flex: 1; }
+    .swatches { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+    .swatch { width: 26px; height: 26px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: all 0.15s; }
+    .swatch:hover { transform: scale(1.12); }
+    .swatch.selected { border-color: #fff; box-shadow: 0 0 0 2px var(--accent); }
+    .swatch.none { background: linear-gradient(135deg, #2a2a30, #18181c); position: relative; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
+    .btn-ghost { background: var(--surface); border: 1px solid var(--border); color: var(--muted); border-radius: 10px; padding: 9px 18px; font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.18s; }
+    .btn-ghost:hover { color: var(--fg); border-color: var(--border-hover); }
+    .btn-save { background: linear-gradient(135deg, #818cf8, #6366f1); color: #fff; border: none; border-radius: 10px; padding: 9px 22px; font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: 0 2px 12px rgba(129,140,248,0.25); transition: all 0.18s; }
+    .btn-save:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(129,140,248,0.4); }
+
     /* ── Dropdown readability ── */
     select option {
       background: #0c0c10;
@@ -644,7 +681,9 @@
     }
 
     /* ── Render tasks ── */
+    let currentTasks = [];                 // last fetched rows, used by the edit modal
     function renderTasks(tasks) {
+      currentTasks = tasks;
       const list = document.getElementById('taskList');
       list.innerHTML = '';
       const now = new Date();
@@ -689,6 +728,7 @@
           </div>
           <div class="task-desc">${task_description}</div>
           <div class="task-footer">
+            <button class="delete-btn" onclick="openEdit(${id})">edit</button>
             <button class="delete-btn" onclick="deleteTask(${id})">delete</button>
           </div>
         `;
@@ -796,7 +836,126 @@
       } catch (err) { console.error('Push setup failed:', err); }
     }
 
-    document.addEventListener('DOMContentLoaded', () => { fetchTasks(); setupPushNotifications(); });
+    /* ── Edit task ── */
+    const EDIT_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    let selectedEditColor = '#FFFFFF';
+
+    // due_date arrives as "Thu, 14 Mar 2026 00:00:00 GMT"; pull it back to a yyyy-mm-dd
+    // value for <input type=date>. Parse at local noon so a tz shift can't roll the day.
+    function dueToInput(due) {
+      if (!due) return '';
+      const c = due.replace(/ 00:00:00.*$/, '').trim();
+      const d = new Date(c + ' 12:00');
+      if (isNaN(d)) return '';
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+    function timeTo24(t) {
+      if (!t) return '';
+      const m = t.trim().match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+      if (!m) return '';
+      let h = parseInt(m[1]) % 12;
+      if (/pm/i.test(m[3])) h += 12;
+      return `${String(h).padStart(2,'0')}:${m[2]}`;
+    }
+    function inputToDue(v) {
+      if (!v) return null;
+      const [y, mo, d] = v.split('-').map(Number);
+      return `${String(d).padStart(2,'0')} ${EDIT_MONTHS[mo-1]} ${y}`;
+    }
+    function input24ToTime(v) {
+      if (!v) return null;
+      let [h, m] = v.split(':').map(Number);
+      const p = h >= 12 ? 'PM' : 'AM';
+      h = h % 12 || 12;
+      return `${h}:${String(m).padStart(2,'0')} ${p}`;
+    }
+    function selectEditColor(hex) {
+      selectedEditColor = hex || '#FFFFFF';
+      document.querySelectorAll('#editModal .swatch').forEach(s => {
+        s.classList.toggle('selected', s.dataset.color.toLowerCase() === selectedEditColor.toLowerCase());
+      });
+    }
+    function openEdit(id) {
+      const t = currentTasks.find(x => x[0] === id);
+      if (!t) return;
+      const [, , name, time, desc, due, color] = t;
+      document.getElementById('editId').value = id;
+      document.getElementById('editName').value = name || '';
+      document.getElementById('editDesc').value = desc || '';
+      document.getElementById('editDate').value = dueToInput(due);
+      document.getElementById('editTime').value = timeTo24(time);
+      selectEditColor(color || '#FFFFFF');
+      document.getElementById('editModal').classList.add('open');
+    }
+    function closeEdit() { document.getElementById('editModal').classList.remove('open'); }
+    async function saveEdit() {
+      const id = document.getElementById('editId').value;
+      const body = {
+        task_name: document.getElementById('editName').value.trim(),
+        task_description: document.getElementById('editDesc').value.trim(),
+        due_date: inputToDue(document.getElementById('editDate').value),
+        task_time: input24ToTime(document.getElementById('editTime').value),
+        color: selectedEditColor,
+        user_tz_metadata: buildUserTzMetadata()
+      };
+      if (!body.task_name) { alert('Task name is required'); return; }
+      if (body.task_description.length > 200) { alert('Description too long (max 200)'); return; }
+      const res = await fetch('/tasks/' + id, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+      });
+      if (res.ok) { closeEdit(); fetchTasks(); }
+      else { const e = await res.json().catch(() => ({})); alert(e.error || 'Failed to update task'); }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      fetchTasks();
+      setupPushNotifications();
+      // wire color swatches + dismiss-on-backdrop / Esc
+      document.querySelectorAll('#editModal .swatch').forEach(s => {
+        s.addEventListener('click', () => selectEditColor(s.dataset.color));
+      });
+      document.getElementById('editModal').addEventListener('click', e => {
+        if (e.target.id === 'editModal') closeEdit();
+      });
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') closeEdit(); });
+    });
   </script>
+
+  <!-- Edit task modal -->
+  <div class="modal-overlay" id="editModal">
+    <div class="modal">
+      <h3>Edit Task</h3>
+      <input type="hidden" id="editId">
+      <label>Name</label>
+      <input type="text" id="editName" maxlength="120" placeholder="Task name">
+      <label>Description</label>
+      <textarea id="editDesc" maxlength="200" placeholder="Details"></textarea>
+      <div class="row">
+        <div>
+          <label>Date</label>
+          <input type="date" id="editDate">
+        </div>
+        <div>
+          <label>Time</label>
+          <input type="time" id="editTime">
+        </div>
+      </div>
+      <label>Color</label>
+      <div class="swatches">
+        <span class="swatch" data-color="#87CEEB" style="background:#87CEEB"></span>
+        <span class="swatch" data-color="#f05656" style="background:#f05656"></span>
+        <span class="swatch" data-color="#6CE5A9" style="background:#6CE5A9"></span>
+        <span class="swatch" data-color="#F8C8DC" style="background:#F8C8DC"></span>
+        <span class="swatch" data-color="#ff7f00" style="background:#ff7f00"></span>
+        <span class="swatch" data-color="#A96CE5" style="background:#A96CE5"></span>
+        <span class="swatch" data-color="#FDDA0D" style="background:#FDDA0D"></span>
+        <span class="swatch none" data-color="#FFFFFF" title="None"></span>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-ghost" onclick="closeEdit()">Cancel</button>
+        <button class="btn-save" onclick="saveEdit()">Save changes</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
