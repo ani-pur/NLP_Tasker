@@ -2,6 +2,7 @@ Author: Anirudh Purohit
 
 ## NEW:
 - MOBILE PUSH NOTIFICATIONS! Look for the little bell icon on the tasker mobile app! (Installation instructions below)
+- CALENDAR INTERFACE! (see screenshots below)
 
 Never let a deadline sneak up on you. Tasker's got a 3 hour reminder baked in for every single task, and if you want a custom one on top, just say "remind me X mins/hours before", "remind me *in* X mins/hours" for a reminder relative to right now, or "remind me *at* X:XXam/pm" for an exact time within 24h of deadline.
 
@@ -40,6 +41,10 @@ Has a few funny quotes that change on each page load:
 
 ### (NEW) Glass theme:
 <img width="1920" height="723" alt="image" src="https://github.com/user-attachments/assets/0b59594b-d848-414c-9111-02d4e5d206ed" />
+
+### Calendar view:
+<img width="1458" height="904" alt="image" src="https://github.com/user-attachments/assets/8215f8d5-02a8-459b-946c-e884185d148f" />
+
 
 And more! Sign up to have a look :)
 
