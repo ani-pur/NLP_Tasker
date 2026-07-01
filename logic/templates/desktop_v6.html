@@ -276,6 +276,10 @@
       padding-left: 12px;
     }
 
+    .task-badges {
+      flex-shrink: 0;
+    }
+
     .time-pill {
       font-family: 'IBM Plex Mono', monospace;
       font-size: 12px;
@@ -285,6 +289,8 @@
       border: 1px solid var(--border);
       padding: 6px 12px;
       border-radius: 6px;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
 
     .time-pill.overdue {
@@ -304,6 +310,8 @@
       border-radius: 6px;
       margin-left: 6px;
       backdrop-filter: blur(8px);
+      white-space: nowrap;
+      flex-shrink: 0;
     }
 
     .delete-btn {
@@ -721,7 +729,7 @@
           <div class="color-bar" style="background:${color};"></div>
           <div class="task-header">
             <div class="task-name" style="color:${color};">${task_name}</div>
-            <div style="display:flex;align-items:center;gap:6px;">
+            <div class="task-badges" style="display:flex;align-items:center;gap:6px;">
               ${reminder_display ? `<span class="reminder-badge">🔔 ${reminder_display}</span>` : ''}
               <span class="time-pill${isPast ? ' overdue' : ''}">${dueDateDisplay}${task_time ? ' · ' + task_time : ''}</span>
             </div>
