@@ -609,6 +609,43 @@
 
   </main>
 
+  <!-- Edit task modal -->
+  <div class="modal-overlay" id="editModal">
+    <div class="modal">
+      <h3>Edit Task</h3>
+      <input type="hidden" id="editId">
+      <label>Name</label>
+      <input type="text" id="editName" maxlength="120" placeholder="Task name">
+      <label>Description</label>
+      <textarea id="editDesc" maxlength="200" placeholder="Details"></textarea>
+      <div class="row">
+        <div>
+          <label>Date</label>
+          <input type="date" id="editDate">
+        </div>
+        <div>
+          <label>Time</label>
+          <input type="time" id="editTime">
+        </div>
+      </div>
+      <label>Color</label>
+      <div class="edit-swatches">
+        <span class="edit-swatch" data-color="#87CEEB" style="background:#87CEEB"></span>
+        <span class="edit-swatch" data-color="#f05656" style="background:#f05656"></span>
+        <span class="edit-swatch" data-color="#6CE5A9" style="background:#6CE5A9"></span>
+        <span class="edit-swatch" data-color="#F8C8DC" style="background:#F8C8DC"></span>
+        <span class="edit-swatch" data-color="#ff7f00" style="background:#ff7f00"></span>
+        <span class="edit-swatch" data-color="#A96CE5" style="background:#A96CE5"></span>
+        <span class="edit-swatch" data-color="#FDDA0D" style="background:#FDDA0D"></span>
+        <span class="edit-swatch none" data-color="#FFFFFF" title="None"></span>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-ghost" onclick="closeEdit()">Cancel</button>
+        <button class="btn-save" onclick="saveEdit()">Save changes</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // --- Dynamic Placeholders ---
     const taskInput = document.getElementById('taskInput');
@@ -997,42 +1034,5 @@
     loadTasks();
     initNotifButton();
   </script>
-
-  <!-- Edit task modal -->
-  <div class="modal-overlay" id="editModal">
-    <div class="modal">
-      <h3>Edit Task</h3>
-      <input type="hidden" id="editId">
-      <label>Name</label>
-      <input type="text" id="editName" maxlength="120" placeholder="Task name">
-      <label>Description</label>
-      <textarea id="editDesc" maxlength="200" placeholder="Details"></textarea>
-      <div class="row">
-        <div>
-          <label>Date</label>
-          <input type="date" id="editDate">
-        </div>
-        <div>
-          <label>Time</label>
-          <input type="time" id="editTime">
-        </div>
-      </div>
-      <label>Color</label>
-      <div class="edit-swatches">
-        <span class="edit-swatch" data-color="#87CEEB" style="background:#87CEEB"></span>
-        <span class="edit-swatch" data-color="#f05656" style="background:#f05656"></span>
-        <span class="edit-swatch" data-color="#6CE5A9" style="background:#6CE5A9"></span>
-        <span class="edit-swatch" data-color="#F8C8DC" style="background:#F8C8DC"></span>
-        <span class="edit-swatch" data-color="#ff7f00" style="background:#ff7f00"></span>
-        <span class="edit-swatch" data-color="#A96CE5" style="background:#A96CE5"></span>
-        <span class="edit-swatch" data-color="#FDDA0D" style="background:#FDDA0D"></span>
-        <span class="edit-swatch none" data-color="#FFFFFF" title="None"></span>
-      </div>
-      <div class="modal-actions">
-        <button class="btn-ghost" onclick="closeEdit()">Cancel</button>
-        <button class="btn-save" onclick="saveEdit()">Save changes</button>
-      </div>
-    </div>
-  </div>
 </body>
 </html>
