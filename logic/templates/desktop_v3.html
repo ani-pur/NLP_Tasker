@@ -76,6 +76,43 @@
       <ul id="taskList" class="flex-grow overflow-y-auto pr-4 custom-scrollbar pb-12 flex flex-col gap-4"></ul>
     </section>
 
+    <!-- Edit task modal -->
+    <div id="editModal" class="hidden fixed inset-0 z-[200] items-center justify-center bg-black/60 backdrop-blur-sm p-5">
+      <div class="w-full max-w-md bg-slate-900/95 border border-slate-800 rounded-2xl p-6 shadow-2xl backdrop-blur-md">
+        <h3 class="text-lg font-bold text-white mb-4">Edit Task</h3>
+        <input type="hidden" id="editId">
+        <label class="block text-xs uppercase tracking-widest text-slate-500 mt-3 mb-1.5">Name</label>
+        <input type="text" id="editName" maxlength="120" placeholder="Task name" class="w-full bg-slate-950/50 border border-slate-800 focus:border-accent/50 focus:ring-1 focus:ring-accent/50 text-slate-200 px-3 py-2 rounded-lg outline-none">
+        <label class="block text-xs uppercase tracking-widest text-slate-500 mt-3 mb-1.5">Description</label>
+        <textarea id="editDesc" maxlength="200" placeholder="Details" class="w-full h-20 resize-none bg-slate-950/50 border border-slate-800 focus:border-accent/50 focus:ring-1 focus:ring-accent/50 text-slate-200 px-3 py-2 rounded-lg outline-none"></textarea>
+        <div class="flex gap-3 mt-3">
+          <div class="flex-1">
+            <label class="block text-xs uppercase tracking-widest text-slate-500 mb-1.5">Date</label>
+            <input type="date" id="editDate" class="w-full bg-slate-950/50 border border-slate-800 text-slate-200 px-3 py-2 rounded-lg outline-none" style="color-scheme: dark;">
+          </div>
+          <div class="flex-1">
+            <label class="block text-xs uppercase tracking-widest text-slate-500 mb-1.5">Time</label>
+            <input type="time" id="editTime" class="w-full bg-slate-950/50 border border-slate-800 text-slate-200 px-3 py-2 rounded-lg outline-none" style="color-scheme: dark;">
+          </div>
+        </div>
+        <label class="block text-xs uppercase tracking-widest text-slate-500 mt-3 mb-1.5">Color</label>
+        <div class="flex gap-2 flex-wrap">
+          <span class="edit-swatch w-6 h-6 rounded-full cursor-pointer border-2 border-transparent" data-color="#87CEEB" style="background:#87CEEB"></span>
+          <span class="edit-swatch w-6 h-6 rounded-full cursor-pointer border-2 border-transparent" data-color="#f05656" style="background:#f05656"></span>
+          <span class="edit-swatch w-6 h-6 rounded-full cursor-pointer border-2 border-transparent" data-color="#6CE5A9" style="background:#6CE5A9"></span>
+          <span class="edit-swatch w-6 h-6 rounded-full cursor-pointer border-2 border-transparent" data-color="#F8C8DC" style="background:#F8C8DC"></span>
+          <span class="edit-swatch w-6 h-6 rounded-full cursor-pointer border-2 border-transparent" data-color="#ff7f00" style="background:#ff7f00"></span>
+          <span class="edit-swatch w-6 h-6 rounded-full cursor-pointer border-2 border-transparent" data-color="#A96CE5" style="background:#A96CE5"></span>
+          <span class="edit-swatch w-6 h-6 rounded-full cursor-pointer border-2 border-transparent" data-color="#FDDA0D" style="background:#FDDA0D"></span>
+          <span class="edit-swatch w-6 h-6 rounded-full cursor-pointer border-2 border-transparent" data-color="#FFFFFF" title="None" style="background:linear-gradient(135deg,#334155,#0f172a)"></span>
+        </div>
+        <div class="flex justify-end gap-3 mt-6">
+          <button type="button" onclick="closeEdit()" class="px-4 py-2 rounded-lg bg-slate-800 text-slate-300 text-sm font-semibold hover:bg-slate-700 transition">Cancel</button>
+          <button type="button" onclick="saveEdit()" class="px-4 py-2 rounded-lg bg-accent text-slate-900 text-sm font-semibold hover:bg-yellow-300 transition">Save changes</button>
+        </div>
+      </div>
+    </div>
+
     <section class="col-span-4 shrink-0">
       <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 shadow-2xl backdrop-blur-md sticky top-0">
         <h3 class="text-lg font-bold text-white mb-4">Describe Task</h3>
@@ -249,10 +286,13 @@
       };
     }
 
+    let currentTasks = [];                 // last fetched rows, used by the edit modal
+
     async function loadTasks() {
           try {
             const response = await fetch('/tasks');
             const tasks = await response.json();
+            currentTasks = tasks;
             const taskList = document.getElementById('taskList');
             taskList.innerHTML = '';
     
@@ -301,21 +341,16 @@
               return `
                 <li class="task-card-item bg-slate-900/60 border border-slate-800/80 hover:border-slate-700/80 rounded-xl p-5 transition duration-200 group relative overflow-hidden shrink-0 backdrop-blur-sm">
                   <div class="flex justify-between items-start gap-4">
-                    <div class="task-text flex-1 transition-all duration-300">
-                      <h4 class="font-bold text-lg leading-tight" style="color:${color || '#fcd34d'};">${task_name}</h4>
-                      <p class="text-slate-400 text-sm leading-relaxed whitespace-pre-wrap mt-2">${task_description}</p>
+                    <h4 class="font-bold text-lg leading-tight flex-1 min-w-0" style="color:${color || '#fcd34d'};">${task_name}</h4>
+                    <div class="flex items-center gap-1.5 shrink-0">
+                      ${reminder_display ? `<span class="text-xs font-semibold text-amber-400/80 bg-amber-900/20 border border-amber-800/30 px-2 py-1.5 rounded-md whitespace-nowrap" title="Reminder set">🔔 ${reminder_display}</span>` : ''}
+                      <span class="text-xs font-semibold tracking-wide ${badgeColors} px-3 py-1.5 rounded-md border whitespace-nowrap">${dueDateDisplay}${task_time ? ' • ' + task_time : ''}</span>
                     </div>
-                    <div class="flex flex-col items-end shrink-0 gap-2">
-                      <div class="flex items-center gap-1.5">
-                        ${reminder_display ? `<span class="text-xs font-semibold text-amber-400/80 bg-amber-900/20 border border-amber-800/30 px-2 py-1.5 rounded-md" title="Reminder set">🔔 ${reminder_display}</span>` : ''}
-                        <span class="text-xs font-semibold tracking-wide ${badgeColors} px-3 py-1.5 rounded-md border">${dueDateDisplay}${task_time ? ' • ' + task_time : ''}</span>
-                      </div>
-                      <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition duration-200">
-                        <button type="button" onclick="deleteTask(${id})" class="text-slate-500 hover:text-red-400 p-2 rounded-lg transition" title="Delete">
-                          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                        </button>
-                      </div>
-                    </div>
+                  </div>
+                  <p class="text-slate-400 text-sm leading-relaxed whitespace-pre-wrap mt-2">${task_description}</p>
+                  <div class="flex justify-end gap-3 mt-2 opacity-0 group-hover:opacity-100 transition duration-200">
+                    <button type="button" onclick="openEdit(${id})" class="text-slate-500 hover:text-accent text-xs font-semibold uppercase tracking-wide transition">Edit</button>
+                    <button type="button" onclick="deleteTask(${id})" class="text-slate-500 hover:text-red-400 text-xs font-semibold uppercase tracking-wide transition">Delete</button>
                   </div>
                 </li>
               `;
@@ -351,7 +386,90 @@
       if (response.ok) loadTasks();
       else alert('Failed to delete task');
     }
-    
+
+    // --- Edit Task ---
+    const EDIT_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    let selectedEditColor = '#FFFFFF';
+
+    // due_date arrives as "Thu, 14 Mar 2026 00:00:00 GMT"; pull it back to a yyyy-mm-dd
+    // value for <input type=date>. Parse at local noon so a tz shift can't roll the day.
+    function dueToInput(due) {
+      if (!due) return '';
+      const c = due.replace(/ 00:00:00.*$/, '').trim();
+      const d = new Date(c + ' 12:00');
+      if (isNaN(d)) return '';
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+    function timeTo24(t) {
+      if (!t) return '';
+      const m = t.trim().match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+      if (!m) return '';
+      let h = parseInt(m[1]) % 12;
+      if (/pm/i.test(m[3])) h += 12;
+      return `${String(h).padStart(2,'0')}:${m[2]}`;
+    }
+    function inputToDue(v) {
+      if (!v) return null;
+      const [y, mo, d] = v.split('-').map(Number);
+      return `${String(d).padStart(2,'0')} ${EDIT_MONTHS[mo-1]} ${y}`;
+    }
+    function input24ToTime(v) {
+      if (!v) return null;
+      let [h, m] = v.split(':').map(Number);
+      const p = h >= 12 ? 'PM' : 'AM';
+      h = h % 12 || 12;
+      return `${h}:${String(m).padStart(2,'0')} ${p}`;
+    }
+    function selectEditColor(hex) {
+      selectedEditColor = hex || '#FFFFFF';
+      document.querySelectorAll('#editModal .edit-swatch').forEach(s => {
+        s.style.borderColor = s.dataset.color.toLowerCase() === selectedEditColor.toLowerCase() ? '#fcd34d' : 'transparent';
+      });
+    }
+    function openEdit(id) {
+      const t = currentTasks.find(x => x[0] === id);
+      if (!t) return;
+      const [, , name, time, desc, due, color] = t;
+      document.getElementById('editId').value = id;
+      document.getElementById('editName').value = name || '';
+      document.getElementById('editDesc').value = desc || '';
+      document.getElementById('editDate').value = dueToInput(due);
+      document.getElementById('editTime').value = timeTo24(time);
+      selectEditColor(color || '#FFFFFF');
+      document.getElementById('editModal').classList.remove('hidden');
+      document.getElementById('editModal').classList.add('flex');
+    }
+    function closeEdit() {
+      document.getElementById('editModal').classList.add('hidden');
+      document.getElementById('editModal').classList.remove('flex');
+    }
+    async function saveEdit() {
+      const id = document.getElementById('editId').value;
+      const body = {
+        task_name: document.getElementById('editName').value.trim(),
+        task_description: document.getElementById('editDesc').value.trim(),
+        due_date: inputToDue(document.getElementById('editDate').value),
+        task_time: input24ToTime(document.getElementById('editTime').value),
+        color: selectedEditColor,
+        user_tz_metadata: buildUserTzMetadata()
+      };
+      if (!body.task_name) { alert('Task name is required'); return; }
+      if (body.task_description.length > 200) { alert('Description too long (max 200)'); return; }
+      const res = await fetch('/tasks/' + id, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+      });
+      if (res.ok) { closeEdit(); loadTasks(); }
+      else { const e = await res.json().catch(() => ({})); alert(e.error || 'Failed to update task'); }
+    }
+    document.querySelectorAll('#editModal .edit-swatch').forEach(s => {
+      s.addEventListener('click', () => selectEditColor(s.dataset.color));
+    });
+    document.getElementById('editModal').addEventListener('click', e => {
+      if (e.target.id === 'editModal') closeEdit();
+    });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeEdit(); });
+
+
     document.getElementById('taskForm').addEventListener('submit', async e => {
       e.preventDefault();
       if (addTaskCooldown) return;

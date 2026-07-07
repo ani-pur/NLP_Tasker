@@ -135,6 +135,43 @@
 
   </main>
 
+  <!-- Edit task modal -->
+  <div id="editModal" class="hidden fixed inset-0 z-[200] items-center justify-center bg-black/60 backdrop-blur-sm p-5">
+    <div class="w-full max-w-md bg-slate-900/95 border border-slate-800 rounded-2xl p-6 shadow-2xl backdrop-blur-md">
+      <h3 class="text-lg font-bold text-white mb-4">Edit Task</h3>
+      <input type="hidden" id="editId">
+      <label class="block text-xs uppercase tracking-widest text-slate-500 mt-3 mb-1.5">Name</label>
+      <input type="text" id="editName" maxlength="120" placeholder="Task name" class="w-full bg-slate-950/50 border border-slate-800 focus:border-accent/50 focus:ring-1 focus:ring-accent/50 text-slate-200 px-3 py-2 rounded-lg outline-none">
+      <label class="block text-xs uppercase tracking-widest text-slate-500 mt-3 mb-1.5">Description</label>
+      <textarea id="editDesc" maxlength="200" placeholder="Details" class="w-full h-20 resize-none bg-slate-950/50 border border-slate-800 focus:border-accent/50 focus:ring-1 focus:ring-accent/50 text-slate-200 px-3 py-2 rounded-lg outline-none"></textarea>
+      <div class="flex gap-3 mt-3">
+        <div class="flex-1">
+          <label class="block text-xs uppercase tracking-widest text-slate-500 mb-1.5">Date</label>
+          <input type="date" id="editDate" class="w-full bg-slate-950/50 border border-slate-800 text-slate-200 px-3 py-2 rounded-lg outline-none" style="color-scheme: dark;">
+        </div>
+        <div class="flex-1">
+          <label class="block text-xs uppercase tracking-widest text-slate-500 mb-1.5">Time</label>
+          <input type="time" id="editTime" class="w-full bg-slate-950/50 border border-slate-800 text-slate-200 px-3 py-2 rounded-lg outline-none" style="color-scheme: dark;">
+        </div>
+      </div>
+      <label class="block text-xs uppercase tracking-widest text-slate-500 mt-3 mb-1.5">Color</label>
+      <div class="flex gap-2 flex-wrap">
+        <span class="edit-swatch w-7 h-7 rounded-full cursor-pointer border-2 border-transparent" data-color="#87CEEB" style="background:#87CEEB"></span>
+        <span class="edit-swatch w-7 h-7 rounded-full cursor-pointer border-2 border-transparent" data-color="#f05656" style="background:#f05656"></span>
+        <span class="edit-swatch w-7 h-7 rounded-full cursor-pointer border-2 border-transparent" data-color="#6CE5A9" style="background:#6CE5A9"></span>
+        <span class="edit-swatch w-7 h-7 rounded-full cursor-pointer border-2 border-transparent" data-color="#F8C8DC" style="background:#F8C8DC"></span>
+        <span class="edit-swatch w-7 h-7 rounded-full cursor-pointer border-2 border-transparent" data-color="#ff7f00" style="background:#ff7f00"></span>
+        <span class="edit-swatch w-7 h-7 rounded-full cursor-pointer border-2 border-transparent" data-color="#A96CE5" style="background:#A96CE5"></span>
+        <span class="edit-swatch w-7 h-7 rounded-full cursor-pointer border-2 border-transparent" data-color="#FDDA0D" style="background:#FDDA0D"></span>
+        <span class="edit-swatch w-7 h-7 rounded-full cursor-pointer border-2 border-transparent" data-color="#FFFFFF" title="None" style="background:linear-gradient(135deg,#334155,#0f172a)"></span>
+      </div>
+      <div class="flex justify-end gap-3 mt-6">
+        <button type="button" onclick="closeEdit()" class="px-4 py-2 rounded-lg bg-slate-800 text-slate-300 text-sm font-semibold hover:bg-slate-700 transition">Cancel</button>
+        <button type="button" onclick="saveEdit()" class="px-4 py-2 rounded-lg bg-accent text-slate-900 text-sm font-semibold hover:bg-yellow-300 transition">Save changes</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // --- UI/UX Enhancements ---
     const taskInput = document.getElementById('task_description');
@@ -264,10 +301,13 @@
       };
     }
 
+    let currentTasks = [];                 // last fetched rows, used by the edit modal
+
     async function loadTasks() {
       try {
         const res = await fetch('/tasks');
         const tasks = await res.json();
+        currentTasks = tasks;
         const list = document.getElementById('taskList');
         list.innerHTML = '';
 
@@ -328,7 +368,10 @@
           </summary>
           <div class="task-details mt-3 text-slate-400 text-sm leading-relaxed border-t border-slate-800/40 pt-3">
             ${desc}
-            <div class="mt-4 flex justify-end">
+            <div class="mt-4 flex justify-end gap-2">
+              <button class="text-accent font-bold text-xs tracking-widest uppercase px-5 py-2.5 bg-accent/10 active:bg-accent/20 rounded-lg transition" onclick="openEdit(${id})">
+                Edit
+              </button>
               <button class="text-red-400 font-bold text-xs tracking-widest uppercase px-5 py-2.5 bg-red-400/10 active:bg-red-400/20 rounded-lg transition" onclick="deleteTask(${id})">
                 Delete
               </button>
@@ -381,6 +424,88 @@
       const res = await fetch('/tasks/' + id, { method: 'DELETE' });
       if (res.ok) loadTasks();
     }
+
+    // --- Edit Task ---
+    const EDIT_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    let selectedEditColor = '#FFFFFF';
+
+    // due_date arrives as "Thu, 14 Mar 2026 00:00:00 GMT"; pull it back to a yyyy-mm-dd
+    // value for <input type=date>. Parse at local noon so a tz shift can't roll the day.
+    function dueToInput(due) {
+      if (!due) return '';
+      const c = due.replace(/ 00:00:00.*$/, '').trim();
+      const d = new Date(c + ' 12:00');
+      if (isNaN(d)) return '';
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+    function timeTo24(t) {
+      if (!t) return '';
+      const m = t.trim().match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+      if (!m) return '';
+      let h = parseInt(m[1]) % 12;
+      if (/pm/i.test(m[3])) h += 12;
+      return `${String(h).padStart(2,'0')}:${m[2]}`;
+    }
+    function inputToDue(v) {
+      if (!v) return null;
+      const [y, mo, d] = v.split('-').map(Number);
+      return `${String(d).padStart(2,'0')} ${EDIT_MONTHS[mo-1]} ${y}`;
+    }
+    function input24ToTime(v) {
+      if (!v) return null;
+      let [h, m] = v.split(':').map(Number);
+      const p = h >= 12 ? 'PM' : 'AM';
+      h = h % 12 || 12;
+      return `${h}:${String(m).padStart(2,'0')} ${p}`;
+    }
+    function selectEditColor(hex) {
+      selectedEditColor = hex || '#FFFFFF';
+      document.querySelectorAll('#editModal .edit-swatch').forEach(s => {
+        s.style.borderColor = s.dataset.color.toLowerCase() === selectedEditColor.toLowerCase() ? '#fcd34d' : 'transparent';
+      });
+    }
+    function openEdit(id) {
+      const t = currentTasks.find(x => x[0] === id);
+      if (!t) return;
+      const [, , name, time, desc, due, color] = t;
+      document.getElementById('editId').value = id;
+      document.getElementById('editName').value = name || '';
+      document.getElementById('editDesc').value = desc || '';
+      document.getElementById('editDate').value = dueToInput(due);
+      document.getElementById('editTime').value = timeTo24(time);
+      selectEditColor(color || '#FFFFFF');
+      document.getElementById('editModal').classList.remove('hidden');
+      document.getElementById('editModal').classList.add('flex');
+    }
+    function closeEdit() {
+      document.getElementById('editModal').classList.add('hidden');
+      document.getElementById('editModal').classList.remove('flex');
+    }
+    async function saveEdit() {
+      const id = document.getElementById('editId').value;
+      const body = {
+        task_name: document.getElementById('editName').value.trim(),
+        task_description: document.getElementById('editDesc').value.trim(),
+        due_date: inputToDue(document.getElementById('editDate').value),
+        task_time: input24ToTime(document.getElementById('editTime').value),
+        color: selectedEditColor,
+        user_tz_metadata: buildUserTzMetadata()
+      };
+      if (!body.task_name) { alert('Task name is required'); return; }
+      if (body.task_description.length > 200) { alert('Description too long (max 200)'); return; }
+      const res = await fetch('/tasks/' + id, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+      });
+      if (res.ok) { closeEdit(); loadTasks(); }
+      else { const e = await res.json().catch(() => ({})); alert(e.error || 'Failed to update task'); }
+    }
+    document.querySelectorAll('#editModal .edit-swatch').forEach(s => {
+      s.addEventListener('click', () => selectEditColor(s.dataset.color));
+    });
+    document.getElementById('editModal').addEventListener('click', e => {
+      if (e.target.id === 'editModal') closeEdit();
+    });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeEdit(); });
 
     document.getElementById('taskForm').addEventListener('submit', async e => {
       e.preventDefault();

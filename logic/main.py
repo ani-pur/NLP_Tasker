@@ -337,6 +337,37 @@ def handle_tasks():
                                   reminder_display=reminder_display)
         return jsonify(new_task), 201
 
+@app.route('/tasks/<int:task_id>', methods=['PUT'])
+def edit_task(task_id):
+    if 'username' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    username = session['username']
+
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'Invalid task data'}), 400
+
+    # direct field edit (no LLM re-extraction): frontend sends resolved fields.
+    task_name = (data.get('task_name') or '').strip()
+    task_description = (data.get('task_description') or '').strip()
+    if not task_name:
+        return jsonify({'error': 'Task name is required'}), 400
+    if len(task_description) > 200:
+        return jsonify({'error': 'Description too long (max 200 characters)'}), 410
+
+    task_time = data.get('task_time')              # "H:MM AM/PM" or null
+    due_date = data.get('due_date')                # "DD Mon YYYY" or null
+    color = data.get('color', '#FFFFFF')
+    tz = data.get('user_tz_metadata', {})
+    utc_offset_minutes = tz.get('utc_offset_minutes') if isinstance(tz, dict) else None
+
+    success = tasks.edit_task(username, task_id, task_name, task_time,
+                              task_description, due_date, color, utc_offset_minutes)
+    if success:
+        return jsonify({'message': 'Task updated successfully.'})
+    return jsonify({'error': 'Task not found.'}), 404
+
+
 @app.route('/tasks/<int:task_id>', methods=['DELETE'])
 def delete_task(task_id):
     if 'username' not in session:

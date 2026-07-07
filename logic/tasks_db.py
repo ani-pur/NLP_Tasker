@@ -175,6 +175,64 @@ def get_all_tasks(username, sort_order):
 
 
 
+# edit an existing task's fields directly (no LLM re-extraction).
+# Accepts the same field shape the frontend already builds for add, minus the
+# NL parsing: caller passes already-resolved name/desc/time/date/color.
+# Recomputes task_datetime (UTC) and shifts any linked notification's notify_at
+# by the same delta so the reminder keeps its original lead time.
+def edit_task(username, task_id, task_name, task_time, task_description,
+              due_date, color, utc_offset_minutes=None):
+    new_task_datetime = _build_task_datetime(due_date, task_time, utc_offset_minutes)
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            try:
+                # grab the old datetime first so we can shift the notification by the delta
+                cur.execute(
+                    "SELECT task_datetime FROM tasks WHERE username = %s AND id = %s",
+                    (username, task_id)
+                )
+                row = cur.fetchone()
+                if row is None:
+                    return False
+                old_task_datetime = row[0]
+
+                cur.execute(
+                    "UPDATE tasks SET "
+                    "task_name = %s, "
+                    "task_time = to_timestamp(NULLIF(btrim(%s), ''), 'HH12:MI AM')::time, "
+                    "task_description = %s, "
+                    "due_date = %s, "
+                    "color = %s, "
+                    "task_datetime = %s "
+                    "WHERE username = %s AND id = %s",
+                    (task_name, task_time, task_description, due_date, color,
+                     new_task_datetime, username, task_id)
+                )
+
+                # keep the reminder's lead time: shift notify_at by however much the
+                # task moved. Only possible when both old + new datetimes are known.
+                if old_task_datetime is not None and new_task_datetime is not None:
+                    delta = new_task_datetime - old_task_datetime
+                    # shift notify_at by the delta and re-arm both sent flags so the moved
+                    # task fires again. early_notify_at is left untouched — it's managed
+                    # elsewhere in the notification pipeline.
+                    cur.execute(
+                        "UPDATE notifications SET "
+                        "notify_at = notify_at + %s, "
+                        "sent = FALSE, early_sent = FALSE "
+                        "WHERE username = %s AND task_id = %s",
+                        (delta, username, task_id)
+                    )
+
+                conn.commit()
+                return True
+            except psycopg2.Error as e:
+                print("DB error (edit_task): ", e)
+                conn.rollback()
+                return False
+
+
 # delete_task(username, task_id)
 def delete_task(username, task_id):
     with get_db_connection() as conn:
