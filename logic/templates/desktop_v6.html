@@ -4,610 +4,750 @@
   <meta charset="UTF-8"/>
   <title>Dashboard | Tasker.</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script>
+    // light/dark before first paint (no flash): saved choice, else the OS setting
+    (function () {
+      let s = null;
+      try { s = localStorage.getItem('tasker.scheme'); } catch {}
+      if (s !== 'light' && s !== 'dark') s = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+      document.documentElement.dataset.scheme = s;
+    })();
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
-    :root {
-      --bg: #050508;
-      --surface: rgba(255,255,255,0.04);
-      --surface-hover: rgba(255,255,255,0.07);
-      --border: rgba(255,255,255,0.08);
-      --border-hover: rgba(255,255,255,0.14);
-      --fg: #e4e4e7;
-      --muted: #71717a;
-      --accent: #818cf8;
+    /* ── Glass theme (liquid): clear panes, specular rims, color-tinted task glass ── */
+    :root, :root[data-scheme="dark"] {
+      color-scheme: dark;
+      --bg: #07070a;
+      --fg: #ededf0;
+      --muted: #b6b6c2;
+      --dim: #8a8a96;
+      --neutral: #d8d8e0;                          /* stand-in color for tasks with no color */
+      --glass: linear-gradient(rgba(255,255,255,0.05), rgba(255,255,255,0.05)), rgba(18,18,28,0.42);   /* big panes: smoky frost */
+      --fog: rgba(255,255,255,0.07);               /* inner foggy boxes */
+      --pane-blur: 32px;                           /* pane frost; heavier in dark so blobs read as diffuse light */
+      --pane-sat: 115%;
+      --pop-bg: rgba(20,20,30,0.4);                /* floating panes over content */
+      --cell: rgba(255,255,255,0.05);
+      --cell-weekend: rgba(255,255,255,0.07);
+      --cell-out: rgba(255,255,255,0.015);
+      --hover: rgba(255,255,255,0.13);
+      --link-bg: rgba(139,147,255,0.3);            /* calendar day lit from a hovered task */
+      --sheen: rgba(255,255,255,0.07);
+      --rim-hi: rgba(255,255,255,0.5);
+      --rim-mid: rgba(255,255,255,0.06);
+      --rim-lo: rgba(255,255,255,0.2);
+      --line: rgba(255,255,255,0.08);
+      --line-strong: rgba(255,255,255,0.14);
+      --edge: inset 1px 1px 0 rgba(255,255,255,0.14), inset -1px -1px 0 rgba(255,255,255,0.05), inset 0 0 24px rgba(255,255,255,0.035);
+      --shadow: 0 24px 48px -26px rgba(0,0,0,0.75);
+      --header-bg: rgba(7,7,10,0.3);
+      --accent: #8b93ff;
+      --accent-rgb: 139,147,255;
+      --accent-ink: #0b0b14;
+      --danger: #ff6b6b;
+      --warn: #f5c542;
+      --alert: #ffb326;                             /* past-due marker on the calendar */
+      --tint: 20%;                                  /* how strongly a task's color tints its box */
     }
+    :root[data-scheme="light"] {
+      color-scheme: light;
+      --bg: #e9ebf2;
+      --fg: #15151c;
+      --muted: #595b69;
+      --dim: #8f919e;
+      --neutral: #7c7e8c;
+      --glass: rgba(255,255,255,0.28);
+      --fog: rgba(255,255,255,0.45);
+      --pane-blur: 6px;
+      --pane-sat: 180%;
+      --pop-bg: rgba(255,255,255,0.55);
+      --cell: rgba(255,255,255,0.32);
+      --cell-weekend: rgba(255,255,255,0.22);
+      --cell-out: rgba(255,255,255,0.1);
+      --hover: rgba(255,255,255,0.45);
+      --link-bg: rgba(79,86,227,0.16);
+      --sheen: rgba(255,255,255,0.55);
+      --rim-hi: rgba(255,255,255,0.95);
+      --rim-mid: rgba(255,255,255,0.25);
+      --rim-lo: rgba(255,255,255,0.7);
+      --line: rgba(20,22,40,0.08);
+      --line-strong: rgba(20,22,40,0.13);
+      --edge: inset 1px 1px 0 rgba(255,255,255,0.9), inset -1px -1px 0 rgba(255,255,255,0.35), inset 0 0 24px rgba(255,255,255,0.3);
+      --shadow: 0 24px 48px -26px rgba(40,44,90,0.35);
+      --header-bg: rgba(255,255,255,0.3);
+      --accent: #4f56e3;
+      --accent-rgb: 79,86,227;
+      --accent-ink: #ffffff;
+      --danger: #d33a3a;
+      --warn: #a86b12;
+      --alert: #e88a00;
+      --tint: 22%;
+    }
+    :root { --left-w: clamp(460px, 31vw, 580px); --gap: 18px; }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
       background: var(--bg);
       color: var(--fg);
-      font-family: 'Sora', sans-serif;
+      font-family: 'Instrument Sans', system-ui, sans-serif;
       font-size: 14px;
+      -webkit-font-smoothing: antialiased;
       height: 100vh;
       overflow: hidden;
       display: flex;
       flex-direction: column;
     }
 
-    /* ── Gradient mesh background ── */
-    .mesh-bg {
-      position: fixed;
-      inset: 0;
-      z-index: 0;
-      pointer-events: none;
-      overflow: hidden;
-    }
+    /* ── Liquid blob background (static/ambient.js) ── */
+    .ambient { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
 
-    .mesh-orb {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(100px);
-      opacity: 0.5;
-      animation: float 20s ease-in-out infinite;
+    /* ── Glass panes. Blur + tint live on ::before so a pane isn't a backdrop root
+          and glass inside it (task boxes, fog boxes) can still blur the page. ── */
+    .glass {
+      position: relative; isolation: isolate; border-radius: 18px;
+      box-shadow: var(--edge), var(--shadow);
     }
-
-    .mesh-orb:nth-child(1) {
-      width: 500px; height: 500px;
-      background: radial-gradient(circle, #818cf850 0%, transparent 70%);
-      top: -10%; left: -5%;
-      animation-delay: 0s;
+    .glass::before {
+      content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
+      background: linear-gradient(135deg, var(--sheen), transparent 35%), var(--glass);
+      backdrop-filter: blur(var(--pane-blur)) saturate(var(--pane-sat)); -webkit-backdrop-filter: blur(var(--pane-blur)) saturate(var(--pane-sat));
     }
-
-    .mesh-orb:nth-child(2) {
-      width: 600px; height: 600px;
-      background: radial-gradient(circle, #f4364c30 0%, transparent 70%);
-      bottom: -15%; right: -10%;
-      animation-delay: -7s;
+    /* specular rim: 1px gradient border, bright top-left, catches light again bottom-right */
+    .glass::after {
+      content: ''; position: absolute; inset: 0; z-index: 3; border-radius: inherit; pointer-events: none; padding: 1px;
+      background: linear-gradient(135deg, var(--rim-hi), var(--rim-mid) 24%, transparent 60%, var(--rim-lo));
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor; mask-composite: exclude;
     }
-
-    .mesh-orb:nth-child(3) {
-      width: 400px; height: 400px;
-      background: radial-gradient(circle, #06b6d420 0%, transparent 70%);
-      top: 40%; left: 50%;
-      animation-delay: -14s;
-    }
-
-    @keyframes float {
-      0%, 100% { transform: translate(0, 0) scale(1); }
-      33% { transform: translate(30px, -20px) scale(1.05); }
-      66% { transform: translate(-20px, 15px) scale(0.95); }
+    /* a floating pane that sits over other content (menu, inspector, modal) */
+    .float-pane {
+      background: linear-gradient(135deg, var(--sheen), transparent 40%), var(--pop-bg);
+      backdrop-filter: blur(14px) saturate(185%); -webkit-backdrop-filter: blur(14px) saturate(185%);
+      border: 1px solid var(--rim-lo);
+      box-shadow: var(--edge), var(--shadow);
     }
 
     /* ── Header ── */
     header {
-      flex-shrink: 0;
-      z-index: 50;
-      padding: 16px 32px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: rgba(5,5,8,0.6);
-      backdrop-filter: blur(24px) saturate(180%);
-      border-bottom: 1px solid var(--border);
+      flex-shrink: 0; z-index: 50; position: relative; isolation: isolate;
+      height: 56px; padding: 0 calc(var(--gap) + 8px);
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid var(--line);
     }
-
-    .logo {
-      font-size: 22px;
-      font-weight: 800;
-      letter-spacing: -0.5px;
-      background: linear-gradient(135deg, #818cf8, #c084fc);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+    .notif-nag {
+      position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+      display: flex; align-items: center; gap: 10px; padding: 5px 6px 5px 13px; border-radius: 999px; white-space: nowrap;
+      font-size: 13px; color: var(--fg);
+      background: color-mix(in srgb, var(--alert) 16%, transparent);
+      border: 1px solid color-mix(in srgb, var(--alert) 55%, transparent);
+      box-shadow: var(--edge), 0 0 22px -6px color-mix(in srgb, var(--alert) 60%, transparent);
     }
-
-    .nav-links {
-      display: flex;
-      align-items: center;
-      gap: 20px;
+    .notif-nag[hidden] { display: none; }
+    .notif-nag svg { color: var(--alert); flex-shrink: 0; }
+    .notif-nag .msg b { color: var(--alert); font-weight: 600; }
+    .notif-nag .hint { font-size: 12px; color: var(--muted); }
+    .notif-nag .hint:empty { display: none; }
+    .notif-on {
+      font-family: 'Instrument Sans', sans-serif; font-size: 12.5px; font-weight: 600; cursor: pointer;
+      padding: 4px 12px; border-radius: 999px; border: none; color: #1a1204; background: var(--alert);
     }
-
-    .nav-links a {
-      color: var(--muted);
-      text-decoration: none;
-      font-size: 14px;
-      font-weight: 500;
-      transition: color 0.2s;
+    .notif-on:hover { filter: brightness(1.08); }
+    .notif-on[hidden] { display: none; }
+    .notif-x {
+      width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; cursor: pointer;
+      background: none; border: none; color: var(--muted);
     }
-
-    .nav-links a:hover { color: var(--fg); }
-    .nav-links a.exit { color: #f87171; }
-
-    .user-chip {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--accent);
-      background: rgba(129,140,248,0.1);
-      border: 1px solid rgba(129,140,248,0.2);
-      padding: 5px 14px;
-      border-radius: 8px;
+    .notif-x:hover { background: var(--hover); color: var(--fg); }
+    @media (max-width: 1400px) { .notif-nag .hint { display: none; } }
+    header::before {
+      content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+      background: var(--header-bg);
+      backdrop-filter: blur(16px) saturate(180%); -webkit-backdrop-filter: blur(16px) saturate(180%);
     }
+    .nav-right { display: flex; align-items: center; gap: 14px; }
+    .user-chip { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--muted); }
+    .user-chip::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-right: 8px; vertical-align: 1px; }
+    .nav-right a { color: var(--muted); text-decoration: none; font-size: 13px; transition: color 0.15s; }
+    .nav-right a:hover { color: var(--danger); }
+    .scheme-btn {
+      width: 32px; height: 32px; display: grid; place-items: center; cursor: pointer;
+      background: var(--fog); border: 1px solid var(--line-strong); border-radius: 9px; color: var(--fg);
+      box-shadow: var(--edge); transition: background 0.15s;
+    }
+    .scheme-btn:hover { background: var(--hover); }
+    .scheme-btn .sun { display: none; }
+    :root[data-scheme="dark"] .scheme-btn .sun { display: block; }
+    :root[data-scheme="dark"] .scheme-btn .moon { display: none; }
 
     /* ── Layout ── */
     main {
-      width: 100%;
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 36px 32px;
+      flex: 1; min-height: 0;
       display: grid;
-      grid-template-columns: 1fr 380px;
-      gap: 32px;
+      grid-template-columns: var(--left-w) minmax(0, 1fr);
+      gap: var(--gap); padding: var(--gap);
+      position: relative; z-index: 1;
+    }
+    .left { display: flex; flex-direction: column; gap: var(--gap); min-height: 0; }
+
+    @media (max-width: 1100px) {
+      body { height: auto; min-height: 100vh; overflow: auto; }
+      main { grid-template-columns: 1fr; }
+      .list-card { max-height: 70vh; }
+      .cal { min-height: 760px; }
+    }
+
+    /* ── Composer: floating pane with a foggy inner box ── */
+    .composer-card { padding: 18px 18px 16px; flex-shrink: 0; }
+    .composer-title { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+    .composer-title h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.2px; }
+    .composer-title span { font-size: 12px; color: var(--muted); }
+    .fog-box {
       position: relative;
-      z-index: 1;
-      flex: 1;
-      min-height: 0;
-      overflow: hidden;
+      background: var(--fog); border: 1px solid var(--line-strong); border-radius: 13px;
+      box-shadow: var(--edge);
+      transition: border-color 0.15s, box-shadow 0.15s;
     }
-
-    @media (max-width: 768px) {
-      main { grid-template-columns: 1fr; padding: 20px 16px; }
-    }
-
-    @media (max-width: 768px) {
-      body {
-        height: auto;
-        overflow: auto;
-      }
-      main {
-        overflow: visible;
-      }
-    }
-
-    .task-section {
-      display: flex;
-      flex-direction: column;
-      min-height: 0;
-    }
-
-    #taskList {
-      flex: 1;
-      min-height: 0;
-      overflow-y: auto;
-      padding-right: 6px;
-      scrollbar-width: none;
-}
-    #taskList::-webkit-scrollbar { display: none; }
-
-    /* ── Section header ── */
-    .section-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-      margin-bottom: 28px;
-    }
-
-    .section-title {
-      font-size: 30px;
-      font-weight: 800;
-      letter-spacing: -1px;
-    }
-
-    .task-count-badge {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 11px;
-      color: var(--muted);
-      background: var(--surface);
-      border: 1px solid var(--border);
-      padding: 4px 10px;
-      border-radius: 6px;
-      margin-left: 12px;
-      vertical-align: middle;
-    }
-
-    .clock-display {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 17px;
-      color: var(--muted);
-      text-align: right;
-      line-height: 1.6;
-    }
-
-    .clock-display .date { color: var(--accent); font-weight: 600; }
-
-    /* ── Task cards — THE GLASS ── */
-    .task-card {
-      background: var(--surface);
-      backdrop-filter: blur(20px) saturate(150%);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 12px 20px;
-      margin-bottom: 10px;
-      transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .task-card:hover {
-      background: var(--surface-hover);
-      border-color: var(--border-hover);
-      transform: translateY(-1px);
-    }
-
-    .task-card .color-glow {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 120px;
-      height: 100%;
-      opacity: 0.07;
-      filter: blur(40px);
-      pointer-events: none;
-    }
-
-    .task-card .color-bar {
-      position: absolute;
-      left: 0;
-      top: 12px;
-      bottom: 12px;
-      width: 3px;
-      border-radius: 0 3px 3px 0;
-    }
-
-    .task-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 12px;
-      padding-left: 12px;
-    }
-
-    .task-name {
-      font-size: 18px;
-      font-weight: 700;
-      letter-spacing: -0.3px;
-      line-height: 1.3;
-    }
-
-    .task-desc {
-      color: var(--muted);
-      font-size: 14px;
-      line-height: 1.6;
-      margin-top: 4px;
-      padding-left: 12px;
-    }
-
-    .task-footer {
-      display: flex;
-      justify-content: flex-end;
-      align-items: center;
-      margin-top: 6px;
-      padding-left: 12px;
-    }
-
-    .task-badges {
-      flex-shrink: 0;
-    }
-
-    .time-pill {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--muted);
-      background: rgba(255,255,255,0.04);
-      border: 1px solid var(--border);
-      padding: 6px 12px;
-      border-radius: 6px;
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-
-    .time-pill.overdue {
-      color: #f87171;
-      background: rgba(248,113,113,0.08);
-      border-color: rgba(248,113,113,0.2);
-    }
-
-    .reminder-badge {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 12px;
-      font-weight: 600;
-      color: #fbbf24;
-      background: rgba(120,53,15,0.2);
-      border: 1px solid rgba(251,191,36,0.2);
-      padding: 6px 12px;
-      border-radius: 6px;
-      margin-left: 6px;
-      backdrop-filter: blur(8px);
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-
-    .delete-btn {
-      background: none;
-      border: 1px solid transparent;
-      color: var(--muted);
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 12px;
-      cursor: pointer;
-      padding: 4px 10px;
-      border-radius: 6px;
-      opacity: 0;
-      transition: all 0.15s;
-    }
-
-    .task-card:hover .delete-btn { opacity: 1; }
-
-    .delete-btn:hover {
-      color: #f87171;
-      background: rgba(248,113,113,0.1);
-      border-color: rgba(248,113,113,0.2);
-    }
-
-    /* ── Past due divider ── */
-    .divider {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      margin: 24px 0;
-    }
-
-    .divider::before, .divider::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: linear-gradient(to right, transparent, rgba(248,113,113,0.3), transparent);
-    }
-
-    .divider-label {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 10px;
-      font-weight: 600;
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      color: #f87171;
-      white-space: nowrap;
-    }
-
-    /* ── Input panel ── */
-    .input-panel {
-      overflow-y: auto;
-    }
-
-    .input-card {
-      background: var(--surface);
-      backdrop-filter: blur(24px) saturate(150%);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 28px;
-    }
-
-    .input-title {
-      font-size: 18px;
-      font-weight: 700;
-      margin-bottom: 4px;
-    }
-
-    .input-subtitle {
-      font-size: 12px;
-      color: var(--muted);
-      margin-bottom: 20px;
-      line-height: 1.5;
-    }
-
+    .fog-box:focus-within { border-color: rgba(var(--accent-rgb),0.6); box-shadow: var(--edge), 0 0 0 3px rgba(var(--accent-rgb),0.14); }
     textarea {
-      width: 100%;
-      height: 120px;
-      background: rgba(255,255,255,0.03);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 14px 16px;
-      font-family: 'Sora', sans-serif;
-      font-size: 14px;
-      color: var(--fg);
-      resize: none;
-      outline: none;
-      transition: all 0.2s;
+      display: block; width: 100%; height: 76px; padding: 14px 48px 6px 16px;
+      background: none; border: none; outline: none; resize: none;
+      font-family: 'Instrument Sans', sans-serif; font-size: 15px; line-height: 1.5; color: var(--fg);
     }
-
-    textarea:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(129,140,248,0.1);
+    textarea::placeholder { color: var(--dim); }
+    .composer-bar { display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 16px; }
+    .char-counter { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--dim); }
+    .reminder-preview {
+      display: none; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--warn);
+      border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent); border-radius: 6px; padding: 2px 7px;
     }
-
-    textarea::placeholder { color: #3f3f46; }
-
-    .input-actions {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 14px;
-      flex-wrap: wrap;
-      gap: 8px;
+    .composer-bar .spacer { flex: 1; }
+    .enter-toggle {
+      display: inline-flex; align-items: center; gap: 7px; cursor: pointer; user-select: none;
+      font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--dim); flex-shrink: 0;
+      margin-right: 8px; transition: color 0.15s;
     }
-
-    .char-counter {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 11px;
-      color: var(--muted);
+    .enter-toggle:hover { color: var(--muted); }
+    .enter-toggle { position: relative; }
+    /* instant tooltip (no native title delay) */
+    .enter-toggle .tip {
+      position: absolute; bottom: calc(100% + 10px); right: -6px; z-index: 30; width: max-content;
+      display: flex; flex-direction: column; gap: 6px; padding: 9px 11px; border-radius: 10px;
+      font-family: 'Instrument Sans', sans-serif; font-size: 12px; color: var(--fg); white-space: nowrap;
+      background: linear-gradient(135deg, var(--sheen), transparent 40%), var(--help-bg);
+      backdrop-filter: blur(22px) saturate(160%); -webkit-backdrop-filter: blur(22px) saturate(160%);
+      border: 1px solid var(--rim-lo); box-shadow: var(--edge), var(--shadow);
+      opacity: 0; visibility: hidden; transform: translateY(3px); pointer-events: none;
+      transition: opacity 0.1s, transform 0.12s, visibility 0s linear 0.1s;
     }
-
+    .enter-toggle:hover .tip, .enter-toggle:focus-within .tip { opacity: 1; visibility: visible; transform: none; transition-delay: 0s; }
+    .enter-toggle .tip b { font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--accent); display: inline-block; width: 30px; }
+    .enter-toggle .tip kbd {
+      font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; padding: 0 5px; border-radius: 4px;
+      border: 1px solid var(--line-strong); background: var(--fog); color: var(--fg);
+    }
+    .enter-toggle input { position: absolute; opacity: 0; pointer-events: none; }
+    .enter-toggle .switch {
+      position: relative; width: 20px; height: 12px; border-radius: 6px; flex-shrink: 0;
+      background: var(--line-strong); transition: background 0.15s;
+    }
+    .enter-toggle .switch::after {
+      content: ''; position: absolute; top: 2px; left: 2px; width: 8px; height: 8px; border-radius: 50%;
+      background: var(--fg); opacity: 0.75; transition: transform 0.15s, background 0.15s;
+    }
+    .enter-toggle input:checked + .switch { background: rgba(var(--accent-rgb),0.55); }
+    .enter-toggle input:checked + .switch::after { transform: translateX(8px); background: var(--accent-ink); opacity: 0.9; }
+    .enter-toggle input:focus-visible + .switch { outline: 2px solid rgba(var(--accent-rgb),0.6); outline-offset: 2px; }
     .submit-btn {
-      background: linear-gradient(135deg, #818cf8, #6366f1);
-      color: white;
-      border: none;
-      border-radius: 10px;
-      padding: 10px 24px;
-      font-family: 'Sora', sans-serif;
-      font-size: 13px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.2s;
-      box-shadow: 0 2px 12px rgba(129,140,248,0.25);
+      background: var(--accent); color: var(--accent-ink); border: none; border-radius: 9px;
+      padding: 8px 16px; font-family: 'Instrument Sans', sans-serif; font-size: 13.5px; font-weight: 600;
+      cursor: pointer; transition: filter 0.15s, transform 0.1s;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.3);
     }
+    .submit-btn:hover { filter: brightness(1.1); }
+    .submit-btn:active { transform: translateY(1px); }
 
-    .submit-btn:hover {
-      box-shadow: 0 4px 20px rgba(129,140,248,0.4);
-      transform: translateY(-1px);
+    /* ── ? help: accent-tinted so it reads as "click me if you're lost", with a soft
+          breathing ring until it's been opened once ── */
+    .help-btn {
+      position: absolute; top: 10px; right: 10px; width: 26px; height: 26px; border-radius: 50%;
+      display: grid; place-items: center; cursor: pointer;
+      font-family: 'Instrument Sans', sans-serif; font-size: 14px; font-weight: 700; line-height: 1;
+      color: var(--accent); background: rgba(var(--accent-rgb),0.16);
+      border: 1px solid rgba(var(--accent-rgb),0.55);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.25);
+      transition: background 0.15s, color 0.15s, transform 0.15s;
     }
-
-    .submit-btn:active { transform: translateY(0); }
-
-    /* ── Stats strip below input ── */
-    .stats-strip {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-      margin-top: 16px;
+    .help-btn:hover, .help-btn[aria-expanded="true"] { background: var(--accent); color: var(--accent-ink); }
+    .help-btn:active { transform: scale(0.94); }
+    .help-btn.unseen { animation: helpBreathe 2.8s ease-in-out infinite; }
+    @keyframes helpBreathe {
+      0%, 100% { box-shadow: inset 0 1px 0 rgba(255,255,255,0.25), 0 0 0 0 rgba(var(--accent-rgb),0.45); }
+      50% { box-shadow: inset 0 1px 0 rgba(255,255,255,0.25), 0 0 0 6px rgba(var(--accent-rgb),0); }
     }
-
-    .stat-box {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 14px;
-      text-align: center;
+    .help-pop {
+      position: absolute; top: 98px; right: 26px; z-index: 20; width: 348px; padding: 14px 16px 14px;
+      border-radius: 16px; opacity: 0; visibility: hidden; transform: translateY(-4px);
+      transition: opacity 0.14s ease, transform 0.18s cubic-bezier(0.23, 1, 0.32, 1), visibility 0s linear 0.18s;
     }
-
-    .stat-value {
-      font-size: 22px;
-      font-weight: 800;
-      letter-spacing: -1px;
+    /* denser than other floating panes: it's reading material */
+    .help-pop { background: linear-gradient(135deg, var(--sheen), transparent 40%), var(--help-bg); backdrop-filter: blur(22px) saturate(160%); -webkit-backdrop-filter: blur(22px) saturate(160%); }
+    :root, :root[data-scheme="dark"] { --help-bg: rgba(22,22,32,0.78); }
+    :root[data-scheme="light"] { --help-bg: rgba(248,249,253,0.82); }
+    .help-pop.open { opacity: 1; visibility: visible; transform: none; transition-delay: 0s; }
+    .help-sec + .help-sec { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+    .help-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 500; letter-spacing: 1.4px; text-transform: uppercase; color: var(--muted); margin-bottom: 7px; }
+    .help-ex { display: flex; flex-wrap: wrap; gap: 5px; }
+    .help-ex code {
+      font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: var(--fg);
+      background: var(--fog); border: 1px solid var(--line-strong); border-radius: 6px; padding: 2px 7px;
     }
-
-    .stat-label {
-      font-size: 10px;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-top: 2px;
+    .help-sec p { font-size: 12.5px; color: var(--muted); line-height: 1.5; margin-top: 7px; }
+    .help-sec .help-label + p { margin-top: 0; }
+    .help-sec .c { color: color-mix(in srgb, var(--c) 75%, var(--fg)); font-weight: 600; }
+    .help-nope {
+      display: flex; gap: 9px; align-items: flex-start; margin-top: 12px; padding: 9px 11px; border-radius: 10px;
+      background: color-mix(in srgb, var(--warn) 14%, transparent); border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent);
     }
+    .help-nope svg { color: var(--warn); flex-shrink: 0; margin-top: 2px; }
+    .help-nope p { font-size: 12.5px; line-height: 1.45; color: var(--fg); }
+    .help-nope b { color: var(--warn); font-weight: 600; }
+    .help-nope a { color: var(--accent); }
+    .demo-btn {
+      margin-top: 14px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 9px 12px; border-radius: 10px; cursor: pointer;
+      font-family: 'Instrument Sans', sans-serif; font-size: 13px; font-weight: 600;
+      color: var(--fg); background: rgba(var(--accent-rgb),0.18); border: 1px solid rgba(var(--accent-rgb),0.5);
+      transition: background 0.15s;
+    }
+    .demo-btn svg { color: var(--accent); }
+    .demo-btn:hover { background: rgba(var(--accent-rgb),0.3); }
+
+    /* demo overlay: blurs the whole dashboard and plays the landing-page demo */
+    .demo-overlay {
+      position: fixed; inset: 0; z-index: 400; display: grid; place-items: center; padding: 24px;
+      background: rgba(0,0,0,0.3);
+      backdrop-filter: blur(18px) saturate(140%); -webkit-backdrop-filter: blur(18px) saturate(140%);
+      opacity: 0; visibility: hidden; transition: opacity 0.25s ease, visibility 0s linear 0.25s;
+    }
+    .demo-overlay.open { opacity: 1; visibility: visible; transition-delay: 0s; }
+    .demo-wrap { position: relative; width: min(1080px, 100%); transform: scale(0.97); transition: transform 0.3s cubic-bezier(0.23, 1, 0.32, 1); }
+    .demo-overlay.open .demo-wrap { transform: none; }
+    .demo-wrap iframe { display: block; width: 100%; height: min(760px, calc(100vh - 110px)); border: 0; border-radius: 18px; background: #0a0a0f; box-shadow: 0 30px 80px -20px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.12); }
+    .demo-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; padding: 0 4px; color: #fff; }
+    .demo-top span { font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 1px; opacity: 0.8; }
+    .demo-close {
+      width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; cursor: pointer;
+      color: #fff; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25);
+    }
+    .demo-close:hover { background: rgba(255,255,255,0.22); }
+    .composer-card { position: relative; z-index: 5; }   /* help popover hangs over the task list */
+    .composer-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; }
+    .composer-help { font-size: 12.5px; color: var(--muted); }
+    .composer-help b { color: var(--fg); font-weight: 500; }
+
+    /* ── Task list: its own pane of individual glass task boxes ── */
+    .list-card { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+    .list-head { display: flex; justify-content: space-between; align-items: flex-end; padding: 18px 18px 10px; flex-shrink: 0; }
+    .list-title { font-size: 16px; font-weight: 600; letter-spacing: -0.2px; }
+    .list-title .count { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--muted); font-weight: 400; margin-left: 8px; }
+    .clock { display: flex; flex-direction: column; align-items: flex-end; line-height: 1; }
+    .clock #clockTime {
+      font-size: 34px; font-weight: 600; letter-spacing: -1.2px; color: var(--fg);
+      font-variant-numeric: tabular-nums;
+    }
+    .clock #clockTime .ampm { font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 500; letter-spacing: 0.5px; color: var(--accent); margin-left: 5px; }
+    .clock #clockDate { font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; font-weight: 500; letter-spacing: 1.2px; text-transform: uppercase; color: var(--fg); opacity: 0.85; margin-top: 8px; }
+
+    #taskList { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 14px 14px; scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
+
+    /* section partition: label centered between two fading lines */
+    .divider { display: flex; align-items: center; gap: 14px; margin: 14px 2px 12px; }
+    .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: linear-gradient(to right, transparent, var(--line-strong), transparent); }
+    .divider span { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; color: var(--dim); white-space: nowrap; }
+    .divider.overdue::before, .divider.overdue::after { background: linear-gradient(to right, transparent, color-mix(in srgb, var(--danger) 55%, transparent), transparent); }
+    .divider.overdue span { color: var(--danger); }
+
+    /* a task box: its own blurred glass, tinted with the task's color (--c) */
+    .task-card {
+      position: relative; display: grid; grid-template-columns: 1fr auto; gap: 10px;
+      padding: 12px 14px 12px 18px; margin-bottom: 10px; border-radius: 14px;
+      background:
+        linear-gradient(135deg, color-mix(in srgb, var(--c) var(--tint), transparent), transparent 70%),
+        var(--fog);
+      border: 1px solid color-mix(in srgb, var(--c) 30%, var(--line-strong));
+      box-shadow: var(--edge);
+      transition: transform 0.15s, border-color 0.15s, background 0.15s;
+    }
+    .task-card::before {
+      content: ''; position: absolute; left: 0; top: 12px; bottom: 12px; width: 3px; border-radius: 0 3px 3px 0; background: var(--c);
+    }
+    .task-card:hover, .task-card.linked {
+      transform: translateY(-1px); border-color: color-mix(in srgb, var(--c) 70%, var(--line-strong));
+      background: linear-gradient(135deg, color-mix(in srgb, var(--c) calc(var(--tint) + 10%), transparent), transparent 75%), var(--hover);
+    }
+    @keyframes cardIn {
+      0% { opacity: 0; transform: translateY(-8px) scale(0.98); filter: blur(6px); }
+      100% { opacity: 1; transform: none; filter: none; }
+    }
+    /* 'backwards' (not 'both') so a finished animation doesn't pin transform and kill the hover lift */
+    .task-card.entering { animation: cardIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) backwards; }
+    /* a freshly added task also glows in its own color for a moment */
+    @keyframes addedGlow {
+      0%, 30% { box-shadow: var(--edge), 0 0 0 1px var(--c), 0 0 24px -4px var(--c); }
+      100% { box-shadow: var(--edge); }
+    }
+    .task-card.just-added { animation: cardIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) backwards, addedGlow 2.2s ease-out 0.2s backwards; }
+    .task-card.overdue { border-color: color-mix(in srgb, var(--danger) 35%, var(--line-strong)); }
+    .task-main { min-width: 0; }
+    /* title takes the task's hue, blended toward the text color so it reads in both schemes */
+    .task-name { font-size: 15px; font-weight: 600; letter-spacing: -0.2px; line-height: 1.35; color: color-mix(in srgb, var(--c) 60%, var(--fg)); }
+    .task-desc {
+      color: var(--muted); font-size: 13.5px; line-height: 1.45; margin-top: 2px;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .task-meta { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+    .pill {
+      font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--muted);
+      background: var(--fog); border: 1px solid var(--line); border-radius: 6px; padding: 2px 7px;
+    }
+    .pill.when.jump { cursor: pointer; }
+    .pill.when.jump:hover { color: var(--fg); border-color: var(--line-strong); }
+    .task-card.overdue .pill.when { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 35%, transparent); }
+    .pill.bell { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 35%, transparent); }
+    .row-actions { display: flex; flex-direction: column; gap: 2px; opacity: 0; transition: opacity 0.12s; }
+    .task-card:hover .row-actions, .task-card:focus-within .row-actions, .inspector .row-actions { opacity: 1; }
+    .row-btn {
+      background: none; border: none; cursor: pointer; font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+      color: var(--muted); padding: 3px 6px; border-radius: 5px; text-align: right;
+    }
+    .row-btn:hover { color: var(--fg); background: var(--hover); }
+    .row-btn.del:hover { color: var(--danger); }
+
+    .empty-state { padding: 50px 20px; text-align: center; color: var(--muted); }
+    .empty-state b { display: block; font-size: 15px; color: var(--fg); font-weight: 600; margin-bottom: 4px; }
+
+    /* ── Calendar pane ── */
+    .cal { position: relative; display: flex; flex-direction: column; min-height: 0; padding: 20px 20px 20px; overflow: hidden; }
+
+    .cal-toolbar { display: flex; justify-content: space-between; align-items: flex-end; margin: 0 2px 16px; gap: 16px; flex-wrap: wrap; }
+    .cal-title { display: flex; align-items: baseline; gap: 12px; }
+    .cal-month { font-size: 36px; font-weight: 600; letter-spacing: -1.2px; line-height: 1; }
+    .cal-year { font-family: 'IBM Plex Mono', monospace; font-size: 16px; color: var(--dim); }
+    .cal-stats { display: flex; gap: 8px; margin-top: 12px; }
+    .stat {
+      --s: var(--accent);
+      display: inline-flex; align-items: baseline; gap: 7px; padding: 5px 12px 6px; border-radius: 10px;
+      font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500; letter-spacing: 1px; text-transform: uppercase;
+      color: color-mix(in srgb, var(--s) 70%, var(--fg));
+      background: color-mix(in srgb, var(--s) 16%, transparent);
+      border: 1px solid color-mix(in srgb, var(--s) 45%, transparent);
+      box-shadow: var(--edge);
+    }
+    .stat b { font-family: 'Instrument Sans', sans-serif; font-size: 19px; font-weight: 700; letter-spacing: -0.4px; color: var(--fg); }
+    .stat.od { --s: var(--danger); }
+    .stat.od b { color: var(--danger); }
+    .stat.zero { --s: var(--dim); opacity: 0.7; }
+    .stat.zero b { color: var(--muted); }
+
+    .seg { display: flex; border: 1px solid var(--line-strong); border-radius: 10px; overflow: hidden; background: var(--fog); box-shadow: var(--edge); }
+    .seg button {
+      background: none; border: none; color: var(--fg); cursor: pointer; height: 32px; min-width: 34px; padding: 0 12px;
+      font-family: 'IBM Plex Mono', monospace; font-size: 12px; display: grid; place-items: center; transition: background 0.12s;
+    }
+    .seg button + button { border-left: 1px solid var(--line-strong); }
+    .seg button:hover { background: var(--hover); }
+
+    .weekdays { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; padding-bottom: 8px; }
+    .weekday { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); padding-left: 10px; }
+
+    /* each day is its own small frosted tile */
+    .cal-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+    .day-cell {
+      position: relative; min-height: 0; padding: 7px 8px; overflow: hidden; cursor: pointer;
+      display: flex; flex-direction: column; gap: 4px;
+      background: var(--cell); border: 1px solid var(--line-strong); border-radius: 11px;
+      box-shadow: var(--edge);
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .day-cell.weekend { background: var(--cell-weekend); }
+    .day-cell:hover { background: var(--hover); }
+    .day-cell.outside { background: var(--cell-out); border-color: var(--line); box-shadow: none; cursor: default; }
+    .day-cell.outside .n { color: var(--dim); opacity: 0.7; }
+    /* today: accent-washed tile with a ring and glow, plus a TODAY tag next to the date */
+    .day-cell.today {
+      background: linear-gradient(160deg, rgba(var(--accent-rgb),0.34), rgba(var(--accent-rgb),0.1) 65%), var(--cell);
+      border-color: var(--accent);
+      box-shadow: var(--edge), 0 0 0 1px var(--accent), 0 0 26px -4px rgba(var(--accent-rgb),0.6);
+    }
+    .day-cell.today .day-num { justify-content: flex-start; gap: 7px; }
+    .day-cell.today .day-num::after {
+      content: 'TODAY'; font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; font-weight: 600;
+      letter-spacing: 1.4px; color: var(--accent);
+    }
+    .day-cell.today .day-num .more { order: 2; margin-left: auto; }
+    .day-cell.selected { border-color: var(--accent); box-shadow: var(--edge), 0 0 0 1px var(--accent); }
+    @keyframes cellBump {
+      0% { box-shadow: var(--edge), 0 0 0 2px var(--accent); background: var(--link-bg); }
+      100% { box-shadow: var(--edge); }
+    }
+    .day-cell.bump { animation: cellBump 1.4s ease-out; }
+    .day-cell.linked { background: var(--link-bg); border-color: var(--accent); box-shadow: var(--edge), 0 0 0 1px var(--accent); }
+
+    .day-num { display: flex; align-items: center; justify-content: space-between; padding: 0 2px; }
+    .day-num .n { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--muted); }
+    .today .day-num .n {
+      color: var(--accent-ink); background: var(--accent); font-weight: 600;
+      padding: 1px 6px; border-radius: 6px; margin-left: -4px;
+    }
+    .day-num .more { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--muted); }
+
+    /* a task inside a day: small tinted box */
+    .chip {
+      display: flex; align-items: center; gap: 5px; height: 20px; padding: 0 6px; border-radius: 6px;
+      font-size: 11.5px; font-weight: 500; white-space: nowrap; overflow: hidden;
+      background: color-mix(in srgb, var(--c) calc(var(--tint) + 4%), transparent);
+      border: 1px solid color-mix(in srgb, var(--c) 38%, transparent);
+      color: color-mix(in srgb, var(--c) 55%, var(--fg));
+    }
+    .chip .label { overflow: hidden; text-overflow: ellipsis; }
+    .chip .at { font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 500; opacity: 0.8; flex-shrink: 0; }
+    .chip.overdue .label, .chip.overdue .at { opacity: 0.7; }
+    .chip .warn { flex-shrink: 0; display: block; color: var(--alert); filter: drop-shadow(0 0 3px color-mix(in srgb, var(--alert) 55%, transparent)); }
+    .dots { display: flex; gap: 3px; flex-wrap: wrap; padding: 0 2px; }
+    .dots span { width: 6px; height: 6px; border-radius: 50%; background: var(--c); }
+
+    /* ── Day inspector: floating glass pane over the calendar ── */
+    .inspector {
+      position: absolute; top: 12px; right: 12px; bottom: 12px; width: min(400px, calc(100% - 24px)); z-index: 5;
+      border-radius: 16px; padding: 20px 16px; overflow-y: auto;
+      transform: translateX(calc(100% + 24px)); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .inspector.open { transform: none; }
+    .insp-head { display: flex; justify-content: space-between; align-items: flex-start; margin: 0 4px 16px; }
+    .insp-date { font-size: 26px; font-weight: 600; letter-spacing: -0.8px; }
+    .insp-sub { font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+    .icon-btn {
+      width: 32px; height: 32px; display: grid; place-items: center; background: var(--fog);
+      border: 1px solid var(--line-strong); border-radius: 9px; color: var(--muted); cursor: pointer; transition: all 0.12s;
+    }
+    .icon-btn:hover { color: var(--fg); background: var(--hover); }
+    .insp-empty { color: var(--muted); padding: 30px 4px; font-size: 13px; }
 
     /* ── Edit modal ── */
     .modal-overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+      position: fixed; inset: 0; background: rgba(0,0,0,0.35);
       z-index: 200; display: none; align-items: center; justify-content: center; padding: 20px;
     }
     .modal-overlay.open { display: flex; }
     .modal {
-      width: 440px; max-width: 100%; background: rgba(12,12,16,0.96);
-      border: 1px solid var(--border); border-radius: 20px; padding: 26px;
-      backdrop-filter: blur(30px) saturate(160%);
-      box-shadow: 0 24px 60px -20px rgba(0,0,0,0.8);
-      animation: modalIn 0.22s cubic-bezier(0.23, 1, 0.32, 1);
+      width: 440px; max-width: 100%; border-radius: 18px; padding: 24px;
+      animation: modalIn 0.18s cubic-bezier(0.23, 1, 0.32, 1);
     }
-    @keyframes modalIn { 0% { opacity: 0; transform: translateY(12px) scale(0.97); } 100% { opacity: 1; transform: none; } }
-    .modal h3 { font-size: 20px; font-weight: 800; letter-spacing: -0.4px; margin-bottom: 18px; }
-    .modal label { display: block; font-family: 'IBM Plex Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin: 14px 0 6px; }
+    @keyframes modalIn { 0% { opacity: 0; transform: translateY(8px); } 100% { opacity: 1; transform: none; } }
+    .modal h3 { font-size: 19px; font-weight: 600; letter-spacing: -0.4px; margin-bottom: 14px; }
+    .modal label { display: block; font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); margin: 14px 0 6px; }
     .modal input, .modal textarea {
-      width: 100%; background: rgba(255,255,255,0.03); border: 1px solid var(--border);
-      border-radius: 10px; padding: 10px 12px; font-family: 'Sora', sans-serif; font-size: 14px;
-      color: var(--fg); outline: none; transition: all 0.2s;
+      width: 100%; height: auto; background: var(--fog); border: 1px solid var(--line-strong);
+      border-radius: 9px; padding: 9px 11px; font-family: 'Instrument Sans', sans-serif; font-size: 14px;
+      color: var(--fg); outline: none; transition: border-color 0.15s;
     }
-    .modal input:focus, .modal textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(129,140,248,0.1); }
-    .modal textarea { height: 80px; resize: none; }
-    .modal input[type="date"], .modal input[type="time"] { color-scheme: dark; }
+    .modal input:focus, .modal textarea:focus { border-color: rgba(var(--accent-rgb),0.6); }
+    .modal textarea { height: 76px; resize: none; }
+    .modal input[type="date"], .modal input[type="time"] { font-family: 'IBM Plex Mono', monospace; font-size: 13px; }
     .modal .row { display: flex; gap: 12px; }
     .modal .row > div { flex: 1; }
-    .swatches { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
-    .swatch { width: 26px; height: 26px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: all 0.15s; }
-    .swatch:hover { transform: scale(1.12); }
-    .swatch.selected { border-color: #fff; box-shadow: 0 0 0 2px var(--accent); }
-    .swatch.none { background: linear-gradient(135deg, #2a2a30, #18181c); position: relative; }
-    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
-    .btn-ghost { background: var(--surface); border: 1px solid var(--border); color: var(--muted); border-radius: 10px; padding: 9px 18px; font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.18s; }
-    .btn-ghost:hover { color: var(--fg); border-color: var(--border-hover); }
-    .btn-save { background: linear-gradient(135deg, #818cf8, #6366f1); color: #fff; border: none; border-radius: 10px; padding: 9px 22px; font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: 0 2px 12px rgba(129,140,248,0.25); transition: all 0.18s; }
-    .btn-save:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(129,140,248,0.4); }
-
-    /* ── Dropdown readability ── */
-    select option {
-      background: #0c0c10;
-      color: #e4e4e7;
-      -webkit-text-fill-color: #e4e4e7;
-    }
+    .swatches { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 2px; }
+    .swatch { width: 24px; height: 24px; border-radius: 50%; cursor: pointer; border: 1px solid var(--line-strong); transition: transform 0.12s; }
+    .swatch:hover { transform: scale(1.1); }
+    .swatch.selected { box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--fg); }
+    .swatch.none { background: repeating-linear-gradient(135deg, var(--line-strong) 0 4px, transparent 4px 8px); }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 22px; }
+    .btn-ghost { background: var(--fog); border: 1px solid var(--line-strong); color: var(--fg); border-radius: 9px; padding: 8px 14px; font-family: 'Instrument Sans', sans-serif; font-size: 13px; cursor: pointer; }
+    .btn-ghost:hover { background: var(--hover); }
+    .btn-save { background: var(--accent); color: var(--accent-ink); border: none; border-radius: 9px; padding: 8px 16px; font-family: 'Instrument Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .btn-save:hover { filter: brightness(1.1); }
   </style>
 </head>
 <body>
 
-  <div class="mesh-bg">
-    <div class="mesh-orb"></div>
-    <div class="mesh-orb"></div>
-    <div class="mesh-orb"></div>
-  </div>
+  <canvas id="ambient" class="ambient" aria-hidden="true"></canvas>
 
   <header>
-    <div class="logo" style="position:relative;display:inline-block;">
-      <select onchange="if(this.value)window.location=this.value" style="appearance:none;-webkit-appearance:none;background:transparent;border:none;font-size:22px;font-weight:800;letter-spacing:-0.5px;background:linear-gradient(135deg,#818cf8,#c084fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;cursor:pointer;padding-right:22px;outline:none;">
-        <option value="" selected>tasker.</option>
-        <option value="/switch/2">OG (Retired)</option>
-        <option value="/switch/3">Default</option>
-        <option value="/switch/5">Editorial</option>
-      </select>
-      <svg style="position:absolute;right:2px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--accent);" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+    {% include '_theme_menu.html' %}
+    <!-- shown whenever notifications aren't on, since reminders depend on them -->
+    <div class="notif-nag" id="notifNag" hidden>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.7 21a2 2 0 0 1-3.4 0M18.6 13A17.9 17.9 0 0 1 18 8M6.3 6.3A6 6 0 0 0 6 8c0 7-3 9-3 9h14M18 8a6 6 0 0 0-9.3-5M2 2l20 20"/></svg>
+      <span class="msg" id="notifMsg"></span>
+      <span class="hint" id="notifHint"></span>
+      <button type="button" class="notif-on" id="notifBtn">Turn on</button>
+      <button type="button" class="notif-x" id="notifX" aria-label="Hide for now">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
     </div>
-    <div class="nav-links">
-      <a href="{{ url_for('calendar') }}">Calendar</a>
+    <div class="nav-right">
       <span class="user-chip">{{ username }}</span>
-      <a href="{{ url_for('logout') }}" class="exit">Exit</a>
+      <button class="scheme-btn" id="schemeBtn" type="button" aria-label="Toggle light and dark mode" title="Light / dark">
+        <svg class="sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        <svg class="moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      </button>
+      <a href="{{ url_for('logout') }}">Log out</a>
     </div>
   </header>
 
   <main>
-    <div class="task-section">
-      <div class="section-header">
+    <div class="left">
+      <!-- composer pane -->
+      <section class="glass composer-card">
+        <div class="composer-title">
+          <h2>New task</h2>
+          <span>just type it how you'd say it</span>
+        </div>
+        <div class="fog-box">
+          <textarea id="taskInput" maxlength="200" placeholder="gym next monday 7am legs, blue"></textarea>
+          <div class="composer-bar">
+            <span class="char-counter" id="charCounter">0/200</span>
+            <span id="reminderPreview" class="reminder-preview">⏰ <span id="reminderValue"></span></span>
+            <span class="spacer"></span>
+            <button class="submit-btn" id="submitBtn">Add task</button>
+          </div>
+          <button type="button" class="help-btn" id="helpBtn" aria-label="How to write tasks and reminders" aria-expanded="false" aria-controls="helpPop">?</button>
+        </div>
+        <div class="composer-foot">
+          <div class="composer-help">Tasker understands <b>dates, times, colors</b> and <b>reminders</b> automatically.</div>
+          <label class="enter-toggle">
+            <input type="checkbox" id="enterToggle" checked><span class="switch"></span>enter to add
+            <span class="tip" role="tooltip">
+              <span><b>On</b> <kbd>Enter</kbd> adds the task, <kbd>Shift</kbd>+<kbd>Enter</kbd> is a new line</span>
+              <span><b>Off</b> <kbd>Enter</kbd> is a new line, <kbd>Ctrl</kbd>+<kbd>Enter</kbd> adds</span>
+            </span>
+          </label>
+        </div>
+
+        <!-- cheat sheet for the ? button -->
+        <div class="help-pop float-pane" id="helpPop" role="dialog" aria-label="How to write tasks">
+          <div class="help-sec">
+            <div class="help-label">Reminder before it's due</div>
+            <div class="help-ex"><code>remind me 2h before</code><code>notify me 30 min early</code><code>remind me an hour earlier</code></div>
+            <p>Counted back from the task's due time, up to 24h.</p>
+          </div>
+          <div class="help-sec">
+            <div class="help-label">Reminder from right now</div>
+            <div class="help-ex"><code>remind me in 20 min</code><code>remind me in 3 hours</code></div>
+          </div>
+          <div class="help-sec">
+            <div class="help-label">Reminder at a set time</div>
+            <div class="help-ex"><code>remind me at 8:30am</code><code>remind me at 6pm</code></div>
+          </div>
+          <div class="help-sec">
+            <div class="help-label">Color</div>
+            <p>End with <span class="c" style="--c:#87CEEB">blue</span> <span class="c" style="--c:#f05656">red</span> <span class="c" style="--c:#6CE5A9">green</span> <span class="c" style="--c:#F8C8DC">pink</span> <span class="c" style="--c:#ff7f00">orange</span> <span class="c" style="--c:#A96CE5">purple</span> or <span class="c" style="--c:#FDDA0D">yellow</span>.</p>
+          </div>
+          <div class="help-nope">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg>
+            <p><b>No repeating tasks.</b> "every day" or "every monday" won't repeat, you'll get one task. Add each one yourself, or <a href="https://github.com/ani-pur/NLP_Tasker/issues" target="_blank" rel="noopener">request the feature</a>.</p>
+          </div>
+          <button type="button" class="demo-btn" id="demoBtn">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l13-7.5z"/></svg>
+            Watch the demo
+          </button>
+        </div>
+      </section>
+
+      <!-- task list pane -->
+      <section class="glass list-card">
+        <div class="list-head">
+          <div class="list-title">Tasks<span class="count" id="taskCountBadge">0</span></div>
+          <div class="clock"><span id="clockTime"></span><span id="clockDate"></span></div>
+        </div>
+        <div id="taskList"></div>
+      </section>
+    </div>
+
+    <!-- calendar pane -->
+    <section class="glass cal" id="calPanel">
+      <div class="cal-toolbar">
         <div>
-          <span class="section-title">Tasks</span>
-          <span class="task-count-badge" id="taskCountBadge">0</span>
+          <div class="cal-title">
+            <span class="cal-month" id="calMonth">—</span>
+            <span class="cal-year" id="calYear"></span>
+          </div>
+          <div class="cal-stats">
+            <span class="stat up"><b id="statActive">0</b> upcoming</span>
+            <span class="stat od" id="statOverdueBox"><b id="statOverdue">0</b> overdue</span>
+          </div>
         </div>
-        <div class="clock-display">
-          <div class="date" id="clockDate"></div>
-          <div id="clockTime"></div>
-        </div>
-      </div>
-      <div id="taskList"></div>
-    </div>
-
-    <div class="input-panel">
-      <div class="input-card">
-        <div class="input-title">New Task</div>
-        <div class="input-subtitle">Just type. Dates, times, colors - Tasker extracts everything.</div>
-        <textarea id="taskInput" placeholder="gym next monday 7am legs, blue"></textarea>
-        <div class="input-actions">
-          <span class="char-counter" id="charCounter">0/200</span>
-          <span id="reminderPreview" style="display:none; font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; color:#fbbf24; background:rgba(120,53,15,0.2); border:1px solid rgba(251,191,36,0.2); padding:6px 12px; border-radius:6px; backdrop-filter:blur(8px);">🔔 <span id="reminderValue"></span></span>
-          <button class="submit-btn" id="submitBtn">Add Task</button>
+        <div class="seg">
+          <button id="prevBtn" aria-label="Previous month">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <button id="todayBtn">Today</button>
+          <button id="nextBtn" aria-label="Next month">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 18l6-6-6-6"/></svg>
+          </button>
         </div>
       </div>
 
-      <div class="stats-strip">
-        <div class="stat-box">
-          <div class="stat-value" style="color:#818cf8;" id="statActive">0</div>
-          <div class="stat-label">Active</div>
+      <div class="weekdays" id="weekdays"></div>
+      <div class="cal-grid" id="calGrid"></div>
+
+      <aside class="inspector float-pane" id="daySheet">
+        <div class="insp-head">
+          <div>
+            <div class="insp-date" id="sheetDate">—</div>
+            <div class="insp-sub" id="sheetSub"></div>
+          </div>
+          <button class="icon-btn" id="sheetClose" aria-label="Close">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
         </div>
-        <div class="stat-box">
-          <div class="stat-value" style="color:#f87171;" id="statOverdue">0</div>
-          <div class="stat-label">Overdue</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-value" style="color:#34d399;" id="statTotal">0</div>
-          <div class="stat-label">Total</div>
-        </div>
-      </div>
-    </div>
+        <div id="sheetBody"></div>
+      </aside>
+    </section>
   </main>
 
+  <div class="demo-overlay" id="demoOverlay" role="dialog" aria-modal="true" aria-label="Tasker demo">
+    <div class="demo-wrap">
+      <div class="demo-top">
+        <span>HOW TASKER READS WHAT YOU TYPE</span>
+        <button type="button" class="demo-close" id="demoClose" aria-label="Close demo">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+      <iframe id="demoFrame" title="Tasker demo" loading="lazy"></iframe>
+    </div>
+  </div>
+
   <script>
+    /* ── Light / dark toggle ── */
+    document.getElementById('schemeBtn').addEventListener('click', () => {
+      const next = document.documentElement.dataset.scheme === 'light' ? 'dark' : 'light';
+      document.documentElement.dataset.scheme = next;
+      try { localStorage.setItem('tasker.scheme', next); } catch {}
+      window.ambientRedraw?.();
+    });
+
     /* ── Clock ── */
     let clockTimer;
-    function renderClock(animate = false) {
+    function renderClock() {
       const now = new Date();
-      const day = now.toLocaleDateString(undefined, { weekday: 'short' }).toUpperCase();
-      const mon = now.toLocaleDateString(undefined, { month: 'short' }).toUpperCase();
-      const d = String(now.getDate()).padStart(2, '0');
-      document.getElementById('clockDate').textContent = `${day}, ${mon} ${d}`;
-      document.getElementById('clockTime').textContent = now.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true });
+      document.getElementById('clockDate').textContent = now.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+      // big digits, small AM/PM
+      const parts = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit', hour12: true }).formatToParts(now);
+      const digits = parts.filter(p => p.type !== 'dayPeriod').map(p => p.value).join('').trim();
+      const period = parts.find(p => p.type === 'dayPeriod')?.value || '';
+      document.getElementById('clockTime').innerHTML = `${escapeHtml(digits)}<span class="ampm">${escapeHtml(period)}</span>`;
     }
     function scheduleNextClockTick() {
       if (clockTimer) clearTimeout(clockTimer);
       const msToNextMinute = (60000 - (Date.now() % 60000)) + 80;
-      clockTimer = setTimeout(() => { renderClock(true); scheduleNextClockTick(); }, msToNextMinute);
+      clockTimer = setTimeout(() => { renderClock(); scheduleNextClockTick(); }, msToNextMinute);
     }
     document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) { renderClock(false); scheduleNextClockTick(); }
+      if (!document.hidden) { renderClock(); scheduleNextClockTick(); }
     });
-    renderClock(false);
+    renderClock();
     scheduleNextClockTick();
 
     /* ── Color ── */
@@ -623,8 +763,8 @@
     function cleanDescription(text, reminder, color) {
       let cleaned = text;
       if (reminder && reminder.display) {
-        cleaned = cleaned.replace(/(?:,\s*)?(?:remind|notify|alert)\s+(?:me\s+)?(?:in\s+)?\d+\s*(?:m|mi|min|minu|minut|minute|minutes|h|ho|hou|hour|hours|hr|hrs)\b/gi, '');
-        cleaned = cleaned.replace(/(?:,\s*)?(?:remind|notify|alert)\s+(?:me\s+)?at\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)\b/gi, '');
+        cleaned = cleaned.replace(/(?:,\s*)?(?:remind(?:er)?|notify|alert)\s+(?:me\s+)?(?:in\s+)?(?:\d{1,4}|an?)\s*(?:m|mi|min|mins|minu|minut|minute|minutes|h|ho|hou|hour|hours|hr|hrs)\b(?:\s+(?:before|early|earlier))?/gi, '');
+        cleaned = cleaned.replace(/(?:,\s*)?(?:remind(?:er)?|notify|alert)\s+(?:me\s+)?at\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)\b/gi, '');
       }
       if (color && color !== '#FFFFFF') {
         cleaned = cleaned.replace(/\b(blue|red|green|pink|orange|purple|yellow)\b/gi, '');
@@ -633,11 +773,18 @@
     }
 
     /* ── Reminder ── */
+    // offsets: 1-24 hours or 1-1440 minutes ("an hour" always ok); anything else is ignored
+    function reminderInRange(m) {
+      if (!m) return false;
+      if (isNaN(m[1])) return true;
+      const n = +m[1];
+      return n >= 1 && (m[2].startsWith('h') ? n <= 24 : n <= 1440);
+    }
     function parseReminder(text) {
       const t = text.toLowerCase();
-      const rel = t.match(/(?:remind|notify|alert)\s+(?:me\s+)?(\d+)\s*(m|mi|min|minu|minut|minute|minutes|h|ho|hou|hour|hours|hr|hrs)\b/);
-      if (rel) {
-        const val = parseInt(rel[1]);
+      const rel = t.match(/(?:remind(?:er)?|notify|alert)\s+(?:me\s+)?(\d{1,4}|an?)\s*(m|mi|min|mins|minu|minut|minute|minutes|h|ho|hou|hour|hours|hr|hrs)\b(?:\s+(?:before|early|earlier))?/);
+      if (reminderInRange(rel)) {
+        const val = /^\d/.test(rel[1]) ? parseInt(rel[1]) : 1;   // "an hour" = 1
         const unit = rel[2];
         if (unit.startsWith('h')) {
           const clamped = Math.min(val, 24);
@@ -649,9 +796,9 @@
         }
       }
       // relative to now: "remind me in 30 min", "notify me in 2 hours"
-      const relIn = t.match(/(?:remind|notify|alert)\s+(?:me\s+)?in\s+(\d+)\s*(m|mi|min|minu|minut|minute|minutes|h|ho|hou|hour|hours|hr|hrs)\b/);
-      if (relIn) {
-        const val = parseInt(relIn[1]);
+      const relIn = t.match(/(?:remind(?:er)?|notify|alert)\s+(?:me\s+)?in\s+(\d{1,4}|an?)\s*(m|mi|min|mins|minu|minut|minute|minutes|h|ho|hou|hour|hours|hr|hrs)\b/);
+      if (reminderInRange(relIn)) {
+        const val = /^\d/.test(relIn[1]) ? parseInt(relIn[1]) : 1;
         const unit = relIn[2];
         const ms = unit.startsWith('h') ? val * 3600000 : val * 60000;
         const target = new Date(Date.now() + ms);
@@ -662,8 +809,8 @@
         const absoluteTime = `${h}:${String(m).padStart(2,'0')} ${period}`;
         return { offsetHours: null, absoluteTime, display };
       }
-      const abs = t.match(/(?:remind|notify|alert)\s+(?:me\s+)?at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/);
-      if (abs) {
+      const abs = t.match(/(?:remind(?:er)?|notify|alert)\s+(?:me\s+)?at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/);
+      if (abs && +abs[1] >= 1 && +abs[1] <= 12 && (!abs[2] || +abs[2] < 60)) {
         const hour = parseInt(abs[1]);
         const mins = abs[2] ? parseInt(abs[2]) : 0;
         const period = abs[3].toUpperCase();
@@ -688,78 +835,316 @@
       };
     }
 
-    /* ── Render tasks ── */
-    let currentTasks = [];                 // last fetched rows, used by the edit modal
-    function renderTasks(tasks) {
-      currentTasks = tasks;
-      const list = document.getElementById('taskList');
-      list.innerHTML = '';
-      const now = new Date();
-      const upcoming = [], pastDue = [];
-      tasks.forEach(task => {
-        const [id, __, task_name, task_time, task_description, due_date, color, reminder_display] = task;
-        let isPast = false;
-        if (due_date) {
-          const cleanDate = due_date.replace(/ 00:00:00.*$/, '').trim();
-          const timeStr = task_time ? task_time.trim() : '11:59 PM';
-          const taskDateTime = new Date(`${cleanDate} ${timeStr}`);
-          if (!isNaN(taskDateTime) && taskDateTime < now) isPast = true;
-        }
-        if (isPast) pastDue.push(task); else upcoming.push(task);
-      });
+    function escapeHtml(s) {
+      return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+    }
 
-      document.getElementById('taskCountBadge').textContent = tasks.length;
+    // CSS value for a task's --c: its hex color, or the neutral token for "no color" (#FFFFFF)
+    function cssColor(hex) {
+      if (!/^#[0-9a-f]{3,8}$/i.test(hex || '') || hex.toUpperCase() === '#FFFFFF') return 'var(--neutral)';
+      return hex;
+    }
+
+    /* ── Shared task state (one fetch drives the list + calendar) ── */
+    const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const WEEKDAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const dayKey = (y, m, d) => `${y}-${m}-${d}`;
+
+    let currentTasks = [];                 // raw rows, used by the edit modal
+    let parsedTasks = [];
+    let tasksByDay = {};                   // 'YYYY-M-D' -> [parsed task]
+
+    // due_date arrives as "Thu, 14 Mar 2026 00:00:00 GMT", task_time as "HH:MM AM".
+    // Tasks without a time count as due at 11:59 PM for the overdue check.
+    function parseTask(row) {
+      const [id, , name, time, desc, due, color, reminder] = row;
+      let dt = null, key = null;
+      if (due) {
+        const cleanDate = due.replace(/ 00:00:00.*$/, '').trim();
+        dt = new Date(`${cleanDate} ${time ? time.trim() : '11:59 PM'}`);
+        if (isNaN(dt)) dt = null;
+        else key = dayKey(dt.getFullYear(), dt.getMonth(), dt.getDate());
+      }
+      return {
+        id, name, time, desc, due, reminder, dt, key,
+        c: cssColor(color),
+        dueDisplay: due ? due.replace(/ 00:00:00.*$/, '') : '',
+        overdue: !!dt && dt < new Date(),
+      };
+    }
+
+    // "Fri, Sep 25" (+ year only when it isn't this year)
+    function shortDate(t) {
+      if (!t.dt) return t.dueDisplay;
+      const opts = { weekday: 'short', day: 'numeric', month: 'short' };
+      if (t.dt.getFullYear() !== new Date().getFullYear()) opts.year = 'numeric';
+      return t.dt.toLocaleDateString(undefined, opts);
+    }
+
+    // one task box; used by the list (with date) and the day inspector (time only)
+    function taskCardHtml(t, inInspector) {
+      const when = inInspector
+        ? (t.time ? escapeHtml(t.time) : 'Any time')
+        : escapeHtml(shortDate(t)) + (t.time ? ' · ' + escapeHtml(t.time) : '');
+      const jump = !inInspector && t.key;
+      return `
+        <div class="task-card${t.overdue ? ' overdue' : ''}" style="--c:${t.c};" data-key="${t.key || ''}">
+          <div class="task-main">
+            <div class="task-name">${escapeHtml(t.name)}</div>
+            ${t.desc ? `<div class="task-desc">${escapeHtml(t.desc)}</div>` : ''}
+            <div class="task-meta">
+              <span class="pill when${jump ? ' jump' : ''}" ${jump ? 'title="Show in calendar"' : ''}>${when}</span>
+              ${t.reminder ? `<span class="pill bell">⏰ ${escapeHtml(t.reminder)}</span>` : ''}
+            </div>
+          </div>
+          <div class="row-actions">
+            <button class="row-btn" onclick="openEdit(${t.id})">edit</button>
+            <button class="row-btn del" onclick="deleteTask(${t.id})">delete</button>
+          </div>
+        </div>`;
+    }
+
+    /* ── Task list ──
+       Keyed by task id: unchanged boxes stay in the DOM untouched, only new/edited ones are
+       (re)built, so adding a task doesn't flash the whole list. */
+    let listRendered = false;
+    const dividers = {
+      past: Object.assign(document.createElement('div'), { className: 'divider overdue', innerHTML: '<span>Past due</span>' }),
+      up: Object.assign(document.createElement('div'), { className: 'divider', innerHTML: '<span>Upcoming</span>' }),
+    };
+
+    function buildCard(t) {
+      const tpl = document.createElement('template');
+      tpl.innerHTML = taskCardHtml(t).trim();
+      const card = tpl.content.firstElementChild;
+      card.dataset.id = t.id;
+      if (t.key) {
+        card.addEventListener('mouseenter', () => linkDay(t.key, true));
+        card.addEventListener('mouseleave', () => linkDay(t.key, false));
+        card.querySelector('.when').addEventListener('click', () => jumpToDay(t.dt));
+      }
+      return card;
+    }
+
+    function renderTasks() {
+      const list = document.getElementById('taskList');
+      const pastDue = parsedTasks.filter(t => t.overdue);
+      const upcoming = parsedTasks.filter(t => !t.overdue);
+
+      document.getElementById('taskCountBadge').textContent = parsedTasks.length;
       document.getElementById('statActive').textContent = upcoming.length;
       document.getElementById('statOverdue').textContent = pastDue.length;
-      document.getElementById('statTotal').textContent = tasks.length;
+      document.getElementById('statOverdueBox').classList.toggle('zero', pastDue.length === 0);
 
-      if (tasks.length === 0) {
-        list.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 0;"><span style="font-size:48px;font-weight:800;color:var(--muted);opacity:0.15;">0</span><span style="font-family:IBM Plex Mono,monospace;font-size:11px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:4px;">No tasks</span></div>';
+      if (parsedTasks.length === 0) {
+        list.innerHTML = '<div class="empty-state"><b>Nothing on the list.</b>Add something above and it lands here and on the calendar.</div>';
+        listRendered = true;
+        return;
+      }
+      list.querySelector('.empty-state')?.remove();
+
+      const existing = new Map([...list.querySelectorAll('.task-card')].map(el => [el.dataset.id, el]));
+      const seq = [];
+      let fresh = 0;
+      const place = t => {
+        const sig = JSON.stringify([t.name, t.desc, t.time, t.due, t.c, t.reminder, t.overdue]);
+        let card = existing.get(String(t.id));
+        if (!card || card.dataset.sig !== sig) {
+          const isNew = !card;
+          card = buildCard(t);
+          card.dataset.sig = sig;
+          // first load: everything cascades in; later: only brand-new tasks animate
+          if (!listRendered) { card.classList.add('entering'); card.style.animationDelay = `${Math.min(fresh++ * 45, 600)}ms`; }
+          else if (isNew) card.classList.add('entering', 'just-added');
+        }
+        existing.delete(String(t.id));
+        seq.push(card);
+      };
+      if (pastDue.length) { seq.push(dividers.past); pastDue.forEach(place); }
+      if (upcoming.length) { seq.push(dividers.up); upcoming.forEach(place); }
+
+      existing.forEach(el => el.remove());                        // deleted tasks
+      [dividers.past, dividers.up].forEach(d => { if (!seq.includes(d)) d.remove(); });
+      seq.forEach((node, i) => { if (list.children[i] !== node) list.insertBefore(node, list.children[i] || null); });
+      listRendered = true;
+    }
+
+    /* ── Calendar ── */
+    let viewYear, viewMonth;
+    let selectedKey = null;                // day open in the inspector
+    const cellSig = new Map();             // day key -> last rendered contents, to skip unchanged tiles
+
+    const wd = document.getElementById('weekdays');
+    WEEKDAYS.forEach(d => { const el = document.createElement('div'); el.className = 'weekday'; el.textContent = d; wd.appendChild(el); });
+
+    // small warning triangle for past-due tasks on the calendar
+    const WARN_ICON = '<svg class="warn" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9.5v4"/><path d="M12 17.2h.01" stroke-width="3"/></svg>';
+    // "06:00 PM" -> "6pm", "11:59 PM" -> "11:59pm"
+    function chipTime(time) {
+      const m = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i.exec(time.trim());
+      if (!m) return escapeHtml(time);
+      return `${parseInt(m[1])}${m[2] === '00' ? '' : ':' + m[2]}${m[3].toLowerCase()}`;
+    }
+    function cellInner(d, dayTasks, maxChips) {
+      let body = '';
+      if (maxChips > 0) {
+        body = dayTasks.slice(0, maxChips).map(t => `
+          <div class="chip ${t.overdue ? 'overdue' : ''}" style="--c:${t.c};" title="${escapeHtml(t.name)}${t.overdue ? ' (past due)' : ''}">
+            ${t.overdue ? WARN_ICON : ''}${t.time ? `<span class="at">${chipTime(t.time)}</span>` : ''}
+            <span class="label">${escapeHtml(t.name)}</span>
+          </div>`).join('');
+      } else if (dayTasks.length) {
+        // too short for boxes: fall back to colored dots
+        body = `<div class="dots">${dayTasks.slice(0, 8).map(t => `<span style="--c:${t.c};"></span>`).join('')}</div>`;
+      }
+      const extra = maxChips > 0 ? dayTasks.length - maxChips : 0;
+      return `
+        <div class="day-num">
+          <span class="n">${d}</span>
+          ${extra > 0 ? `<span class="more">+${extra}</span>` : ''}
+        </div>
+        ${body}`;
+    }
+
+    // Full rebuild only when the month or the tile size changes; otherwise just refresh the
+    // tiles whose tasks changed (and briefly light them up).
+    function renderCalendar(allowBump = false) {
+      const grid = document.getElementById('calGrid');
+      document.getElementById('calMonth').textContent = MONTHS[viewMonth];
+      document.getElementById('calYear').textContent = viewYear;
+
+      const firstDay = new Date(viewYear, viewMonth, 1).getDay();   // 0=Sun
+      const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+      const prevMonthDays = new Date(viewYear, viewMonth, 0).getDate();
+      const rows = Math.ceil((firstDay + daysInMonth) / 7);
+      grid.style.gridTemplateRows = `repeat(${rows}, minmax(0, 1fr))`;
+
+      // tiles stretch to fill the pane, so how many task boxes fit depends on the viewport
+      const rowH = grid.clientHeight ? (grid.clientHeight - 6 * (rows - 1)) / rows : 110;
+      const maxChips = Math.max(0, Math.min(4, Math.floor((rowH - 34) / 24)));
+
+      const layout = `${viewYear}-${viewMonth}-${maxChips}`;
+
+      if (grid.dataset.layout === layout) {
+        grid.querySelectorAll('.day-cell[data-key]').forEach(cell => {
+          const k = cell.dataset.key;
+          const dayTasks = tasksByDay[k] || [];
+          const html = cellInner(Number(k.split('-')[2]), dayTasks, maxChips);
+          if (cellSig.get(k) === html) return;
+          const gained = dayTasks.length > (cell.querySelectorAll('.chip, .dots span').length);
+          cell.innerHTML = html;
+          cellSig.set(k, html);
+          if (gained && allowBump) { cell.classList.remove('bump'); void cell.offsetWidth; cell.classList.add('bump'); }
+        });
         return;
       }
 
-      function renderCard(task) {
-        const [id, __, task_name, task_time, task_description, due_date, color, reminder_display] = task;
-        const dueDateDisplay = due_date ? due_date.replace(/ 00:00:00.*$/, '') : '';
-        const isPast = (() => { if (!due_date) return false; const d = new Date(`${due_date.replace(/ 00:00:00.*$/, '').trim()} ${task_time ? task_time.trim() : '11:59 PM'}`); return !isNaN(d) && d < new Date(); })();
-        const card = document.createElement('div');
-        card.className = 'task-card';
-        card.innerHTML = `
-          <div class="color-glow" style="background:${color};"></div>
-          <div class="color-bar" style="background:${color};"></div>
-          <div class="task-header">
-            <div class="task-name" style="color:${color};">${task_name}</div>
-            <div class="task-badges" style="display:flex;align-items:center;gap:6px;">
-              ${reminder_display ? `<span class="reminder-badge">🔔 ${reminder_display}</span>` : ''}
-              <span class="time-pill${isPast ? ' overdue' : ''}">${dueDateDisplay}${task_time ? ' · ' + task_time : ''}</span>
-            </div>
-          </div>
-          <div class="task-desc">${task_description}</div>
-          <div class="task-footer">
-            <button class="delete-btn" onclick="openEdit(${id})">edit</button>
-            <button class="delete-btn" onclick="deleteTask(${id})">delete</button>
-          </div>
-        `;
-        list.appendChild(card);
+      grid.dataset.layout = layout;
+      grid.innerHTML = '';
+      cellSig.clear();
+      const today = new Date();
+      const isThisMonth = today.getFullYear() === viewYear && today.getMonth() === viewMonth;
+
+      // neighbouring months' dates, dimmed, so the grid reads like a wall calendar
+      function outside(n) {
+        const e = document.createElement('div');
+        e.className = 'day-cell outside';
+        e.innerHTML = `<div class="day-num"><span class="n">${n}</span></div>`;
+        grid.appendChild(e);
+      }
+      for (let i = 0; i < firstDay; i++) outside(prevMonthDays - firstDay + 1 + i);
+
+      for (let d = 1; d <= daysInMonth; d++) {
+        const k = dayKey(viewYear, viewMonth, d);
+        const dayTasks = tasksByDay[k] || [];
+        const col = (firstDay + d - 1) % 7;
+
+        const cell = document.createElement('div');
+        cell.className = 'day-cell' + (col === 0 || col === 6 ? ' weekend' : '');
+        cell.dataset.key = k;
+        if (isThisMonth && d === today.getDate()) cell.classList.add('today');
+        if (k === selectedKey) cell.classList.add('selected');
+        const html = cellInner(d, dayTasks, maxChips);
+        cell.innerHTML = html;
+        cellSig.set(k, html);
+        cell.addEventListener('click', () => openDay(viewYear, viewMonth, d));
+        grid.appendChild(cell);
       }
 
-      if (pastDue.length > 0) {
-        pastDue.forEach(renderCard);
-        const divider = document.createElement('div');
-        divider.className = 'divider';
-        divider.innerHTML = `<span class="divider-label">Past Due</span>`;
-        list.appendChild(divider);
-      }
+      const trailing = rows * 7 - firstDay - daysInMonth;
+      for (let i = 1; i <= trailing; i++) outside(i);
 
-      upcoming.forEach(renderCard);
+    }
+
+    function linkDay(key, on) {
+      const cell = document.querySelector(`.day-cell[data-key="${key}"]`);
+      if (cell) cell.classList.toggle('linked', on);
+    }
+
+    function jumpToDay(dt) {
+      viewYear = dt.getFullYear(); viewMonth = dt.getMonth();
+      renderCalendar();
+      openDay(viewYear, viewMonth, dt.getDate());
+    }
+
+    function shiftMonth(delta) {
+      viewMonth += delta;
+      if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+      else if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+      closeDay();
+      renderCalendar();
+    }
+
+    function goToday() {
+      const n = new Date();
+      viewYear = n.getFullYear(); viewMonth = n.getMonth();
+      closeDay();
+      renderCalendar();
+    }
+
+    /* ── Day inspector ── */
+    function openDay(y, m, d) {
+      selectedKey = dayKey(y, m, d);
+      const dt = new Date(y, m, d);
+      document.getElementById('sheetDate').textContent = dt.toLocaleDateString(undefined, { weekday: 'long' });
+      document.getElementById('sheetSub').textContent = dt.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+      renderDaySheet();
+      document.querySelectorAll('.day-cell.selected').forEach(c => c.classList.remove('selected'));
+      document.querySelector(`.day-cell[data-key="${selectedKey}"]`)?.classList.add('selected');
+      document.getElementById('daySheet').classList.add('open');
+    }
+
+    function renderDaySheet() {
+      const dayTasks = tasksByDay[selectedKey] || [];
+      document.getElementById('sheetBody').innerHTML = dayTasks.length
+        ? dayTasks.map(t => taskCardHtml(t, true)).join('')
+        : `<div class="insp-empty">Nothing scheduled.</div>`;
+    }
+
+    function closeDay() {
+      selectedKey = null;
+      document.getElementById('daySheet').classList.remove('open');
+      document.querySelectorAll('.day-cell.selected').forEach(c => c.classList.remove('selected'));
     }
 
     /* ── Fetch / Delete ── */
+    let dataLoaded = false;                // first fetch fills the calendar silently; later ones bump changed days
+    function applyTasks(rows) {
+      currentTasks = rows;
+      parsedTasks = rows.map(parseTask);
+      tasksByDay = {};
+      parsedTasks.forEach(t => { if (t.key) (tasksByDay[t.key] ||= []).push(t); });
+      Object.values(tasksByDay).forEach(arr => arr.sort((a, b) => a.dt - b.dt));
+      renderTasks();
+      renderCalendar(dataLoaded);
+      dataLoaded = true;
+      if (selectedKey) renderDaySheet();     // keep an open day fresh after edit/delete
+    }
+
     async function fetchTasks() {
       try {
         const res = await fetch('/tasks');
-        const tasks = await res.json();
-        renderTasks(tasks);
+        applyTasks(await res.json());
       } catch (err) { console.error('Error loading tasks:', err); }
     }
 
@@ -770,11 +1155,12 @@
     }
 
     /* ── Input listener ── */
-    document.getElementById('taskInput').addEventListener('input', (e) => {
+    const taskInput = document.getElementById('taskInput');
+    taskInput.addEventListener('input', (e) => {
       const text = e.target.value;
       document.getElementById('charCounter').textContent = `${text.length}/200`;
       const matches = text.toLowerCase().match(/\b(blue|red|green|pink|orange|purple|yellow)\b/g);
-      e.target.style.color = matches ? colorMap[matches[matches.length - 1]] : '';
+      e.target.style.color = matches ? `color-mix(in srgb, ${colorMap[matches[matches.length - 1]]} 70%, var(--fg))` : '';
       const reminder = parseReminder(text);
       const preview = document.getElementById('reminderPreview');
       if (reminder.display) {
@@ -785,12 +1171,79 @@
       }
     });
 
+    // "Enter to add" toggle (remembered per browser). On: Enter adds, Shift+Enter is a newline.
+    // Off: Enter is a newline. Ctrl/Cmd+Enter always adds.
+    /* ── ? help + demo overlay ── */
+    const helpBtn = document.getElementById('helpBtn');
+    const helpPop = document.getElementById('helpPop');
+    const demoOverlay = document.getElementById('demoOverlay');
+    try { if (!localStorage.getItem('tasker.helpSeen')) helpBtn.classList.add('unseen'); } catch {}
+    function setHelp(open) {
+      helpPop.classList.toggle('open', open);
+      helpBtn.setAttribute('aria-expanded', open);
+      if (open) {
+        helpBtn.classList.remove('unseen');
+        try { localStorage.setItem('tasker.helpSeen', '1'); } catch {}
+      }
+    }
+    // hover peeks; click pins it open until clicked again, clicked outside, or Esc
+    let helpPinned = false, helpHideTimer;
+    function peekHelp(show) {
+      clearTimeout(helpHideTimer);
+      if (helpPinned) return;
+      if (show) setHelp(true);
+      else helpHideTimer = setTimeout(() => { if (!helpPinned) setHelp(false); }, 180);   // time to cross the gap
+    }
+    [helpBtn, helpPop].forEach(el => {
+      el.addEventListener('mouseenter', () => peekHelp(true));
+      el.addEventListener('mouseleave', () => peekHelp(false));
+    });
+    helpBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      clearTimeout(helpHideTimer);
+      helpPinned = !helpPinned;
+      setHelp(helpPinned);
+    });
+    document.addEventListener('click', e => {
+      if (helpPop.classList.contains('open') && !helpPop.contains(e.target)) { helpPinned = false; setHelp(false); }
+    });
+    function openDemo() {
+      helpPinned = false;
+      setHelp(false);
+      const frame = document.getElementById('demoFrame');
+      if (!frame.src) frame.src = '/info?embed=1';   // load on first open only
+      demoOverlay.classList.add('open');
+      document.getElementById('demoClose').focus();   // keep Esc on this page until the frame is clicked
+    }
+    function closeDemo() { demoOverlay.classList.remove('open'); }
+    document.getElementById('demoBtn').addEventListener('click', openDemo);
+    document.getElementById('demoClose').addEventListener('click', closeDemo);
+    demoOverlay.addEventListener('click', e => { if (e.target === demoOverlay) closeDemo(); });
+    // Esc pressed while the demo frame has focus
+    window.addEventListener('message', e => {
+      if (e.origin === location.origin && e.data === 'tasker-demo-close') closeDemo();
+    });
+
+    const enterToggle = document.getElementById('enterToggle');
+    try { enterToggle.checked = localStorage.getItem('tasker.enterToAdd') !== '0'; } catch {}
+    enterToggle.addEventListener('change', () => {
+      try { localStorage.setItem('tasker.enterToAdd', enterToggle.checked ? '1' : '0'); } catch {}
+      taskInput.focus();
+    });
+    taskInput.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' || e.isComposing) return;
+      if (e.ctrlKey || e.metaKey || (enterToggle.checked && !e.shiftKey)) {
+        e.preventDefault();
+        document.getElementById('submitBtn').click();
+      }
+    });
+
     /* ── Submit ── */
     document.getElementById('submitBtn').addEventListener('click', async () => {
       if (addTaskCooldown) return;
       addTaskCooldown = true;
       setTimeout(() => { addTaskCooldown = false; }, ADD_TASK_COOLDOWN_MS);
-      const desc = document.getElementById('taskInput').value.trim();
+      const desc = taskInput.value.trim();
       if (desc.length < 10 || desc.length > 200) {
         alert('Task description must be 10–200 characters');
         return;
@@ -812,12 +1265,12 @@
         })
       });
       if (res.ok) {
-        const input = document.getElementById('taskInput');
-        input.value = '';
-        input.style.color = '';
+        taskInput.value = '';
+        taskInput.style.color = '';
         document.getElementById('charCounter').textContent = '0/200';
         fetchTasks();
-        document.getElementById('taskInput').placeholder = 'Try: ' + prompts[Math.floor(Math.random() * prompts.length)];
+        window.ambientPulse?.(color);
+        taskInput.placeholder = 'Try: ' + prompts[Math.floor(Math.random() * prompts.length)];
       } else {
         alert('Failed to add task');
       }
@@ -843,6 +1296,40 @@
         await fetch('/push/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint: subJson.endpoint, keys: subJson.keys }) });
       } catch (err) { console.error('Push setup failed:', err); }
     }
+
+    /* ── Notifications-off banner ── */
+    function updateNotifNag() {
+      const nag = document.getElementById('notifNag');
+      const btn = document.getElementById('notifBtn');
+      let msg = '', hint = '', canFix = false;
+      const supported = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
+      if (!supported) {
+        msg = "<b>No notifications</b> in this browser, so reminders won't reach you";
+      } else if (Notification.permission === 'denied') {
+        msg = "<b>Notifications blocked</b>, reminders won't reach you";
+        hint = 'allow them from the icon left of the address bar';
+      } else if (Notification.permission === 'default') {
+        msg = "<b>Notifications are off</b>, reminders won't reach you";
+        canFix = true;
+      }
+      let dismissed = false;
+      try { dismissed = sessionStorage.getItem('tasker.notifNagHidden') === '1'; } catch {}
+      nag.hidden = !msg || dismissed;
+      document.getElementById('notifMsg').innerHTML = msg;
+      document.getElementById('notifHint').textContent = hint;
+      btn.hidden = !canFix;
+    }
+    document.getElementById('notifBtn').addEventListener('click', async () => {
+      await setupPushNotifications();   // click = user gesture, so the browser will show its prompt
+      updateNotifNag();
+    });
+    document.getElementById('notifX').addEventListener('click', () => {
+      try { sessionStorage.setItem('tasker.notifNagHidden', '1'); } catch {}   // back next session
+      updateNotifNag();
+    });
+    // follow permission changes made from the browser's site settings
+    navigator.permissions?.query({ name: 'notifications' })
+      .then(st => { st.onchange = updateNotifNag; }).catch(() => {});
 
     /* ── Edit task ── */
     const EDIT_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -916,8 +1403,25 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+      const now = new Date();
+      viewYear = now.getFullYear();
+      viewMonth = now.getMonth();
+      renderCalendar();
       fetchTasks();
-      setupPushNotifications();
+      updateNotifNag();
+      setupPushNotifications().finally(updateNotifNag);
+
+      document.getElementById('prevBtn').addEventListener('click', () => shiftMonth(-1));
+      document.getElementById('nextBtn').addEventListener('click', () => shiftMonth(1));
+      document.getElementById('todayBtn').addEventListener('click', goToday);
+      document.getElementById('sheetClose').addEventListener('click', closeDay);
+
+      let resizeTimer;
+      window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(renderCalendar, 150);
+      });
+
       // wire color swatches + dismiss-on-backdrop / Esc
       document.querySelectorAll('#editModal .swatch').forEach(s => {
         s.addEventListener('click', () => selectEditColor(s.dataset.color));
@@ -925,14 +1429,27 @@
       document.getElementById('editModal').addEventListener('click', e => {
         if (e.target.id === 'editModal') closeEdit();
       });
-      document.addEventListener('keydown', e => { if (e.key === 'Escape') closeEdit(); });
+      document.addEventListener('keydown', e => {
+        const modalOpen = document.getElementById('editModal').classList.contains('open');
+        if (e.key === 'Escape') {
+          if (demoOverlay.classList.contains('open')) closeDemo();
+          else if (helpPop.classList.contains('open')) { helpPinned = false; setHelp(false); helpBtn.focus(); }
+          else if (modalOpen) closeEdit(); else closeDay();
+          return;
+        }
+        // month arrows, but never while typing
+        if (modalOpen || /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName)) return;
+        if (e.key === 'ArrowLeft') shiftMonth(-1);
+        else if (e.key === 'ArrowRight') shiftMonth(1);
+      });
     });
   </script>
+  <script src="{{ url_for('static', filename='ambient.js') }}" defer></script>
 
   <!-- Edit task modal -->
   <div class="modal-overlay" id="editModal">
-    <div class="modal">
-      <h3>Edit Task</h3>
+    <div class="modal float-pane">
+      <h3>Edit task</h3>
       <input type="hidden" id="editId">
       <label>Name</label>
       <input type="text" id="editName" maxlength="120" placeholder="Task name">

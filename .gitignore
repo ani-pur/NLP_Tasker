@@ -3,4 +3,5 @@
 *.yml
 *.yaml
 .claude
-
+.env
+!docker-compose.dev.yml

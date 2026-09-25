@@ -19,6 +19,10 @@
       --fg: #e4e4e7;
       --muted: #71717a;
       --accent: #818cf8;
+      /* used by _theme_menu.html */
+      --panel: #0e0e12;
+      --line: var(--border);
+      --line-strong: var(--border-hover);
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -34,49 +38,8 @@
       flex-direction: column;
     }
 
-    /* Mesh background */
-    .mesh-bg {
-      position: fixed;
-      inset: 0;
-      z-index: 0;
-      pointer-events: none;
-      overflow: hidden;
-    }
-
-    .mesh-orb {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(80px);
-      opacity: 0.45;
-      animation: float 20s ease-in-out infinite;
-    }
-
-    .mesh-orb:nth-child(1) {
-      width: 300px; height: 300px;
-      background: radial-gradient(circle, #818cf850 0%, transparent 70%);
-      top: -8%; left: -10%;
-      animation-delay: 0s;
-    }
-
-    .mesh-orb:nth-child(2) {
-      width: 350px; height: 350px;
-      background: radial-gradient(circle, #f4364c30 0%, transparent 70%);
-      bottom: -10%; right: -8%;
-      animation-delay: -7s;
-    }
-
-    .mesh-orb:nth-child(3) {
-      width: 250px; height: 250px;
-      background: radial-gradient(circle, #06b6d420 0%, transparent 70%);
-      top: 40%; left: 50%;
-      animation-delay: -14s;
-    }
-
-    @keyframes float {
-      0%, 100% { transform: translate(0, 0) scale(1); }
-      33% { transform: translate(20px, -15px) scale(1.05); }
-      66% { transform: translate(-15px, 10px) scale(0.95); }
-    }
+    /* Ambient timeline background (static/ambient.js) */
+    .ambient { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
 
     /* Animations */
     .task-enter {
@@ -124,43 +87,16 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      background: rgba(5,5,8,0.6);
-      backdrop-filter: blur(24px) saturate(180%);
       border-bottom: 1px solid var(--border);
       position: sticky;
       top: 0;
+      isolation: isolate;
     }
-
-    .logo-wrap {
-      position: relative;
-      display: inline-block;
-    }
-
-    .logo-wrap select {
-      appearance: none;
-      -webkit-appearance: none;
-      background: transparent;
-      border: none;
-      font-family: 'Sora', sans-serif;
-      font-size: 20px;
-      font-weight: 800;
-      letter-spacing: -0.5px;
-      background: linear-gradient(135deg, #818cf8, #c084fc);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      cursor: pointer;
-      padding-right: 20px;
-      outline: none;
-    }
-
-    .logo-wrap svg {
-      position: absolute;
-      right: 2px;
-      top: 50%;
-      transform: translateY(-50%);
-      pointer-events: none;
-      color: var(--accent);
+    /* blur lives on ::before so the theme menu inside the header can blur the page too */
+    header::before {
+      content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+      background: rgba(5,5,8,0.6);
+      backdrop-filter: blur(24px) saturate(180%); -webkit-backdrop-filter: blur(24px) saturate(180%);
     }
 
     .nav-right {
@@ -537,21 +473,10 @@
 </head>
 <body>
 
-  <div class="mesh-bg">
-    <div class="mesh-orb"></div>
-    <div class="mesh-orb"></div>
-    <div class="mesh-orb"></div>
-  </div>
+  <canvas id="ambient" class="ambient" aria-hidden="true"></canvas>
 
   <header>
-    <div class="logo-wrap">
-      <select onchange="if(this.value)window.location=this.value">
-        <option value="" selected>tasker.</option>
-        <option value="/switch/3">Default</option>
-        <option value="/switch/5">Editorial</option>
-      </select>
-      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
-    </div>
+    {% with hide_og=true %}{% include '_theme_menu.html' %}{% endwith %}
     <div class="nav-right">
       <a href="{{ url_for('calendar') }}" class="logout-link" style="color:inherit;">Calendar</a>
       <span class="user-chip">{{ username }}</span>
@@ -675,8 +600,8 @@
     function cleanDescription(text, reminder, color) {
       let cleaned = text;
       if (reminder && reminder.display) {
-        cleaned = cleaned.replace(/(?:,\s*)?(?:remind|notify|alert)\s+(?:me\s+)?(?:in\s+)?\d+\s*(?:m|mi|min|minu|minut|minute|minutes|h|ho|hou|hour|hours|hr|hrs)\b/gi, '');
-        cleaned = cleaned.replace(/(?:,\s*)?(?:remind|notify|alert)\s+(?:me\s+)?at\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)\b/gi, '');
+        cleaned = cleaned.replace(/(?:,\s*)?(?:remind(?:er)?|notify|alert)\s+(?:me\s+)?(?:in\s+)?(?:\d{1,4}|an?)\s*(?:m|mi|min|mins|minu|minut|minute|minutes|h|ho|hou|hour|hours|hr|hrs)\b(?:\s+(?:before|early|earlier))?/gi, '');
+        cleaned = cleaned.replace(/(?:,\s*)?(?:remind(?:er)?|notify|alert)\s+(?:me\s+)?at\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)\b/gi, '');
       }
       if (color && color !== '#FFFFFF') {
         cleaned = cleaned.replace(/\b(blue|red|green|pink|orange|purple|yellow)\b/gi, '');
@@ -685,11 +610,18 @@
     }
 
     // --- Reminder ---
+    // offsets: 1-24 hours or 1-1440 minutes ("an hour" always ok); anything else is ignored
+    function reminderInRange(m) {
+      if (!m) return false;
+      if (isNaN(m[1])) return true;
+      const n = +m[1];
+      return n >= 1 && (m[2].startsWith('h') ? n <= 24 : n <= 1440);
+    }
     function parseReminder(text) {
       const t = text.toLowerCase();
-      const rel = t.match(/(?:remind|notify|alert)\s+(?:me\s+)?(\d+)\s*(m|mi|min|minu|minut|minute|minutes|h|ho|hou|hour|hours|hr|hrs)\b/);
-      if (rel) {
-        const val = parseInt(rel[1]);
+      const rel = t.match(/(?:remind(?:er)?|notify|alert)\s+(?:me\s+)?(\d{1,4}|an?)\s*(m|mi|min|mins|minu|minut|minute|minutes|h|ho|hou|hour|hours|hr|hrs)\b(?:\s+(?:before|early|earlier))?/);
+      if (reminderInRange(rel)) {
+        const val = /^\d/.test(rel[1]) ? parseInt(rel[1]) : 1;   // "an hour" = 1
         const unit = rel[2];
         if (unit.startsWith('h')) {
           const clamped = Math.min(val, 24);
@@ -701,9 +633,9 @@
         }
       }
       // relative to now: "remind me in 30 min", "notify me in 2 hours"
-      const relIn = t.match(/(?:remind|notify|alert)\s+(?:me\s+)?in\s+(\d+)\s*(m|mi|min|minu|minut|minute|minutes|h|ho|hou|hour|hours|hr|hrs)\b/);
-      if (relIn) {
-        const val = parseInt(relIn[1]);
+      const relIn = t.match(/(?:remind(?:er)?|notify|alert)\s+(?:me\s+)?in\s+(\d{1,4}|an?)\s*(m|mi|min|mins|minu|minut|minute|minutes|h|ho|hou|hour|hours|hr|hrs)\b/);
+      if (reminderInRange(relIn)) {
+        const val = /^\d/.test(relIn[1]) ? parseInt(relIn[1]) : 1;
         const unit = relIn[2];
         const ms = unit.startsWith('h') ? val * 3600000 : val * 60000;
         const target = new Date(Date.now() + ms);
@@ -714,8 +646,8 @@
         const absoluteTime = `${h}:${String(m).padStart(2,'0')} ${period}`;
         return { offsetHours: null, absoluteTime, display };
       }
-      const abs = t.match(/(?:remind|notify|alert)\s+(?:me\s+)?at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/);
-      if (abs) {
+      const abs = t.match(/(?:remind(?:er)?|notify|alert)\s+(?:me\s+)?at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/);
+      if (abs && +abs[1] >= 1 && +abs[1] <= 12 && (!abs[2] || +abs[2] < 60)) {
         const hour = parseInt(abs[1]);
         const mins = abs[2] ? parseInt(abs[2]) : 0;
         const period = abs[3].toUpperCase();
@@ -969,6 +901,7 @@
         document.getElementById('reminderPreview').style.display = 'none';
         taskInput.placeholder = 'Try: ' + prompts[Math.floor(Math.random() * prompts.length)];
         loadTasks();
+        window.ambientPulse?.(color);
       } else {
         alert('Failed to add task');
       }
@@ -1034,5 +967,6 @@
     loadTasks();
     initNotifButton();
   </script>
+  <script src="{{ url_for('static', filename='ambient.js') }}" defer></script>
 </body>
 </html>
