@@ -95,7 +95,8 @@ def info():
         f"{2*LOG_PAD}Referer: {request.headers.get('Referer')}\n"
         )
     print(currentTime(),log_block)
-    return render_template('mixed.html')
+    # ?embed=1: just the live demo, shown in the dashboard's help overlay
+    return render_template('mixed.html', embed=request.args.get('embed') == '1')
 
 # LOGIN ROUTE
 @app.route('/login', methods=['GET', 'POST'])
@@ -259,25 +260,25 @@ def index():
     print(currentTime(),f'{rootHit} hit /')
 
     # UI switching
-    ui_version = session.get('ui_version', 3)  # default = v3
+    ui_version = session.get('ui_version', 6)  # default = v6 (glass)
 
     # Mobile UI
     if is_mobile():
         if ui_version == 5:
             return render_template('mobile_2.html', username=session['username'])
-        elif ui_version == 6:
-            return render_template('mobile_3.html', username=session['username'])
-        else:
+        elif ui_version in (2, 3):     # OG has no mobile layout, falls back to classic
             return render_template('mobile_1.html', username=session['username'])
+        else:
+            return render_template('mobile_3.html', username=session['username'])
 
     if ui_version == 2:
         return render_template('desktop_v2.html', username=session['username'])
     elif ui_version == 5:
         return render_template('desktop_v5.html', username=session['username'])
-    elif ui_version == 6:
-        return render_template('desktop_v6.html', username=session['username'])
+    elif ui_version == 3:
+        return render_template('desktop_v3.html', username=session['username'])
 
-    return render_template('desktop_v3.html', username=session['username'])
+    return render_template('desktop_v6.html', username=session['username'])
 
 
 # CALENDAR VIEW

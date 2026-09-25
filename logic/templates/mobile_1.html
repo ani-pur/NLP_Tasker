@@ -208,8 +208,8 @@
     function cleanDescription(text, reminder, color) {
       let cleaned = text;
       if (reminder && reminder.display) {
-        cleaned = cleaned.replace(/(?:,\s*)?(?:remind|notify|alert)\s+(?:me\s+)?(?:in\s+)?\d+\s*(?:m|mi|min|minu|minut|minute|minutes|h|ho|hou|hour|hours|hr|hrs)\b/gi, '');
-        cleaned = cleaned.replace(/(?:,\s*)?(?:remind|notify|alert)\s+(?:me\s+)?at\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)\b/gi, '');
+        cleaned = cleaned.replace(/(?:,\s*)?(?:remind(?:er)?|notify|alert)\s+(?:me\s+)?(?:in\s+)?(?:\d{1,4}|an?)\s*(?:m|mi|min|mins|minu|minut|minute|minutes|h|ho|hou|hour|hours|hr|hrs)\b(?:\s+(?:before|early|earlier))?/gi, '');
+        cleaned = cleaned.replace(/(?:,\s*)?(?:remind(?:er)?|notify|alert)\s+(?:me\s+)?at\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)\b/gi, '');
       }
       if (color && color !== '#FFFFFF') {
         cleaned = cleaned.replace(/\b(blue|red|green|pink|orange|purple|yellow)\b/gi, '');
@@ -217,12 +217,19 @@
       return cleaned.replace(/,\s*,/g, ',').replace(/\s{2,}/g, ' ').replace(/^[,\s]+|[,\s]+$/g, '').trim();
     }
 
+    // offsets: 1-24 hours or 1-1440 minutes ("an hour" always ok); anything else is ignored
+    function reminderInRange(m) {
+      if (!m) return false;
+      if (isNaN(m[1])) return true;
+      const n = +m[1];
+      return n >= 1 && (m[2].startsWith('h') ? n <= 24 : n <= 1440);
+    }
     function parseReminder(text) {
       const t = text.toLowerCase();
       // relative: "remind me 30 min before", "notify 2 hours prior"
-      const rel = t.match(/(?:remind|notify|alert)\s+(?:me\s+)?(\d+)\s*(m|mi|min|minu|minut|minute|minutes|h|ho|hou|hour|hours|hr|hrs)\b/);
-      if (rel) {
-        const val = parseInt(rel[1]);
+      const rel = t.match(/(?:remind(?:er)?|notify|alert)\s+(?:me\s+)?(\d{1,4}|an?)\s*(m|mi|min|mins|minu|minut|minute|minutes|h|ho|hou|hour|hours|hr|hrs)\b(?:\s+(?:before|early|earlier))?/);
+      if (reminderInRange(rel)) {
+        const val = /^\d/.test(rel[1]) ? parseInt(rel[1]) : 1;   // "an hour" = 1
         const unit = rel[2];
         if (unit.startsWith('h')) {
           const clamped = Math.min(val, 24);
@@ -234,9 +241,9 @@
         }
       }
       // relative to now: "remind me in 30 min", "notify me in 2 hours"
-      const relIn = t.match(/(?:remind|notify|alert)\s+(?:me\s+)?in\s+(\d+)\s*(m|mi|min|minu|minut|minute|minutes|h|ho|hou|hour|hours|hr|hrs)\b/);
-      if (relIn) {
-        const val = parseInt(relIn[1]);
+      const relIn = t.match(/(?:remind(?:er)?|notify|alert)\s+(?:me\s+)?in\s+(\d{1,4}|an?)\s*(m|mi|min|mins|minu|minut|minute|minutes|h|ho|hou|hour|hours|hr|hrs)\b/);
+      if (reminderInRange(relIn)) {
+        const val = /^\d/.test(relIn[1]) ? parseInt(relIn[1]) : 1;
         const unit = relIn[2];
         const ms = unit.startsWith('h') ? val * 3600000 : val * 60000;
         const target = new Date(Date.now() + ms);
@@ -248,8 +255,8 @@
         return { offsetHours: null, absoluteTime, display };
       }
       // absolute: "remind at 2pm", "remind me at 3:30am"
-      const abs = t.match(/(?:remind|notify|alert)\s+(?:me\s+)?at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/);
-      if (abs) {
+      const abs = t.match(/(?:remind(?:er)?|notify|alert)\s+(?:me\s+)?at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/);
+      if (abs && +abs[1] >= 1 && +abs[1] <= 12 && (!abs[2] || +abs[2] < 60)) {
         const hour = parseInt(abs[1]);
         const mins = abs[2] ? parseInt(abs[2]) : 0;
         const period = abs[3].toUpperCase();

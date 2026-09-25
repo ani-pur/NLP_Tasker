@@ -2035,10 +2035,28 @@
             background: transparent;
         }
     </style>
+    {% if embed %}
+    <style>
+        /* embedded in the dashboard's help overlay: only the demo */
+        body.embed { min-height: 0 !important; }
+        html:has(body.embed) { scrollbar-width: none; }
+        html:has(body.embed)::-webkit-scrollbar, body.embed::-webkit-scrollbar { display: none; }
+        body.embed > nav, body.embed main > h1, body.embed main > p, body.embed main > div.grid,
+        body.embed .orb, body.embed #parallax-grid { display: none !important; }
+        body.embed main { padding-top: 20px !important; padding-bottom: 0 !important; justify-content: flex-start !important; }
+        body.embed #demo { margin-bottom: 0 !important; }
+    </style>
+    <script>
+        // Esc inside the frame closes the dashboard's demo overlay
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape' && window.parent !== window) window.parent.postMessage('tasker-demo-close', location.origin);
+        });
+    </script>
+    {% endif %}
 </head>
 
 <body
-    class="bg-base text-slate-300 antialiased selection:bg-accent selection:text-base flex flex-col min-h-screen relative overflow-x-hidden">
+    class="{{ 'embed ' if embed }}bg-base text-slate-300 antialiased selection:bg-accent selection:text-base flex flex-col min-h-screen relative overflow-x-hidden">
 
     <div class="fixed inset-0 pointer-events-none z-0">
         <div class="orb absolute top-[-5%] left-[-10%] w-[20rem] md:w-[30rem] h-[20rem] md:h-[30rem] bg-accent/10 rounded-full blur-[80px] md:blur-[120px]"
@@ -2078,8 +2096,8 @@
                 <h2 class="text-sm font-semibold tracking-[0.2em] uppercase text-slate-500">Watch it work.</h2>
                 <div class="theme-pills inline-flex items-center gap-1 p-1 rounded-full border border-slate-800 bg-slate-900/40 backdrop-blur-sm"
                     role="tablist" aria-label="Theme switcher">
-                    <button class="pill" data-pill="default" aria-selected="true">default</button>
-                    <button class="pill" data-pill="glass" aria-selected="false">glass</button>
+                    <button class="pill" data-pill="glass" aria-selected="true">glass</button>
+                    <button class="pill" data-pill="default" aria-selected="false">classic</button>
                     <button class="pill" data-pill="editorial" aria-selected="false">editorial</button>
                 </div>
             </div>
@@ -2442,9 +2460,9 @@
             (function () {
                 const dashes = document.querySelectorAll('.dash, .mdash');
                 const pills = document.querySelectorAll('.theme-pills .pill');
-                const themes = ['default', 'glass', 'editorial'];
+                const themes = ['glass', 'default', 'editorial'];
                 let userInteracted = false;
-                let active = 'default';
+                let active = 'glass';
 
                 function setActive(name) {
                     active = name;
@@ -2460,7 +2478,7 @@
                     setActive(p.dataset.pill);
                 }));
 
-                setActive('default');
+                setActive('glass');
 
                 // ---------------- typewriter ----------------
                 const examples = [
@@ -2484,11 +2502,18 @@
                     return null;
                 }
 
+                // offsets: 1-24 hours or 1-1440 minutes ("an hour" always ok); anything else is ignored
+                function reminderInRange(m) {
+                    if (!m) return false;
+                    if (isNaN(m[1])) return true;
+                    const n = +m[1];
+                    return n >= 1 && (m[2].startsWith('h') ? n <= 24 : n <= 1440);
+                }
                 function parseReminder(text) {
                     const t = text.toLowerCase();
-                    const rel = t.match(/(?:remind|notify|alert)\s+(?:me\s+)?(\d+)\s*(m|mi|min|minu|minut|minute|minutes|h|ho|hou|hour|hours|hr|hrs)\b/);
-                    if (rel) {
-                        const val = parseInt(rel[1]);
+                    const rel = t.match(/(?:remind(?:er)?|notify|alert)\s+(?:me\s+)?(\d{1,4}|an?)\s*(m|mi|min|mins|minu|minut|minute|minutes|h|ho|hou|hour|hours|hr|hrs)\b(?:\s+(?:before|early|earlier))?/);
+                    if (reminderInRange(rel)) {
+                        const val = /^\d/.test(rel[1]) ? parseInt(rel[1]) : 1;   // "an hour" = 1
                         const unit = rel[2];
                         if (unit.startsWith('h')) {
                             const clamped = Math.min(val, 24);
@@ -2497,9 +2522,9 @@
                             return { display: `${val}m` };
                         }
                     }
-                    const relIn = t.match(/(?:remind|notify|alert)\s+(?:me\s+)?in\s+(\d+)\s*(m|mi|min|minu|minut|minute|minutes|h|ho|hou|hour|hours|hr|hrs)\b/);
-                    if (relIn) {
-                        const val = parseInt(relIn[1]);
+                    const relIn = t.match(/(?:remind(?:er)?|notify|alert)\s+(?:me\s+)?in\s+(\d{1,4}|an?)\s*(m|mi|min|mins|minu|minut|minute|minutes|h|ho|hou|hour|hours|hr|hrs)\b/);
+                    if (reminderInRange(relIn)) {
+                        const val = /^\d/.test(relIn[1]) ? parseInt(relIn[1]) : 1;
                         const unit = relIn[2];
                         const ms = unit.startsWith('h') ? val * 3600000 : val * 60000;
                         const target = new Date(Date.now() + ms);
@@ -2509,8 +2534,8 @@
                         const display = m > 0 ? `${h}:${String(m).padStart(2, '0')}${period}` : `${h}${period}`;
                         return { display };
                     }
-                    const abs = t.match(/(?:remind|notify|alert)\s+(?:me\s+)?at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/);
-                    if (abs) {
+                    const abs = t.match(/(?:remind(?:er)?|notify|alert)\s+(?:me\s+)?at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/);
+                    if (abs && +abs[1] >= 1 && +abs[1] <= 12 && (!abs[2] || +abs[2] < 60)) {
                         const hour = parseInt(abs[1]);
                         const mins = abs[2] ? parseInt(abs[2]) : 0;
                         const period = abs[3].toUpperCase();

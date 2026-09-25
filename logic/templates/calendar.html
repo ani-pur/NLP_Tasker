@@ -30,17 +30,8 @@
       overflow-x: hidden;
     }
 
-    /* ── Gradient mesh background (matches dashboard v6) ── */
-    .mesh-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
-    .mesh-orb { position: absolute; border-radius: 50%; filter: blur(100px); opacity: 0.5; animation: float 20s ease-in-out infinite; }
-    .mesh-orb:nth-child(1) { width: 500px; height: 500px; background: radial-gradient(circle, #818cf850 0%, transparent 70%); top: -10%; left: -5%; }
-    .mesh-orb:nth-child(2) { width: 600px; height: 600px; background: radial-gradient(circle, #f4364c30 0%, transparent 70%); bottom: -15%; right: -10%; animation-delay: -7s; }
-    .mesh-orb:nth-child(3) { width: 400px; height: 400px; background: radial-gradient(circle, #06b6d420 0%, transparent 70%); top: 40%; left: 50%; animation-delay: -14s; }
-    @keyframes float {
-      0%, 100% { transform: translate(0, 0) scale(1); }
-      33% { transform: translate(30px, -20px) scale(1.05); }
-      66% { transform: translate(-20px, 15px) scale(0.95); }
-    }
+    /* Ambient timeline background (static/ambient.js) */
+    .ambient { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
 
     /* ── Header ── */
     header {
@@ -227,11 +218,7 @@
 </head>
 <body>
 
-  <div class="mesh-bg">
-    <div class="mesh-orb"></div>
-    <div class="mesh-orb"></div>
-    <div class="mesh-orb"></div>
-  </div>
+  <canvas id="ambient" class="ambient" aria-hidden="true"></canvas>
 
   <header>
     <a href="{{ url_for('index') }}" class="logo">tasker.</a>
@@ -484,5 +471,6 @@
     renderGrid();
     fetchTasks();
   </script>
+  <script src="{{ url_for('static', filename='ambient.js') }}" defer></script>
 </body>
 </html>
