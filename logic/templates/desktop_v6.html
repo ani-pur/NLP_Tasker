@@ -206,7 +206,6 @@
     .fog-box {
       position: relative;
       background: var(--fog); border: 1px solid var(--line-strong); border-radius: 13px;
-      backdrop-filter: blur(16px) saturate(160%); -webkit-backdrop-filter: blur(16px) saturate(160%);
       box-shadow: var(--edge);
       transition: border-color 0.15s, box-shadow 0.15s;
     }
@@ -378,7 +377,6 @@
         linear-gradient(135deg, color-mix(in srgb, var(--c) var(--tint), transparent), transparent 70%),
         var(--fog);
       border: 1px solid color-mix(in srgb, var(--c) 30%, var(--line-strong));
-      backdrop-filter: blur(12px) saturate(160%); -webkit-backdrop-filter: blur(12px) saturate(160%);
       box-shadow: var(--edge);
       transition: transform 0.15s, border-color 0.15s, background 0.15s;
     }
@@ -470,7 +468,6 @@
       position: relative; min-height: 0; padding: 7px 8px; overflow: hidden; cursor: pointer;
       display: flex; flex-direction: column; gap: 4px;
       background: var(--cell); border: 1px solid var(--line-strong); border-radius: 11px;
-      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
       box-shadow: var(--edge);
       transition: background 0.12s, border-color 0.12s;
     }

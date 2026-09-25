@@ -156,7 +156,7 @@
     return {
       resize() {
         // the blobs are soft, so ~0.75x device pixels looks the same and saves fill rate
-        scale = Math.min(window.devicePixelRatio || 1, 2) * 0.75;
+        scale = Math.min(window.devicePixelRatio || 1, 2) * 0.35;
         canvas.width = Math.round(w * scale); canvas.height = Math.round(h * scale);
         gl.viewport(0, 0, canvas.width, canvas.height);
       },
