@@ -478,7 +478,7 @@
       <select onchange="if(this.value)window.location=this.value" style="appearance:none;-webkit-appearance:none;background:transparent;border:none;font-family:'Fraunces',serif;font-size:24px;font-weight:900;letter-spacing:-0.5px;color:var(--fg);cursor:pointer;padding-right:22px;outline:none;">
         <option value="" selected>Tasker.</option>
         <option value="/switch/2">OG (Retired)</option>
-        <option value="/switch/3">Default</option>
+        <option value="/switch/3">Classic</option>
         <option value="/switch/6">Glass</option>
       </select>
       <svg style="position:absolute;right:2px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--accent);" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
@@ -581,8 +581,8 @@
     function cleanDescription(text, reminder, color) {
       let cleaned = text;
       if (reminder && reminder.display) {
-        cleaned = cleaned.replace(/(?:,\s*)?(?:remind|notify|alert)\s+(?:me\s+)?(?:in\s+)?\d+\s*(?:m|mi|min|minu|minut|minute|minutes|h|ho|hou|hour|hours|hr|hrs)\b/gi, '');
-        cleaned = cleaned.replace(/(?:,\s*)?(?:remind|notify|alert)\s+(?:me\s+)?at\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)\b/gi, '');
+        cleaned = cleaned.replace(/(?:,\s*)?(?:remind(?:er)?|notify|alert)\s+(?:me\s+)?(?:in\s+)?(?:\d{1,4}|an?)\s*(?:m|mi|min|mins|minu|minut|minute|minutes|h|ho|hou|hour|hours|hr|hrs)\b(?:\s+(?:before|early|earlier))?/gi, '');
+        cleaned = cleaned.replace(/(?:,\s*)?(?:remind(?:er)?|notify|alert)\s+(?:me\s+)?at\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)\b/gi, '');
       }
       if (color && color !== '#FFFFFF') {
         cleaned = cleaned.replace(/\b(blue|red|green|pink|orange|purple|yellow)\b/gi, '');
@@ -591,11 +591,18 @@
     }
 
     /* ── Reminder ── */
+    // offsets: 1-24 hours or 1-1440 minutes ("an hour" always ok); anything else is ignored
+    function reminderInRange(m) {
+      if (!m) return false;
+      if (isNaN(m[1])) return true;
+      const n = +m[1];
+      return n >= 1 && (m[2].startsWith('h') ? n <= 24 : n <= 1440);
+    }
     function parseReminder(text) {
       const t = text.toLowerCase();
-      const rel = t.match(/(?:remind|notify|alert)\s+(?:me\s+)?(\d+)\s*(m|mi|min|minu|minut|minute|minutes|h|ho|hou|hour|hours|hr|hrs)\b/);
-      if (rel) {
-        const val = parseInt(rel[1]);
+      const rel = t.match(/(?:remind(?:er)?|notify|alert)\s+(?:me\s+)?(\d{1,4}|an?)\s*(m|mi|min|mins|minu|minut|minute|minutes|h|ho|hou|hour|hours|hr|hrs)\b(?:\s+(?:before|early|earlier))?/);
+      if (reminderInRange(rel)) {
+        const val = /^\d/.test(rel[1]) ? parseInt(rel[1]) : 1;   // "an hour" = 1
         const unit = rel[2];
         if (unit.startsWith('h')) {
           const clamped = Math.min(val, 24);
@@ -607,9 +614,9 @@
         }
       }
       // relative to now: "remind me in 30 min", "notify me in 2 hours"
-      const relIn = t.match(/(?:remind|notify|alert)\s+(?:me\s+)?in\s+(\d+)\s*(m|mi|min|minu|minut|minute|minutes|h|ho|hou|hour|hours|hr|hrs)\b/);
-      if (relIn) {
-        const val = parseInt(relIn[1]);
+      const relIn = t.match(/(?:remind(?:er)?|notify|alert)\s+(?:me\s+)?in\s+(\d{1,4}|an?)\s*(m|mi|min|mins|minu|minut|minute|minutes|h|ho|hou|hour|hours|hr|hrs)\b/);
+      if (reminderInRange(relIn)) {
+        const val = /^\d/.test(relIn[1]) ? parseInt(relIn[1]) : 1;
         const unit = relIn[2];
         const ms = unit.startsWith('h') ? val * 3600000 : val * 60000;
         const target = new Date(Date.now() + ms);
@@ -620,8 +627,8 @@
         const absoluteTime = `${h}:${String(m).padStart(2,'0')} ${period}`;
         return { offsetHours: null, absoluteTime, display };
       }
-      const abs = t.match(/(?:remind|notify|alert)\s+(?:me\s+)?at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/);
-      if (abs) {
+      const abs = t.match(/(?:remind(?:er)?|notify|alert)\s+(?:me\s+)?at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/);
+      if (abs && +abs[1] >= 1 && +abs[1] <= 12 && (!abs[2] || +abs[2] < 60)) {
         const hour = parseInt(abs[1]);
         const mins = abs[2] ? parseInt(abs[2]) : 0;
         const period = abs[3].toUpperCase();

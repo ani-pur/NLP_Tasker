@@ -1,0 +1,115 @@
+{# Theme switcher for the default theme (desktop_v6 + mobile_3). Relies on the page's
+   CSS vars (--fg, --muted, --accent, --line, --line-strong, --panel).
+   Pass hide_og=true on mobile: OG has no mobile layout. #}
+<div class="theme-menu" id="themeMenu">
+  <button type="button" class="theme-trigger" aria-haspopup="menu" aria-expanded="false" aria-label="Switch theme">
+    <span class="theme-logo">tasker<span class="theme-logo-dot">.</span></span>
+    <svg class="theme-chev" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+  </button>
+  <div class="theme-pop" role="menu">
+    <div class="theme-pop-label">Theme</div>
+    <a class="theme-opt current" role="menuitem" href="/switch/6">
+      <span class="theme-swatch" style="background:linear-gradient(135deg,#1c1c2c,#07070a);"><i style="background:#8b93ff;"></i></span>
+      <span class="theme-text"><b>Glass</b><small>Frosted panels, moving light</small></span>
+      <svg class="theme-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M5 12l5 5L20 7"/></svg>
+    </a>
+    <a class="theme-opt" role="menuitem" href="/switch/3">
+      <span class="theme-swatch" style="background:#111520;"><i style="background:#fcd34d;"></i></span>
+      <span class="theme-text"><b>Classic</b><small>Slate and amber</small></span>
+    </a>
+    <a class="theme-opt" role="menuitem" href="/switch/5">
+      <span class="theme-swatch" style="background:#1c1a17;"><i style="background:#ea580c;"></i></span>
+      <span class="theme-text"><b>Editorial</b><small>Warm serif, paper grain</small></span>
+    </a>
+    {% if not hide_og %}
+    <a class="theme-opt retired" role="menuitem" href="/switch/2">
+      <span class="theme-swatch" style="background:#1d3326;"><i style="background:#FDB927;"></i></span>
+      <span class="theme-text"><b>OG</b><small>The original, retired</small></span>
+    </a>
+    {% endif %}
+    <div class="theme-pop-foot"><kbd>↑</kbd><kbd>↓</kbd> move <kbd>esc</kbd> close</div>
+  </div>
+</div>
+
+<style>
+  .theme-menu { position: relative; }
+  .theme-trigger {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: none; border: 1px solid transparent; border-radius: 8px;
+    padding: 5px 9px; margin-left: -10px; cursor: pointer; transition: background 0.15s, border-color 0.15s;
+  }
+  .theme-trigger:hover, .theme-menu.open .theme-trigger { background: var(--hover, rgba(255,255,255,0.05)); border-color: var(--line-strong); }
+  .theme-logo { font-size: 19px; font-weight: 700; letter-spacing: -0.6px; color: var(--fg); }
+  .theme-logo-dot { color: var(--accent); }
+  .theme-chev { color: var(--muted); transition: transform 0.2s cubic-bezier(0.23, 1, 0.32, 1); }
+  .theme-menu.open .theme-chev { transform: rotate(180deg); }
+
+  .theme-pop {
+    position: absolute; top: calc(100% + 8px); left: -10px; z-index: 300; width: 264px;
+    padding: 6px; border-radius: 14px;
+    /* page vars when the page defines them (desktop glass), dark-glass fallbacks otherwise */
+    background: linear-gradient(135deg, var(--sheen, rgba(255,255,255,0.09)), transparent 40%), var(--pop-bg, rgba(12,12,18,0.42));
+    backdrop-filter: blur(14px) saturate(185%); -webkit-backdrop-filter: blur(14px) saturate(185%);
+    border: 1px solid var(--rim-lo, rgba(255,255,255,0.2));
+    box-shadow: var(--edge, inset 1px 1px 0 rgba(255,255,255,0.14)), var(--shadow, 0 18px 40px -12px rgba(0,0,0,0.7));
+    opacity: 0; visibility: hidden; transform: translateY(-4px);
+    transition: opacity 0.14s ease, transform 0.18s cubic-bezier(0.23, 1, 0.32, 1), visibility 0s linear 0.18s;
+  }
+  .theme-menu.open .theme-pop { opacity: 1; visibility: visible; transform: none; transition-delay: 0s; }
+  .theme-pop-label {
+    font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 500; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--muted); padding: 8px 10px 6px;
+  }
+  .theme-opt {
+    display: flex; align-items: center; gap: 12px; padding: 8px 10px; border-radius: 8px;
+    text-decoration: none; color: var(--fg); outline: none; transition: background 0.12s;
+  }
+  .theme-opt:hover, .theme-opt:focus-visible { background: var(--hover, rgba(255,255,255,0.05)); }
+  .theme-opt.retired { opacity: 0.5; }
+  .theme-opt.retired:hover, .theme-opt.retired:focus-visible { opacity: 0.9; }
+  .theme-swatch {
+    position: relative; width: 32px; height: 22px; flex-shrink: 0; border-radius: 5px;
+    border: 1px solid var(--line-strong); overflow: hidden;
+  }
+  .theme-swatch i { position: absolute; left: 5px; width: 12px; bottom: 5px; height: 3px; border-radius: 1px; }
+  .theme-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+  .theme-text b { font-size: 13.5px; font-weight: 600; letter-spacing: -0.2px; }
+  .theme-text small { font-size: 11.5px; color: var(--muted); margin-top: 1px; }
+  .theme-check { color: var(--accent); flex-shrink: 0; }
+  .theme-pop-foot {
+    border-top: 1px solid var(--line); margin: 6px -6px -6px; padding: 8px 16px;
+    font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--muted);
+  }
+  .theme-pop-foot kbd {
+    font-family: inherit; font-size: 10px; border: 1px solid var(--line-strong); border-radius: 4px;
+    padding: 0 4px; margin-right: 2px; color: var(--fg);
+  }
+  @media (hover: none) { .theme-pop-foot { display: none; } }
+</style>
+
+<script>
+  (function () {
+    const menu = document.getElementById('themeMenu');
+    const trigger = menu.querySelector('.theme-trigger');
+    const opts = [...menu.querySelectorAll('.theme-opt')];
+
+    function setOpen(open) {
+      menu.classList.toggle('open', open);
+      trigger.setAttribute('aria-expanded', open);
+      if (open) (menu.querySelector('.theme-opt.current') || opts[0]).focus();
+    }
+
+    trigger.addEventListener('click', e => { e.stopPropagation(); setOpen(!menu.classList.contains('open')); });
+    document.addEventListener('click', e => { if (!menu.contains(e.target)) setOpen(false); });
+    // already on this theme: just close instead of a pointless reload
+    menu.querySelector('.theme-opt.current').addEventListener('click', e => { e.preventDefault(); setOpen(false); });
+
+    menu.addEventListener('keydown', e => {
+      if (!menu.classList.contains('open')) return;
+      const i = opts.indexOf(document.activeElement);
+      if (e.key === 'Escape') { e.stopPropagation(); setOpen(false); trigger.focus(); }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); e.stopPropagation(); opts[(i + 1) % opts.length].focus(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); e.stopPropagation(); opts[(i - 1 + opts.length) % opts.length].focus(); }
+    });
+  })();
+</script>
