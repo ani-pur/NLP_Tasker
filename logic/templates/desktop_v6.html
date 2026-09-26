@@ -473,10 +473,12 @@
     }
     .day-cell.weekend { background: var(--cell-weekend); }
     .day-cell:hover { background: var(--hover); }
-    .day-cell.outside { background: var(--cell-out); border-color: var(--line); box-shadow: none; cursor: default; }
+    .day-cell.outside { background: var(--cell-out); border-color: var(--line); box-shadow: none; }
+    .day-cell.outside:hover { background: var(--hover); }
     .day-cell.outside .n { color: var(--dim); opacity: 0.7; }
+    .day-cell.outside .chip { opacity: 0.7; }
     /* today: accent-washed tile with a ring and glow, plus a TODAY tag next to the date */
-    .day-cell.today {
+    .day-cell.today, .day-cell.outside.today {
       background: linear-gradient(160deg, rgba(var(--accent-rgb),0.34), rgba(var(--accent-rgb),0.1) 65%), var(--cell);
       border-color: var(--accent);
       box-shadow: var(--edge), 0 0 0 1px var(--accent), 0 0 26px -4px rgba(var(--accent-rgb),0.6);
@@ -1015,7 +1017,6 @@
 
       const firstDay = new Date(viewYear, viewMonth, 1).getDay();   // 0=Sun
       const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-      const prevMonthDays = new Date(viewYear, viewMonth, 0).getDate();
       const rows = Math.ceil((firstDay + daysInMonth) / 7);
       grid.style.gridTemplateRows = `repeat(${rows}, minmax(0, 1fr))`;
 
@@ -1043,37 +1044,27 @@
       grid.innerHTML = '';
       cellSig.clear();
       const today = new Date();
-      const isThisMonth = today.getFullYear() === viewYear && today.getMonth() === viewMonth;
+      const todayKey = dayKey(today.getFullYear(), today.getMonth(), today.getDate());
 
-      // neighbouring months' dates, dimmed, so the grid reads like a wall calendar
-      function outside(n) {
-        const e = document.createElement('div');
-        e.className = 'day-cell outside';
-        e.innerHTML = `<div class="day-num"><span class="n">${n}</span></div>`;
-        grid.appendChild(e);
-      }
-      for (let i = 0; i < firstDay; i++) outside(prevMonthDays - firstDay + 1 + i);
-
-      for (let d = 1; d <= daysInMonth; d++) {
-        const k = dayKey(viewYear, viewMonth, d);
-        const dayTasks = tasksByDay[k] || [];
-        const col = (firstDay + d - 1) % 7;
+      // Every tile is a real date. Neighbouring months' days are dimmed, like a wall
+      // calendar, but still show their tasks and open like any other day.
+      for (let i = 0; i < rows * 7; i++) {
+        const date = new Date(viewYear, viewMonth, 1 - firstDay + i);
+        const y = date.getFullYear(), m = date.getMonth(), d = date.getDate();
+        const k = dayKey(y, m, d);
+        const col = i % 7;
 
         const cell = document.createElement('div');
-        cell.className = 'day-cell' + (col === 0 || col === 6 ? ' weekend' : '');
+        cell.className = 'day-cell' + (col === 0 || col === 6 ? ' weekend' : '') + (m !== viewMonth ? ' outside' : '');
         cell.dataset.key = k;
-        if (isThisMonth && d === today.getDate()) cell.classList.add('today');
+        if (k === todayKey) cell.classList.add('today');
         if (k === selectedKey) cell.classList.add('selected');
-        const html = cellInner(d, dayTasks, maxChips);
+        const html = cellInner(d, tasksByDay[k] || [], maxChips);
         cell.innerHTML = html;
         cellSig.set(k, html);
-        cell.addEventListener('click', () => openDay(viewYear, viewMonth, d));
+        cell.addEventListener('click', () => openDay(y, m, d));
         grid.appendChild(cell);
       }
-
-      const trailing = rows * 7 - firstDay - daysInMonth;
-      for (let i = 1; i <= trailing; i++) outside(i);
-
     }
 
     function linkDay(key, on) {
