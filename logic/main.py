@@ -96,7 +96,7 @@ def info():
         )
     print(currentTime(),log_block)
     # ?embed=1: just the live demo, shown in the dashboard's help overlay
-    return render_template('mixed.html', embed=request.args.get('embed') == '1')
+    return render_template('landing.html', embed=request.args.get('embed') == '1')
 
 # LOGIN ROUTE
 @app.route('/login', methods=['GET', 'POST'])
