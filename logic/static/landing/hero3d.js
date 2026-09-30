@@ -161,14 +161,18 @@ async function boot() {
   // all cards share one slowly turning ring, evenly spaced, so they never cross or overlap; each gets its
   // own jitter in radius, height and drift so it doesn't read as a rigid carousel. The ring is tilted:
   // the front passes below the logo and the back above it, which keeps the logo clear.
-  const RING = { r: 7.3, depth: 0.42, lift: 2.7, roll: -0.08, speed: 0.06 };
+  const RING = { r: 6.7, depth: 0.42, lift: 2.55, roll: -0.08, speed: 0.06 };
   let ringA = 0;
   const cards = TASKS.map(([name, when, color, rem], i) => {
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(CW * 2, CH * 2), new THREE.MeshBasicMaterial({ map: cardTexture(name, when, HEX[color], rem), transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide }));
     stage.add(mesh);
+    // a second copy drawn after the logo: it fades in as the card crosses to the front, so the card
+    // dissolves through the particles instead of jumping in front of them
+    const front = new THREE.Mesh(mesh.geometry, mesh.material.clone());
+    stage.add(front);
     return {
-      mesh, a: (i / TASKS.length) * Math.PI * 2, dr: (Math.random() - 0.5) * 0.6, dy: (Math.random() - 0.5) * 0.6,
-      phase: Math.random() * 10, fadeAt: 0.5 + i * 0.07, lift: 0, layer: 10 + i,
+      mesh, front, a: (i / TASKS.length) * Math.PI * 2, dr: (Math.random() - 0.5) * 0.6, dy: (Math.random() - 0.5) * 0.6,
+      phase: Math.random() * 10, fadeAt: 0.5 + i * 0.07, lift: 0, z: 0,
     };
   });
 
@@ -182,7 +186,7 @@ async function boot() {
     // wide: logo in the right half, a little above center (the copy sits bottom-left)
     const halfW = Math.tan(THREE.MathUtils.degToRad(20)) * 17 * camera.aspect;
     stage.userData.base = new THREE.Vector3(wide ? halfW * 0.48 : 0, wide ? 0.8 : 2.4, 0);
-    stage.scale.setScalar(wide ? 0.7 : 0.55);
+    stage.scale.setScalar(wide ? 0.86 : 0.66);
   }
   layout();
   new ResizeObserver(layout).observe(host);
@@ -253,8 +257,18 @@ async function boot() {
       o.mesh.quaternion.copy(camera.quaternion).multiply(qz);
       o.mesh.material.opacity = smooth((s - o.fadeAt) / 0.7) * fade;
       o.mesh.visible = o.mesh.material.opacity > 0.005;
-      o.mesh.renderOrder = o.mesh === hovered ? 1000 : (z < 0 ? -100 : 100) + o.layer;  // behind or in front of the logo by which half of the ring it's on
+      o.z = z;
+      const inFront = o.mesh === hovered ? 1 : smooth((z + 0.5) / 1.0);  // ...with the front copy fading in across z = 0
+      o.front.position.copy(o.mesh.position); o.front.quaternion.copy(o.mesh.quaternion); o.front.scale.copy(o.mesh.scale);
+      o.front.material.opacity = o.mesh.material.opacity * inFront;
+      o.front.visible = o.front.material.opacity > 0.005;
     }
+    // stack by actual depth each frame (nearer draws later). Cards are evenly spaced on one ring, so two
+    // only swap order at the very front/back of it, where they're too far apart to overlap.
+    [...cards].sort((p, q) => p.z - q.z).forEach((o, k) => {
+      o.mesh.renderOrder = -100 + k;                               // behind-the-logo copy
+      o.front.renderOrder = o.mesh === hovered ? 1000 : 100 + k;   // in-front copy
+    });
     renderer.render(scene, camera);
   });
 }

@@ -55,6 +55,7 @@
     .lede + .lede { margin-top: 12px; }
     .lede.pitch { color: var(--fg); }
     .actions { margin-top: 30px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .fps { position: fixed; z-index: 50; left: 14px; top: 66px; font: 600 11px 'IBM Plex Mono', monospace; color: #a4d007; opacity: 0.75; pointer-events: none; font-variant-numeric: tabular-nums; }
     .cue { position: absolute; z-index: 2; left: 50%; bottom: 22px; transform: translateX(-50%); font: 11.5px 'IBM Plex Mono', monospace; letter-spacing: 1px; color: var(--dim); animation: cue 2.4s ease-in-out infinite; }
     @keyframes cue { 50% { transform: translate(-50%, 5px); } }
     .hero-copy > * { opacity: 0; transform: translateY(14px); animation: rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) forwards; }
@@ -325,6 +326,19 @@
   </main>
 
   <script>
+    // fps counter, pinned top-left just under the header bar; updated twice a second
+    (function () {
+      if (document.body.classList.contains('embed')) return;
+      const el = document.createElement('div'); el.className = 'fps'; el.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(el);
+      let frames = 0, last = performance.now();
+      requestAnimationFrame(function tick(now) {
+        frames++;
+        if (now - last >= 500) { el.textContent = Math.round(frames * 1000 / (now - last)) + ' fps'; frames = 0; last = now; }
+        requestAnimationFrame(tick);
+      });
+    })();
+
     // scroll reveal: each .reveal fades up once, the first time it enters the viewport
     (function () {
       const els = document.querySelectorAll('.reveal');
