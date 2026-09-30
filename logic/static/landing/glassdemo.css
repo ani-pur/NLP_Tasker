@@ -8,7 +8,7 @@
   --accent: #8b93ff; --accent-rgb: 139, 147, 255; --accent-ink: #0b0b14;
   --danger: #ff6b6b; --warn: #f5c542; --alert: #ffb326; --tint: 20%;
   position: relative; isolation: isolate; overflow: hidden;
-  height: 780px; display: flex; flex-direction: column;
+  height: clamp(780px, 44vw, 1150px); display: flex; flex-direction: column;   /* grows with width so the calendar cells keep their shape */
   background: var(--bg); color: var(--fg); border: 1px solid var(--line-strong); border-radius: 20px;
   font-family: 'Instrument Sans', system-ui, sans-serif; font-size: 13px; line-height: 1.45;
   box-shadow: 0 40px 120px -40px rgba(0, 0, 0, 0.9);
