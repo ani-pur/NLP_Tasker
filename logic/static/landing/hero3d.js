@@ -183,9 +183,9 @@ async function boot() {
   }
   const CW = 1.92, CH = 0.6;                                     // card half-size
   // all cards share one slowly turning ring, evenly spaced, so they never cross or overlap; each gets its
-  // own jitter in radius, height and drift so it doesn't read as a rigid carousel. The ring is tilted:
+  // own jitter in radius and height so it doesn't read as a rigid carousel. The ring is tilted:
   // the front passes below the logo and the back above it, which keeps the logo clear.
-  const RING = { r: 6.7, depth: 0.42, lift: 2.55, roll: -0.08, speed: 0.06 };
+  const RING = { r: 7.5, depth: 0.42, lift: 2.7, roll: -0.08, speed: 0.075 };
   let ringA = 0;
   TASKS.slice(0, MAX_CARDS).forEach(([, , color], i) => uniforms.uCardCol.value[i].set(...new THREE.Color(HEX[color]).toArray()));
   const cards = TASKS.map(([name, when, color, rem], i) => {
@@ -272,7 +272,7 @@ async function boot() {
     ringA += RING.speed * dt;
     const grow = 1 + out * 0.6, cr = Math.cos(RING.roll), sr = Math.sin(RING.roll);
     for (const o of cards) {
-      const a = o.a + ringA + Math.sin(t * 0.25 + o.phase) * 0.06;  // small drift, well inside the spacing
+      const a = o.a + ringA;                                         // steady: every card moves at exactly the ring speed
       const rr = (RING.r + o.dr) * grow;
       const x0 = Math.cos(a) * rr, y0 = -Math.sin(a) * RING.lift * grow + o.dy + Math.sin(t * 0.4 + o.phase) * 0.1;
       const z = Math.sin(a) * rr * RING.depth;
