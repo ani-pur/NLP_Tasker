@@ -12,6 +12,7 @@ async function boot() {
   THREE = await import('https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js');
   const { tier } = window.gpuTier || { tier: 1 };
   const N = [3200, 4200, 5200, 6200][tier];
+  window.heroParticles = N;                                     // shown by the page's fps counter
   const PR = Math.min(devicePixelRatio, [1, 1.5, 2, 2][tier]);
   await Promise.all([
     document.fonts.load('500 150px "Instrument Sans"'), document.fonts.load('600 46px "Instrument Sans"'), document.fonts.load('500 28px "IBM Plex Mono"'),
@@ -72,7 +73,13 @@ async function boot() {
   geo.setAttribute('phase', new THREE.BufferAttribute(phase, 1));
   geo.setAttribute('seed', new THREE.BufferAttribute(seed, 1));
   geo.setAttribute('dir', new THREE.BufferAttribute(dir, 3));
-  const uniforms = { uTime: { value: 0 }, uIntro: { value: 0 }, uAlpha: { value: 1 }, uPx: { value: PR * 17 }, uMouse: { value: new THREE.Vector2(99, 99) }, uHover: { value: 0 } };
+  const MAX_CARDS = 8;                                          // card light spill: positions/colors fed in each frame
+  const uniforms = {
+    uTime: { value: 0 }, uIntro: { value: 0 }, uAlpha: { value: 1 }, uPx: { value: PR * 17 }, uMouse: { value: new THREE.Vector2(99, 99) }, uHover: { value: 0 },
+    uCardRect: { value: Array.from({ length: MAX_CARDS }, () => new THREE.Vector4(99, 99, 0, 0)) },   // where each card appears on the logo plane: center xy, half w/h
+    uCardCol: { value: Array.from({ length: MAX_CARDS }, () => new THREE.Vector3()) },
+    uCardA: { value: new Array(MAX_CARDS).fill(0) },
+  };
   const points = new THREE.Points(geo, new THREE.ShaderMaterial({
     uniforms,
     vertexShader: `
@@ -80,7 +87,10 @@ async function boot() {
       attribute float size, phase, seed;
       uniform float uTime, uIntro, uPx, uHover;
       uniform vec2 uMouse;                                        // cursor in logo space
-      varying vec3 vColor; varying float vA; varying float vLit;
+      uniform vec4 uCardRect[${MAX_CARDS}];
+      uniform vec3 uCardCol[${MAX_CARDS}];
+      uniform float uCardA[${MAX_CARDS}];
+      varying vec3 vColor; varying float vA; varying float vLit; varying float vTw;
       float sm(float x) { x = clamp(x, 0.0, 1.0); return x * x * (3.0 - 2.0 * x); }
       void main() {
         float ii = sm(uIntro * 1.5 - seed * 0.5);
@@ -93,19 +103,33 @@ async function boot() {
         p.xy += normalize(off + 1e-4) * near * (0.03 + 0.05 * wave);
         p.z += near * 0.12 * wave;
         vLit = near;
+        // twinkle: each particle flares briefly on its own slow clock, so only a few are lit at once
+        float tw = pow(max(0.0, sin(uTime * (0.3 + seed * 0.45) + phase * 13.0)), 80.0);
+        vTw = tw;
+        // card light spill: particles close to where a card appears on screen take on its color,
+        // measured from the card's edge so only the letters right next to it are lit
+        vec3 tint = vec3(0.0); float wsum = 0.0;
+        for (int k = 0; k < ${MAX_CARDS}; k++) {
+          vec4 rc = uCardRect[k];
+          vec2 dc = max(abs(p.xy - rc.xy) - rc.zw, 0.0);
+          float w = uCardA[k] * exp(-dot(dc, dc) / 0.9);
+          tint += uCardCol[k] * w; wsum += w;
+        }
+        tint /= max(wsum, 1e-4);
         vec4 mv = modelViewMatrix * vec4(p, 1.0);
-        gl_PointSize = size * (5.0 + near * 1.5) * uPx / -mv.z;
+        gl_PointSize = size * (5.0 + near * 1.5 + tw * 3.5) * uPx / -mv.z;
         gl_Position = projectionMatrix * mv;
-        vColor = color; vA = ii * (0.75 + 0.25 * sin(uTime * 1.6 + phase));
+        vColor = mix(color, tint * 1.25, min(wsum, 1.0) * 0.55);
+        vA = ii * (0.75 + 0.25 * sin(uTime * 1.6 + phase));
       }`,
     fragmentShader: `
       uniform float uAlpha;
-      varying vec3 vColor; varying float vA; varying float vLit;
+      varying vec3 vColor; varying float vA; varying float vLit; varying float vTw;
       void main() {
         // bright core plus a wide soft halo; overlapping halos along the outlines read as bloom
         float d = length(gl_PointCoord - 0.5);
         float core = exp(-d * d * 260.0), halo = exp(-d * d * 18.0) * 0.34;
-        vec3 c = mix(vColor, vec3(0.62, 0.66, 1.0), vLit * 0.8) * (1.0 + vLit * 0.6);
+        vec3 c = mix(vColor, vec3(0.62, 0.66, 1.0), vLit * 0.8) * (1.0 + vLit * 0.6 + vTw * 0.9);
         gl_FragColor = vec4(c, (core + halo) * smoothstep(0.5, 0.35, d) * vA * uAlpha);
       }`,
     transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
@@ -161,14 +185,19 @@ async function boot() {
   // all cards share one slowly turning ring, evenly spaced, so they never cross or overlap; each gets its
   // own jitter in radius, height and drift so it doesn't read as a rigid carousel. The ring is tilted:
   // the front passes below the logo and the back above it, which keeps the logo clear.
-  const RING = { r: 7.3, depth: 0.42, lift: 2.7, roll: -0.08, speed: 0.06 };
+  const RING = { r: 6.7, depth: 0.42, lift: 2.55, roll: -0.08, speed: 0.06 };
   let ringA = 0;
+  TASKS.slice(0, MAX_CARDS).forEach(([, , color], i) => uniforms.uCardCol.value[i].set(...new THREE.Color(HEX[color]).toArray()));
   const cards = TASKS.map(([name, when, color, rem], i) => {
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(CW * 2, CH * 2), new THREE.MeshBasicMaterial({ map: cardTexture(name, when, HEX[color], rem), transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide }));
     stage.add(mesh);
+    // a second copy drawn after the logo: it fades in as the card crosses to the front, so the card
+    // dissolves through the particles instead of jumping in front of them
+    const front = new THREE.Mesh(mesh.geometry, mesh.material.clone());
+    stage.add(front);
     return {
-      mesh, a: (i / TASKS.length) * Math.PI * 2, dr: (Math.random() - 0.5) * 0.6, dy: (Math.random() - 0.5) * 0.6,
-      phase: Math.random() * 10, fadeAt: 0.5 + i * 0.07, lift: 0, layer: 10 + i,
+      mesh, front, a: (i / TASKS.length) * Math.PI * 2, dr: (Math.random() - 0.5) * 0.6, dy: (Math.random() - 0.5) * 0.6,
+      phase: Math.random() * 10, fadeAt: 0.5 + i * 0.07, lift: 0, z: 0,
     };
   });
 
@@ -182,7 +211,7 @@ async function boot() {
     // wide: logo in the right half, a little above center (the copy sits bottom-left)
     const halfW = Math.tan(THREE.MathUtils.degToRad(20)) * 17 * camera.aspect;
     stage.userData.base = new THREE.Vector3(wide ? halfW * 0.48 : 0, wide ? 0.8 : 2.4, 0);
-    stage.scale.setScalar(wide ? 0.7 : 0.55);
+    stage.scale.setScalar(wide ? 0.86 : 0.66);
   }
   layout();
   new ResizeObserver(layout).observe(host);
@@ -213,6 +242,7 @@ async function boot() {
   const smooth = x => { x = Math.min(1, Math.max(0, x)); return x * x * (3 - 2 * x); };
   const qz = new THREE.Quaternion(), zAxis = new THREE.Vector3(0, 0, 1);
   let hovered = null;
+  const cw = new THREE.Vector3();
   let start = null, prev = performance.now(), out = 0;
   renderer.setAnimationLoop(now => {
     // scrolled past the hero: lift and fade out, then stop drawing
@@ -253,8 +283,31 @@ async function boot() {
       o.mesh.quaternion.copy(camera.quaternion).multiply(qz);
       o.mesh.material.opacity = smooth((s - o.fadeAt) / 0.7) * fade;
       o.mesh.visible = o.mesh.material.opacity > 0.005;
-      o.mesh.renderOrder = o.mesh === hovered ? 1000 : (z < 0 ? -100 : 100) + o.layer;  // behind or in front of the logo by which half of the ring it's on
+      o.z = z;
+      const inFront = o.mesh === hovered ? 1 : smooth((z + 0.5) / 1.0);  // ...with the front copy fading in across z = 0
+      o.front.position.copy(o.mesh.position); o.front.quaternion.copy(o.mesh.quaternion); o.front.scale.copy(o.mesh.scale);
+      o.front.material.opacity = o.mesh.material.opacity * inFront;
+      o.front.visible = o.front.material.opacity > 0.005;
     }
+    // project each card onto the logo plane along the camera ray, so the spill lands where the card appears
+    stage.updateMatrixWorld();
+    cards.forEach((o, k) => {
+      if (k >= MAX_CARDS) return;
+      o.mesh.getWorldPosition(cw);
+      ray.ray.origin.copy(camera.position); ray.ray.direction.copy(cw).sub(camera.position).normalize();
+      plane.constant = -stage.position.z;
+      if (!ray.ray.intersectPlane(plane, hit)) { uniforms.uCardA.value[k] = 0; return; }
+      const ratio = camera.position.distanceTo(hit) / camera.position.distanceTo(cw);
+      stage.worldToLocal(hit);
+      uniforms.uCardRect.value[k].set(hit.x, hit.y, CW * o.mesh.scale.x * ratio, CH * o.mesh.scale.y * ratio);
+      uniforms.uCardA.value[k] = o.mesh.material.opacity;
+    });
+    // stack by actual depth each frame (nearer draws later). Cards are evenly spaced on one ring, so two
+    // only swap order at the very front/back of it, where they're too far apart to overlap.
+    [...cards].sort((p, q) => p.z - q.z).forEach((o, k) => {
+      o.mesh.renderOrder = -100 + k;                               // behind-the-logo copy
+      o.front.renderOrder = o.mesh === hovered ? 1000 : 100 + k;   // in-front copy
+    });
     renderer.render(scene, camera);
   });
 }

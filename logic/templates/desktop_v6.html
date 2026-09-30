@@ -216,6 +216,36 @@
       font-family: 'Instrument Sans', sans-serif; font-size: 15px; line-height: 1.5; color: var(--fg);
     }
     textarea::placeholder { color: var(--dim); }
+
+    /* late-night "tomorrow" check: a hidden copy of the input text sits under the textarea to highlight
+       the word and give the bubble something to anchor to */
+    .fog-box { isolation: isolate; }
+    .tm-mirror {
+      position: absolute; top: 0; left: 0; right: 0; height: 76px; z-index: -1; overflow: hidden; pointer-events: none;
+      padding: 14px 48px 6px 16px; white-space: pre-wrap; overflow-wrap: break-word;
+      font-family: 'Instrument Sans', sans-serif; font-size: 15px; line-height: 1.5; color: transparent;
+    }
+    .tm-mirror mark { color: transparent; background: color-mix(in srgb, var(--warn) 28%, transparent); border-radius: 4px; box-shadow: 0 0 0 2px color-mix(in srgb, var(--warn) 28%, transparent); }
+    .tm-pop {
+      position: absolute; z-index: 3; transform: translate(-50%, calc(-100% - 8px)); white-space: nowrap;
+      display: flex; align-items: center; gap: 6px; padding: 5px 6px 5px 11px; border-radius: 999px;
+      font-size: 12.5px; color: var(--muted);
+      background: linear-gradient(135deg, var(--sheen), transparent 40%), color-mix(in srgb, var(--bg) 92%, transparent);
+      backdrop-filter: blur(18px) saturate(160%); -webkit-backdrop-filter: blur(18px) saturate(160%);
+      border: 1px solid var(--line-strong); box-shadow: var(--edge), var(--shadow);
+      animation: tmIn 0.18s ease-out;
+    }
+    .tm-pop[hidden] { display: none; }
+    .tm-pop::after {                                  /* little pointer down at the word */
+      content: ''; position: absolute; left: 50%; bottom: -5px; width: 8px; height: 8px; transform: translateX(-50%) rotate(45deg);
+      background: color-mix(in srgb, var(--bg) 92%, transparent); border-right: 1px solid var(--line-strong); border-bottom: 1px solid var(--line-strong);
+    }
+    .tm-pop button { font: inherit; border: none; cursor: pointer; }
+    .tm-today { padding: 2px 9px; border-radius: 999px; font-weight: 600; color: var(--accent-ink); background: var(--accent); }
+    .tm-today:hover { filter: brightness(1.1); }
+    .tm-x { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; color: var(--dim); background: none; font-size: 14px; line-height: 1; }
+    .tm-x:hover { color: var(--fg); background: var(--hover); }
+    @keyframes tmIn { from { opacity: 0; transform: translate(-50%, calc(-100% - 4px)); } }
     .composer-bar { display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 16px; }
     .char-counter { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--dim); }
     .reminder-preview {
@@ -607,7 +637,9 @@
           <span>just type it how you'd say it</span>
         </div>
         <div class="fog-box">
+          <div class="tm-mirror" id="tmMirror" aria-hidden="true"></div>
           <textarea id="taskInput" maxlength="200" placeholder="gym next monday 7am legs, blue"></textarea>
+          <div class="tm-pop" id="tmPop" role="status" hidden>did you mean <button type="button" class="tm-today" id="tmToday">today</button>? <button type="button" class="tm-x" id="tmX" aria-label="Dismiss">×</button></div>
           <div class="composer-bar">
             <span class="char-counter" id="charCounter">0/200</span>
             <span id="reminderPreview" class="reminder-preview">⏰ <span id="reminderValue"></span></span>
@@ -1160,7 +1192,46 @@
       } else {
         preview.style.display = 'none';
       }
+      checkLateTomorrow();
     });
+
+    /* ── Late-night "tomorrow" check ──
+       Between midnight and 6am, "tomorrow" usually means after you wake up (i.e. today). Highlight the
+       word and offer to swap it; nothing changes unless the user clicks. */
+    const LATE_NIGHT_END = 6;                          // hour the check switches off
+    const TOMORROW_RE = /\b(tomorrow|tmrw|tmr)\b/i;
+    const tmMirror = document.getElementById('tmMirror');
+    const tmPop = document.getElementById('tmPop');
+    let tmDismissed = false;
+    const escHtml = str => str.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    function checkLateTomorrow() {
+      const text = taskInput.value;
+      const m = new Date().getHours() < LATE_NIGHT_END ? TOMORROW_RE.exec(text) : null;
+      if (!m) tmDismissed = false;                     // re-arm once the word is gone
+      if (!m || tmDismissed) { tmMirror.innerHTML = ''; tmPop.hidden = true; return; }
+      const end = m.index + m[0].length;
+      tmMirror.innerHTML = escHtml(text.slice(0, m.index)) + '<mark>' + escHtml(m[0]) + '</mark>' + escHtml(text.slice(end)) + ' ';
+      tmMirror.scrollTop = taskInput.scrollTop;
+      const mark = tmMirror.querySelector('mark');
+      tmPop.style.left = (mark.offsetLeft + mark.offsetWidth / 2) + 'px';
+      tmPop.style.top = (mark.offsetTop - tmMirror.scrollTop) + 'px';
+      tmPop.hidden = false;
+    }
+    taskInput.addEventListener('scroll', () => { tmMirror.scrollTop = taskInput.scrollTop; if (!tmPop.hidden) checkLateTomorrow(); });
+    document.getElementById('tmToday').addEventListener('mousedown', e => e.preventDefault());   // keep focus in the input
+    document.getElementById('tmToday').addEventListener('click', () => {
+      const m = TOMORROW_RE.exec(taskInput.value);
+      if (!m) return;
+      const w = m[0];
+      const today = w === w.toUpperCase() ? 'TODAY' : w[0] === w[0].toUpperCase() ? 'Today' : 'today';
+      const caret = m.index + today.length;
+      taskInput.value = taskInput.value.slice(0, m.index) + today + taskInput.value.slice(m.index + w.length);
+      taskInput.setSelectionRange(caret, caret);
+      taskInput.dispatchEvent(new Event('input'));     // recount, recolor, re-run the check
+    });
+    document.getElementById('tmX').addEventListener('mousedown', e => e.preventDefault());
+    document.getElementById('tmX').addEventListener('click', () => { tmDismissed = true; checkLateTomorrow(); });
 
     // "Enter to add" toggle (remembered per browser). On: Enter adds, Shift+Enter is a newline.
     // Off: Enter is a newline. Ctrl/Cmd+Enter always adds.
@@ -1259,6 +1330,7 @@
         taskInput.value = '';
         taskInput.style.color = '';
         document.getElementById('charCounter').textContent = '0/200';
+        checkLateTomorrow();
         fetchTasks();
         window.ambientPulse?.(color);
         taskInput.placeholder = 'Try: ' + prompts[Math.floor(Math.random() * prompts.length)];
