@@ -1199,8 +1199,12 @@
     }
 
     async function deleteTask(id) {
+      const color = currentTasks.find(row => row[0] === id)?.[6];   // look it up before the list refreshes
       const res = await fetch('/tasks/' + id, { method: 'DELETE' });
-      if (res.ok) fetchTasks();
+      if (res.ok) {
+        window.ambientPulse?.(color);
+        fetchTasks();
+      }
       else alert('Failed to delete task');
     }
 

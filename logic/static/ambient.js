@@ -5,7 +5,7 @@
 // defined without looking like blurry halos. Follows <html data-scheme="dark|light">.
 // On load the blobs grow in one after another with an elastic overshoot.
 // window.ambientPulse(color) fades the blobs to that task's color, holds, and fades
-// back (called after a task is added).
+// back (called after a task is added or deleted).
 //
 // Rendering: a WebGL fragment shader when available, drawn on every animation frame,
 // so it runs at the display's refresh rate (60/120/180/360Hz). Without WebGL it falls
@@ -243,9 +243,12 @@
 
   window.ambientPulse = function (color) {
     if (reduceMotion) return;
+    // white (uncolored) tasks wash the blobs out to a pale silver instead: literal white
+    // would glare in dark mode and vanish against the light background
+    const light = document.documentElement.dataset.scheme === 'light';
     const hex = /^#[0-9a-f]{6}$/i.test(color || '') && color.toUpperCase() !== '#FFFFFF'
       ? color
-      : getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#8b93ff';
+      : (light ? '#98A1BC' : '#D3D8EE');
     tint = { rgb: hexToRgb(hex), start: performance.now() / 1000 };
   };
   // redraw immediately when the light/dark toggle flips (matters for reduced motion)

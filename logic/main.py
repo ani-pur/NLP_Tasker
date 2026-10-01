@@ -2,9 +2,10 @@ from flask import Flask, render_template, request, redirect, url_for, session, j
 from logic import hasher
 from logic import tasks_db as tasks
 from logic import apiCall as api
+from logic import applog
 import secrets
 import os
-from datetime import timedelta,datetime
+from datetime import timedelta
 import threading
 import subprocess
 import sys
@@ -18,12 +19,8 @@ app.permanent_session_lifetime = timedelta(weeks=1)
 
 VAPID_PUBLIC_KEY = os.environ.get('VAPID_PUBLIC_KEY', '')
 
-LOG_PAD = "\t\t"        # to pad logs so they're actually readable lol
-
-
-def currentTime():
-    # returns current local time formatted for logs as: [HH:MM:SS AM/PM]
-    return f"[{datetime.now().strftime('%a %b %d %Y %I:%M:%S %p')}]"
+# one clean line per request + one-line events (see applog.py)
+applog.init_app(app)
 
 
 # Detects if the incoming request is from a mobile device by checking the user-agent header for mobile keywords
@@ -32,12 +29,6 @@ def is_mobile():
     mobile_keywords = ['iphone', 'android', 'mobile']
     return any(keyword in user_agent for keyword in mobile_keywords)  #bless python
     
-
-def fetch_real_ip():
-    cf_ip = request.headers.get('CF-Connecting-IP')        # usually ipv6
-    if cf_ip:
-        return cf_ip
-    return None
 
 def discord_ping(username, email):
     def _send():
@@ -57,11 +48,28 @@ def discord_ping(username, email):
         
         try:
             urllib.request.urlopen(req, timeout=5)
-            print("\t webhook triggered")
         except Exception as e:
-            print(f"\t [!] Webhook failed: {e}")
+            applog.event('webhook', f"discord signup ping failed: {e}", 'warn')
 
     threading.Thread(target=_send, daemon=True).start()
+
+
+# emailHandler.py is a standalone script: run it off-thread and log how it went
+def send_email(what, *args):
+    def _run():
+        try:
+            r = subprocess.run([sys.executable, "logic/emailHandler.py", *args],
+                               capture_output=True, text=True, timeout=60)
+        except Exception as e:
+            applog.event('email', f"{what} did not run: {e}", 'error')
+            return
+        if r.returncode == 0:
+            applog.event('email', f"{what} sent")
+        else:
+            last = (r.stderr or r.stdout).strip().splitlines()[-1:] or ['no output']
+            applog.event('email', f"{what} FAILED (exit {r.returncode}): {last[0]}", 'error')
+
+    threading.Thread(target=_run, daemon=True).start()
 
 
 # PWA ENDPOINTS 
@@ -86,15 +94,7 @@ def service_worker():
 
 @app.route('/info', methods=['GET'])
 def info():
-
-    ipAddr = fetch_real_ip() or request.remote_addr
-    log_block = (
-        f"IP: {ipAddr}\n"
-        f"{2*LOG_PAD}Full Path: {request.full_path}\n"
-        f"{2*LOG_PAD}User-Agent: {request.headers.get('User-Agent')}\n"
-        f"{2*LOG_PAD}Referer: {request.headers.get('Referer')}\n"
-        )
-    print(currentTime(),log_block)
+    applog.note(applog.visitor())
     # ?embed=1: just the live demo, shown in the dashboard's help overlay
     return render_template('landing.html', embed=request.args.get('embed') == '1')
 
@@ -109,13 +109,12 @@ def login():
         if user:
             session.permanent = True
             session['username'] = user
-            print(currentTime(),"[!] USER LOGGED IN: ",user)
+            applog.note(f"login OK user={user!r}", ok=True)
             return redirect(url_for('index'))
 
         else:
             error = "Invalid password. Please try again."
-            ipAddr= fetch_real_ip() or request.remote_addr
-            print(currentTime(),"[!] FAILED LOGIN FROM IP: ",ipAddr, "Attempted username: ",input_username)
+            applog.note(f"login FAILED user={input_username[:40]!r}", ok=False)
 
     return render_template('dual_login.html', error=error)
 
@@ -129,39 +128,31 @@ def signup():
         email = request.form.get('email', '').strip()
 
         if not username or not password:
+            applog.note("signup rejected: missing username or password", ok=False)
             return jsonify({"ok": False, "error": "Username and password are required"}), 400
 
         if len(username) < 3 or len(username) > 50:
+            applog.note(f"signup rejected: username length {len(username)}", ok=False)
             return jsonify({"ok": False, "error": "Username must be between 3 and 50 characters"}), 400
 
         if email and '@' not in email:
+            applog.note(f"signup rejected: bad email for user={username!r}", ok=False)
             return jsonify({"ok": False, "error": "Invalid email address"}), 400
 
         hashedPass = hasher.hash_password(password)
         success = tasks.add_pending_approval(username, hashedPass, email)
-        
 
-        
         if not success:
+            applog.note(f"signup NOT saved user={username!r} (taken, or db write failed)", ok=False)
             return jsonify({
                 "ok": False,
                 "error": "Username already exists or request failed"
             }), 409
 
-        ip = fetch_real_ip() or request.remote_addr
-        print(currentTime(),f"[++] Approval Request received and written to db [IP: {ip}]")
+        applog.note(f"signup request saved user={username!r} email={email!r}, awaiting approval", ok=True)
         discord_ping(username, email)        # trigger webhook
         # run notifier script, couldn't be asked to integrate as function; will do someday
-        try:
-            r = subprocess.Popen(
-                [sys.executable, "logic/emailHandler.py", "--notifyAdmin", username, email],
-                
-            )
-            print("email stdout:", r.stdout)
-        except subprocess.CalledProcessError as e:
-            print("email failed with", e.returncode)
-            print("stdout:\n", e.stdout)
-            print("stderr:\n", e.stderr)
+        send_email(f"admin notice for signup {username!r}", "--notifyAdmin", username, email)
 
         return jsonify({"ok": True}), 200
 
@@ -179,7 +170,6 @@ def forgot_password():
     message = None
     if request.method == 'POST':
         email = request.form.get('email', '').strip()
-        print(currentTime(), "[RESET] Password reset requested for email:", email)
 
         user = hasher.get_user_by_email(email)
         if user:
@@ -188,15 +178,10 @@ def forgot_password():
             reset_url = request.host_url.rstrip('/') + f"/reset-password?token={token}"
 
             # fire reset email via subprocess (same pattern as signup notification)
-            try:
-                r = subprocess.Popen(
-                    [sys.executable, "logic/emailHandler.py", "--resetPassword", username, email, reset_url],
-                )
-                print(currentTime(), "[RESET] Reset email fired for user:", username)
-            except subprocess.CalledProcessError as e:
-                print(currentTime(), "[RESET] Email subprocess failed:", e)
+            send_email(f"password reset link for {username!r}", "--resetPassword", username, email, reset_url)
+            applog.note(f"reset requested for user={username!r}, emailing link")
         else:
-            print(currentTime(), "[RESET] No user found for email:", email)
+            applog.note(f"reset requested for unknown email {email[:60]!r}", ok=False)
 
         # generic message regardless of outcome
         message = "If an account with that email exists, a reset link has been sent."
@@ -222,32 +207,37 @@ def reset_password():
     confirm_password = request.form.get('confirm_password', '').strip()
 
     if not password or not confirm_password:
+        applog.note("reset rejected: missing field", ok=False)
         error = "Both fields are required."
         return render_template('reset_password.html', token=token, error=error)
 
     if password != confirm_password:
+        applog.note("reset rejected: passwords do not match", ok=False)
         error = "Passwords do not match."
         return render_template('reset_password.html', token=token, error=error)
 
     if len(password) < 6:
+        applog.note("reset rejected: password too short", ok=False)
         error = "Password must be at least 6 characters."
         return render_template('reset_password.html', token=token, error=error)
 
     # verify token: checks unused + within 15-min window, marks as used
     username = hasher.verify_reset_token(token)
     if username is None:
-        print(currentTime(), "[RESET] Invalid/expired token attempted")
+        applog.note("reset FAILED: invalid or expired token", ok=False)
         error = "This reset link is invalid or has expired."
         return render_template('reset_password.html', token=token, error=error)
 
     hasher.update_password(username, password)
-    print(currentTime(), "[RESET] Password updated for user:", username)
+    applog.note(f"password updated user={username!r}", ok=True)
     return redirect(url_for('login'))
 
 
 @app.route('/logout')
 def logout():
-    session.pop('username', None)
+    user = session.pop('username', None)
+    if user:
+        applog.note(f"logout user={user!r}")
     return redirect(url_for('login'))
 
 # root route
@@ -255,9 +245,6 @@ def logout():
 def index():
     if 'username' not in session:
         return redirect(url_for('info'))
-
-    rootHit = session['username']
-    print(currentTime(),f'{rootHit} hit /')
 
     # UI switching
     ui_version = session.get('ui_version', 6)  # default = v6 (glass)
@@ -288,7 +275,6 @@ def index():
 def calendar():
     if 'username' not in session:
         return redirect(url_for('info'))
-    print(currentTime(), f"{session['username']} hit /calendar")
     return render_template('calendar.html', username=session['username'])
 
 
@@ -300,6 +286,7 @@ def switch_ui(switch_id):
 
     if switch_id in (2, 3, 5, 6):
         session['ui_version'] = switch_id
+        applog.note(f"theme -> v{switch_id}")
 
     return redirect(url_for('index'))
 
@@ -318,6 +305,7 @@ def handle_tasks():
         task_data = request.get_json()          # task ingest from desktop.html
         descriptionLenCheck = task_data.get('task_description', '')
         if len(descriptionLenCheck) > 200 or len(descriptionLenCheck)<10:
+            applog.note(f"task rejected: input is {len(descriptionLenCheck)} chars (needs 10-200)", ok=False)
             return jsonify({'error': 'Description too long (max 200 characters)'}), 410
         if not task_data:
             return jsonify({'error': 'Invalid task data'}), 400
@@ -332,11 +320,22 @@ def handle_tasks():
         # api call, response JSON from api call to be passed to tasks module
         apiResponse = api.postRequest(username, task_data)
 
-        new_task = tasks.add_task(username, apiResponse, task_data, color=color,
-                                  notif_time_offset=notif_time_offset,
-                                  notif_absolute_time=notif_absolute_time,
-                                  reminder_display=reminder_display)
-        return jsonify(new_task), 201
+        try:
+            task_id = tasks.add_task(username, apiResponse, task_data, color=color,
+                                     notif_time_offset=notif_time_offset,
+                                     notif_absolute_time=notif_absolute_time,
+                                     reminder_display=reminder_display)
+        except ValueError:
+            # the reply itself holds task text, so it stays out of the log
+            applog.note("task NOT saved: LLM reply unusable (bad JSON or date)", ok=False)
+            return jsonify({'error': 'Could not understand that task'}), 502
+        if task_id is None:
+            applog.note("task NOT saved: db write failed", ok=False)
+            return jsonify({'error': 'Could not save task'}), 500
+
+        reminder = f" (reminder {reminder_display})" if reminder_display else ""
+        applog.note(f"task {task_id} added{reminder}", ok=True)
+        return jsonify(task_id), 201
 
 @app.route('/tasks/<int:task_id>', methods=['PUT'])
 def edit_task(task_id):
@@ -352,8 +351,10 @@ def edit_task(task_id):
     task_name = (data.get('task_name') or '').strip()
     task_description = (data.get('task_description') or '').strip()
     if not task_name:
+        applog.note(f"edit of task {task_id} rejected: no name", ok=False)
         return jsonify({'error': 'Task name is required'}), 400
     if len(task_description) > 200:
+        applog.note(f"edit of task {task_id} rejected: description is {len(task_description)} chars", ok=False)
         return jsonify({'error': 'Description too long (max 200 characters)'}), 410
 
     task_time = data.get('task_time')              # "H:MM AM/PM" or null
@@ -365,7 +366,9 @@ def edit_task(task_id):
     success = tasks.edit_task(username, task_id, task_name, task_time,
                               task_description, due_date, color, utc_offset_minutes)
     if success:
+        applog.note(f"task {task_id} edited" + ("" if due_date else " (no due date)"), ok=True)
         return jsonify({'message': 'Task updated successfully.'})
+    applog.note(f"task {task_id} NOT edited: not found, or db write failed", ok=False)
     return jsonify({'error': 'Task not found.'}), 404
 
 
@@ -377,8 +380,10 @@ def delete_task(task_id):
 
     success = tasks.delete_task(username, task_id)
     if success:
+        applog.note(f"task {task_id} deleted", ok=True)
         return jsonify({'message': 'Task deleted successfully.'})
     else:
+        applog.note(f"task {task_id} NOT deleted: db write failed", ok=False)
         return jsonify({'error': 'Task not found.'}), 404
 
 # --- Push Notification Endpoints ---
@@ -407,7 +412,9 @@ def push_subscribe():
 
     success = tasks.save_push_subscription(username, endpoint, p256dh, auth)
     if success:
+        applog.note("push notifications enabled on this device", ok=True)
         return jsonify({'ok': True}), 201
+    applog.note("push subscription NOT saved", ok=False)
     return jsonify({'error': 'Failed to save subscription'}), 500
 
 @app.post('/push/unsubscribe')
@@ -420,23 +427,17 @@ def push_unsubscribe():
         return jsonify({'error': 'Missing endpoint'}), 400
 
     tasks.delete_push_subscription(username, data['endpoint'])
+    applog.note("push notifications disabled on this device")
     return jsonify({'ok': True})
 
 
+# both show up on the request line with the caller's IP (see applog.py)
 @app.errorhandler(404)
 def not_found(e):
-    bad_path = request.path
-    method = request.method
-    ip = fetch_real_ip() or request.remote_addr
-    print(f"{currentTime()} [404] {ip} {method} {bad_path}")
     return ("Not Found", 404)
 
 @app.errorhandler(405)
 def method_not_allowed(e):
-    bad_path = request.path
-    method = request.method
-    ip = fetch_real_ip() or request.remote_addr
-    print(f"{currentTime()} [405] {ip} {method} {bad_path}")
     return ("Method Not Allowed", 405)
 
 

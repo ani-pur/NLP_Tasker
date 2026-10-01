@@ -12,9 +12,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN adduser --system --no-create-home appuser && chown -R appuser /localtodo
+# Give the user a real home so gunicorn's control socket has somewhere to live
+# (without one it logs a permission error on /nonexistent at every boot).
+RUN adduser --system --home /home/appuser appuser && chown -R appuser /localtodo
 
 USER appuser
+ENV HOME=/home/appuser
 
 # Expose Flask's default port
 EXPOSE 5000

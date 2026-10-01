@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import json
 import os
 import re
+from logic import applog
 
 # Initialize shared db connection pool (max 20 connections per worker)
 db_pool = ThreadedConnectionPool(
@@ -141,9 +142,11 @@ def add_task(username: str, jsonInput: str, task_data: dict, color: str = '#FFFF
                     (username, userInput, jsonInput, str(user_tz_metadata))
                 )
                 conn.commit()
+                return task_id
             except psycopg2.Error as e:
-                print("DB error: ",e)
+                applog.event('db', f"add_task failed for {username}: {e}", 'error')
                 conn.rollback()
+                return None
 
 
 # fetch tasks from db
@@ -170,7 +173,7 @@ def get_all_tasks(username, sort_order):
                 return rows
 
             except psycopg2.Error as e:
-                print("DB error: ",e)
+                applog.event('db', f"get_all_tasks failed for {username}: {e}", 'error')
                 conn.rollback()
 
 
@@ -228,7 +231,7 @@ def edit_task(username, task_id, task_name, task_time, task_description,
                 conn.commit()
                 return True
             except psycopg2.Error as e:
-                print("DB error (edit_task): ", e)
+                applog.event('db', f"edit_task failed for {username} task {task_id}: {e}", 'error')
                 conn.rollback()
                 return False
 
@@ -244,7 +247,7 @@ def delete_task(username, task_id):
                 conn.commit()
                 return True
             except psycopg2.Error as e:
-                print("DB error: ",e)
+                applog.event('db', f"delete_task failed for {username} task {task_id}: {e}", 'error')
                 conn.rollback()
 
 
@@ -267,7 +270,7 @@ def save_push_subscription(username: str, endpoint: str, p256dh: str, auth: str)
                 conn.commit()
                 return True
             except psycopg2.Error as e:
-                print("DB error (save_push_subscription): ", e)
+                applog.event('db', f"save_push_subscription failed for {username}: {e}", 'error')
                 conn.rollback()
                 return False
 
@@ -283,7 +286,7 @@ def delete_push_subscription(username: str, endpoint: str):
                 conn.commit()
                 return True
             except psycopg2.Error as e:
-                print("DB error (delete_push_subscription): ", e)
+                applog.event('db', f"delete_push_subscription failed for {username}: {e}", 'error')
                 conn.rollback()
                 return False
 
@@ -302,7 +305,6 @@ def add_pending_approval(username: str, password_hash: str, email: str | None = 
                 return True
 
             except psycopg2.Error as e:
-                print('[!] signup dbwrite fail')
-                print("DB error (pendingapprovals): ", e)
+                applog.event('db', f"add_pending_approval failed for {username!r}: {e}", 'error')
                 conn.rollback()
                 return False
