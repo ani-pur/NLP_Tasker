@@ -11,6 +11,10 @@ import tempfile
 import fcntl
 import json
 import urllib.request
+try:
+    from logic import applog
+except ImportError:       # run as a script (vendor menu): logic/ itself is on sys.path
+    import applog
 
 def currentTime():
     # returns current local time formatted for logs as: [HH:MM:SS AM/PM]
@@ -26,8 +30,6 @@ openai_client = OpenAI(api_key=api_key,http_client=http_client)
 
 gemini_api_key=os.environ.get('GEMINI_API_KEY')
 gemini_client = genai.Client(api_key=gemini_api_key)
-
-LOG_PAD = "\t\t"        # to pad logs so they're actually readable lol
 
 # --- vendor hotswap state (file-based so all workers/threads share it) ---
 _VENDOR_FILE = "/tmp/nlp_tasker_vendor"
@@ -85,7 +87,7 @@ def _discord_swap_ping(old: str, new: str, pid: int):
         try:
             urllib.request.urlopen(req, timeout=5)
         except Exception as e:
-            print(f"{currentTime()} [PID {pid}] swap webhook failed: {e}")
+            applog.event('webhook', f"discord vendor-swap ping failed: {e}", 'warn')
 
     threading.Thread(target=_send, daemon=True).start()
 
@@ -145,7 +147,7 @@ def warmupCall():
         # blocked at the container, the inactive vendor fails every cycle — logging
         # that would bury real signal in noise.
         if active == "openai":
-            print(f"{currentTime()} [PID {pid}] OPENAI WARMUP FAILED: {e}")
+            applog.event('warmup', f"openai ping failed: {e}", 'warn')
 
     # --- ping Gemini ---
     gemini_latency = None
@@ -157,6 +159,8 @@ def warmupCall():
             config=genai.types.GenerateContentConfig(
                 system_instruction="respond with 'warmed up'",
                 max_output_tokens=5,
+                # no tools are passed; this just stops the SDK's AFC warning on first call
+                automatic_function_calling=genai.types.AutomaticFunctionCallingConfig(disable=True),
             )
         )
         gemini_latency = time.time() - gemini_startTime
@@ -164,7 +168,7 @@ def warmupCall():
         gemini_latency = 5.0
         # symmetric with openai above: only surface the failure when gemini is active.
         if active == "gemini":
-            print(f"{currentTime()} [PID {pid}] GEMINI WARMUP FAILED: {e}")
+            applog.event('warmup', f"gemini ping failed: {e}", 'warn')
 
     # --- check active vendor's latency, decide if we need to swap ---
     active_latency = openai_latency if active == "openai" else gemini_latency
@@ -185,7 +189,7 @@ def warmupCall():
             os.write(fd, line.encode())
             os.close(fd)
         except Exception as log_err:
-            print(f"{currentTime()} [PID {pid}] failed writing late warmup log: {log_err}")
+            applog.event('warmup', f"could not write {_LATE_WARMUP_LOG}: {log_err}", 'warn')
 
     # Single fcntl lock guards the whole read-modify-write of the streaks file so 4 workers
     # can't race and undercount/overcount toward the swap threshold.
@@ -199,13 +203,13 @@ def warmupCall():
             slow_streak += 1
             fast_streak = 0
             _set_streaks(slow_streak, fast_streak)
-            print(f"{currentTime()} [PID {pid}] LATE WARMUP [{active}]: {active_latency:.2f}s (consecutive: {slow_streak}/{_SWAP_AFTER})")
+            applog.event('warmup', f"{active} slow {active_latency:.2f}s ({slow_streak}/{_SWAP_AFTER} before swap)", 'warn')
 
             if slow_streak >= _SWAP_AFTER:
                 new_vendor = "gemini" if active == "openai" else "openai"
                 _set_active_vendor(new_vendor)
                 _set_streaks(0, 0)   # fresh slate for the new active vendor
-                print(f"{currentTime()} [PID {pid}] *** SWAPPED TO {new_vendor.upper()} ***")
+                applog.event('warmup', f"SWAPPED active vendor {active} -> {new_vendor}", 'warn')
                 _discord_swap_ping(active, new_vendor, pid)
         else:
             # active vendor is fast. Build the fast streak; only wipe the slow streak once
@@ -235,7 +239,7 @@ def keep_warm_loop():
         try:
             warmupCall()
         except Exception as e:
-            print(LOG_PAD, "Warmup ping failed:", e)
+            applog.event('warmup', f"warmup cycle crashed: {e}", 'error')
 
         # MUST BE LOWER THAN HTTPXCLIENT KEEPALIVE EXPIRY
         time.sleep(120)
@@ -269,7 +273,8 @@ def _call_gemini(system_prompt: str, user_input: str) -> str:
             "temperature": 0.1,
             "thinking_config": {
                 "thinking_level": "minimal"
-            }
+            },
+            "automatic_function_calling": {"disable": True}
         }
     )
     return response.text
@@ -285,6 +290,7 @@ def postRequest(username: str, userInput: dict) -> str:
 
     full_input = stringInput + " \n [USER TIMEZONE METADATA] \n" + str(userTzData)
     vendor = _get_active_vendor()
+    fell_back = False
 
     try:
         if vendor == "openai":
@@ -294,7 +300,8 @@ def postRequest(username: str, userInput: dict) -> str:
     except Exception as e:
         # active vendor failed on a real request — try the other one so user isn't left hanging
         fallback = "gemini" if vendor == "openai" else "openai"
-        print(f"{currentTime()} [PID {os.getpid()}] {vendor.upper()} REQUEST FAILED, falling back to {fallback.upper()}: {e}")
+        applog.event('llm', f"{vendor} request failed, falling back to {fallback}: {e}", 'warn')
+        fell_back = True
         if fallback == "openai":
             result = _call_openai(sysPrompt, full_input)
         else:
@@ -302,7 +309,9 @@ def postRequest(username: str, userInput: dict) -> str:
         vendor = fallback
 
     internalClock = time.time() - start_time
-    print(currentTime(), username, f'api RESPONSE [{vendor}]:', internalClock)
+    # rides on the request's log line; red when it was slow or needed the fallback
+    applog.note(f"{vendor} {internalClock:.2f}s" + (" via fallback" if fell_back else ""),
+                ok=False if fell_back or internalClock >= _SLOW_THRESHOLD else None)
 
     return result
 
