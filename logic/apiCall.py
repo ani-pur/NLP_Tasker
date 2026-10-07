@@ -37,6 +37,10 @@ gemini_client = genai.Client(
     api_key=gemini_api_key,
     http_options=genai.types.HttpOptions(
         timeout=int(_TIMEOUT * 1000),                             # this SDK takes milliseconds
+        # The SDK also forwards the timeout to Gemini as a server-side deadline, and Gemini
+        # rejects anything under 10s (400 INVALID_ARGUMENT). Pin that header to the minimum
+        # so only our side gives up at _TIMEOUT.
+        headers={"X-Server-Timeout": "10"},
         retry_options=genai.types.HttpRetryOptions(attempts=1),   # attempts includes the first try
     ),
 )
