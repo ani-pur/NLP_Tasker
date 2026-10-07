@@ -50,7 +50,7 @@ _VENDOR_FILE = "/tmp/nlp_tasker_vendor"
 _STREAKS_FILE = "/tmp/nlp_tasker_streaks"   # holds "inactive_wins,active_wins" — two counters in one file, written atomically under the same lock
 _LATE_WARMUP_LOG = "/tmp/nlp_tasker_late_warmups.log"
 _SLOW_THRESHOLD = 3.0       # seconds — only colors the request log line now, swaps no longer use it
-_MARGIN = 0.2               # seconds — the inactive vendor must beat the active one by more than this to win a round
+_MARGIN = 0.6               # seconds — the inactive vendor must beat the active one by more than this to win a round
 _SWAP_AFTER = 3             # consecutive rounds the inactive vendor must win before flipping
 _WIPE_AFTER = 3             # consecutive rounds the active vendor must win before erasing the inactive one's streak
 # Each warmup cycle is one round between the two vendors:
