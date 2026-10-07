@@ -302,13 +302,14 @@ def handle_tasks():
         taskList = tasks.get_all_tasks(username, sort_order)
         return jsonify(taskList)
     elif request.method == 'POST':
-        task_data = request.get_json()          # task ingest from desktop.html
-        descriptionLenCheck = task_data.get('task_description', '')
-        if len(descriptionLenCheck) > 200 or len(descriptionLenCheck)<10:
-            applog.note(f"task rejected: input is {len(descriptionLenCheck)} chars (needs 10-200)", ok=False)
-            return jsonify({'error': 'Description too long (max 200 characters)'}), 410
-        if not task_data:
+        task_data = request.get_json(silent=True)          # task ingest from desktop.html
+        if not isinstance(task_data, dict):
+            applog.note("task rejected: body is not a JSON object", ok=False)
             return jsonify({'error': 'Invalid task data'}), 400
+        descriptionLenCheck = task_data.get('task_description') or ''
+        if not isinstance(descriptionLenCheck, str) or len(descriptionLenCheck) > 200 or len(descriptionLenCheck)<10:
+            applog.note(f"task rejected: input is {len(str(descriptionLenCheck))} chars (needs 10-200)", ok=False)
+            return jsonify({'error': 'Task must be 10 to 200 characters'}), 410
 
 
         # color + reminder parsed on frontend, passed alongside tz metadata
@@ -318,7 +319,11 @@ def handle_tasks():
         reminder_display = task_data.get('reminder_display')
 
         # api call, response JSON from api call to be passed to tasks module
-        apiResponse = api.postRequest(username, task_data)
+        try:
+            apiResponse = api.postRequest(username, task_data)
+        except api.LLMUnavailable:
+            applog.note("task NOT saved: both LLM vendors failed or timed out", ok=False)
+            return jsonify({'error': "Tasker couldn't process that right now, try again"}), 503
 
         try:
             task_id = tasks.add_task(username, apiResponse, task_data, color=color,
@@ -328,10 +333,10 @@ def handle_tasks():
         except ValueError:
             # the reply itself holds task text, so it stays out of the log
             applog.note("task NOT saved: LLM reply unusable (bad JSON or date)", ok=False)
-            return jsonify({'error': 'Could not understand that task'}), 502
+            return jsonify({'error': "Couldn't work out a task from that, try rewording it"}), 502
         if task_id is None:
             applog.note("task NOT saved: db write failed", ok=False)
-            return jsonify({'error': 'Could not save task'}), 500
+            return jsonify({'error': "Couldn't save the task, try again"}), 500
 
         reminder = f" (reminder {reminder_display})" if reminder_display else ""
         applog.note(f"task {task_id} added{reminder}", ok=True)

@@ -892,9 +892,9 @@
           notif_absolute_time: reminder.absoluteTime,
           reminder_display: reminder.display
         })
-      });
+      }).catch(() => null);                    // null: the request never reached the server
 
-      if (res.ok) {
+      if (res?.ok) {
         taskInput.value = '';
         taskInput.style.color = '';
         document.getElementById('charCounter').textContent = '0/200';
@@ -903,7 +903,9 @@
         loadTasks();
         window.ambientPulse?.(color);
       } else {
-        alert('Failed to add task');
+        // the typed text stays in the box, so the user can just hit add again
+        const e = res ? await res.json().catch(() => ({})) : { error: "Couldn't reach Tasker, check your connection and try again" };
+        alert(e.error || 'Failed to add task, try again');
       }
     });
 

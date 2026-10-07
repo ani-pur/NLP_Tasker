@@ -25,24 +25,42 @@ def currentTime():
 
 http_client=httpx.Client(limits=httpx.Limits(max_keepalive_connections=20, keepalive_expiry=140.0)) # keepalive_expiry MUST be greater than keep_warm_loop() SLEEP
 
+# Every call to either vendor (warmup pings AND real requests) gets this timeout and no SDK
+# retries, so a dead or crawling vendor fails fast and the fallback / the user's "try again" kicks in.
+_TIMEOUT = 3.0              # seconds
+
 api_key=os.environ.get('API_KEY')
-openai_client = OpenAI(api_key=api_key,http_client=http_client)
+openai_client = OpenAI(api_key=api_key,http_client=http_client,timeout=_TIMEOUT,max_retries=0)
 
 gemini_api_key=os.environ.get('GEMINI_API_KEY')
-gemini_client = genai.Client(api_key=gemini_api_key)
+gemini_client = genai.Client(
+    api_key=gemini_api_key,
+    http_options=genai.types.HttpOptions(
+        timeout=int(_TIMEOUT * 1000),                             # this SDK takes milliseconds
+        # The SDK also forwards the timeout to Gemini as a server-side deadline, and Gemini
+        # rejects anything under 10s (400 INVALID_ARGUMENT). Pin that header to the minimum
+        # so only our side gives up at _TIMEOUT.
+        headers={"X-Server-Timeout": "10"},
+        retry_options=genai.types.HttpRetryOptions(attempts=1),   # attempts includes the first try
+    ),
+)
 
 # --- vendor hotswap state (file-based so all workers/threads share it) ---
 _VENDOR_FILE = "/tmp/nlp_tasker_vendor"
-_STREAKS_FILE = "/tmp/nlp_tasker_streaks"   # holds "slow,fast" — two counters in one file, written atomically under the same lock
+_STREAKS_FILE = "/tmp/nlp_tasker_streaks"   # holds "inactive_wins,active_wins" — two counters in one file, written atomically under the same lock
 _LATE_WARMUP_LOG = "/tmp/nlp_tasker_late_warmups.log"
-_SLOW_THRESHOLD = 3.0       # seconds — warmup latency above this counts as "slow"
-_SWAP_AFTER = 3             # consecutive slow pings on the active vendor before flipping
-_WIPE_AFTER = 3             # consecutive fast pings before erasing an in-progress slow streak
+_SLOW_THRESHOLD = 3.0       # seconds — only colors the request log line now, swaps no longer use it
+_MARGIN = 0.6               # seconds — the inactive vendor must beat the active one by more than this to win a round
+_SWAP_AFTER = 3             # consecutive rounds the inactive vendor must win before flipping
+_WIPE_AFTER = 3             # consecutive rounds the active vendor must win before erasing the inactive one's streak
+# Each warmup cycle is one round between the two vendors:
+#   - inactive vendor wins if it answered more than _MARGIN faster, or the active one failed and it didn't.
+#   - otherwise the active vendor wins (including when both fail).
 # Dual-streak intent:
-#   - slow streak hits _SWAP_AFTER  -> flip vendor, reset both streaks.
-#   - fast streak hits _WIPE_AFTER  -> wipe an unfinished slow streak (treat vendor as recovered).
-# Why two counters instead of "reset slow on any fast": one fluky fast ping shouldn't erase
-# 2 legitimate slow pings of evidence — recovery has to be sustained too.
+#   - inactive-wins streak hits _SWAP_AFTER -> flip vendor, reset both streaks.
+#   - active-wins streak hits _WIPE_AFTER   -> wipe an unfinished inactive-wins streak.
+# Why two counters instead of "reset on any active win": one fluky round shouldn't erase
+# 2 legitimate rounds of evidence — recovery has to be sustained too.
 # Cadence note: 4 gunicorn workers share these counters under one fcntl lock, so streaks
 # accumulate across workers (effective sample interval ~30s, not 120s per worker).
 
@@ -52,7 +70,7 @@ def _get_active_vendor() -> str:
         with open(_VENDOR_FILE, "r") as f:
             return f.read().strip()
     except FileNotFoundError:
-        return "openai"
+        return "gemini"
 
 
 def _set_active_vendor(vendor: str):
@@ -65,11 +83,11 @@ def _set_active_vendor(vendor: str):
 
 
 def _get_streaks() -> tuple[int, int]:
-    # returns (slow_streak, fast_streak). Missing/corrupt file => fresh slate.
+    # returns (inactive_wins, active_wins). Missing/corrupt file => fresh slate.
     try:
         with open(_STREAKS_FILE, "r") as f:
-            slow, fast = f.read().strip().split(",")
-            return int(slow), int(fast)
+            inactive_wins, active_wins = f.read().strip().split(",")
+            return int(inactive_wins), int(active_wins)
     except (FileNotFoundError, ValueError):
         return 0, 0
 
@@ -92,11 +110,11 @@ def _discord_swap_ping(old: str, new: str, pid: int):
     threading.Thread(target=_send, daemon=True).start()
 
 
-def _set_streaks(slow: int, fast: int):
-    # atomic write so concurrent readers in other workers never see a torn "slow,fa" state
+def _set_streaks(inactive_wins: int, active_wins: int):
+    # atomic write so concurrent readers in other workers never see a torn half-written state
     fd, tmp = tempfile.mkstemp(dir="/tmp")
     with os.fdopen(fd, "w") as f:
-        f.write(f"{slow},{fast}")
+        f.write(f"{inactive_wins},{active_wins}")
     os.rename(tmp, _STREAKS_FILE)
 
 
@@ -126,33 +144,32 @@ Instructions:
 - Optionally, if they have asked for timezone conversion, compute it accordingly and set due time according to their request."""
 
 
+def _fmt_latency(latency) -> str:
+    return "FAILED" if latency is None else f"{latency:.2f}s"
+
+
 def warmupCall():
-    """Pings BOTH vendors every cycle for continuous performance visibility.
-    Checks the active vendor's latency to decide whether to swap."""
+    """Pings BOTH vendors every cycle, then scores the round: the faster vendor wins (see _MARGIN).
+    The inactive vendor takes over after winning _SWAP_AFTER rounds in a row."""
     pid = os.getpid()
-    active = _get_active_vendor()
 
     # --- ping OpenAI ---
-    openai_latency = None
+    openai_latency = None   # None = failed or timed out; always loses to a ping that answered
+    openai_error = None
     openai_startTime = time.time()
     try:
         openai_client.responses.create(
             model="gpt-5.4-nano-2026-03-17",
             instructions="warmup ping to handle cold-start latency, respond with 'warmed up'",
-            input=" ",
-            timeout=5.0
+            input=" "
         )
         openai_latency = time.time() - openai_startTime
     except Exception as e:
-        openai_latency = 5.0  # treat failure as max-slow
-        # Only log the failure when openai is the ACTIVE vendor. With openai egress
-        # blocked at the container, the inactive vendor fails every cycle — logging
-        # that would bury real signal in noise.
-        if active == "openai":
-            applog.event('warmup', f"openai ping failed: {e}", 'warn')
+        openai_error = e
 
     # --- ping Gemini ---
     gemini_latency = None
+    gemini_error = None
     gemini_startTime = time.time()
     try:
         gemini_client.models.generate_content(
@@ -167,24 +184,72 @@ def warmupCall():
         )
         gemini_latency = time.time() - gemini_startTime
     except Exception as e:
-        gemini_latency = 5.0
-        # symmetric with openai above: only surface the failure when gemini is active.
-        if active == "gemini":
-            applog.event('warmup', f"gemini ping failed: {e}", 'warn')
+        gemini_error = e
 
-    # --- check active vendor's latency, decide if we need to swap ---
-    active_latency = openai_latency if active == "openai" else gemini_latency
+    latencies = {"openai": openai_latency, "gemini": gemini_latency}
+    for vendor, error in (("openai", openai_error), ("gemini", gemini_error)):
+        if error is not None:
+            applog.event('warmup', f"{vendor} ping failed: {error}", 'warn')
 
-    # file log: only when the ACTIVE vendor pings slow. We used to log whenever EITHER
-    # vendor was late to monitor the inactive one too, but with openai egress blocked the
-    # inactive vendor is late every single cycle — that flooded the log. The line still
-    # records both latencies for context, it just no longer fires on inactive-only slowness.
-    openai_late = openai_latency >= _SLOW_THRESHOLD
-    gemini_late = gemini_latency >= _SLOW_THRESHOLD
-    if active_latency >= _SLOW_THRESHOLD:
+    # Single fcntl lock guards the whole read-modify-write of the streaks file so 4 workers
+    # can't race and undercount/overcount toward the swap threshold.
+    lock_fd = os.open(_STREAKS_FILE + ".lock", os.O_CREAT | os.O_RDWR)
+    try:
+        fcntl.flock(lock_fd, fcntl.LOCK_EX)
+        # Read the active vendor only now, under the lock: another worker may have swapped
+        # while we were pinging, and this round must be scored against whoever is active NOW.
+        active = _get_active_vendor()
+        inactive = "gemini" if active == "openai" else "openai"
+        active_latency, inactive_latency = latencies[active], latencies[inactive]
+
+        if inactive_latency is None:
+            inactive_won = False        # also covers both failing: the active vendor keeps the round
+        elif active_latency is None:
+            inactive_won = True
+        else:
+            inactive_won = active_latency - inactive_latency > _MARGIN
+
+        inactive_wins, active_wins = _get_streaks()
+        swapped = False
+
+        if inactive_won:
+            # inactive vendor took the round: build its streak, break the active vendor's.
+            inactive_wins += 1
+            active_wins = 0
+            score = f"{inactive_wins}/{_SWAP_AFTER}"
+            applog.event('warmup', f"{inactive} beat {active} ({_fmt_latency(inactive_latency)} vs "
+                                   f"{_fmt_latency(active_latency)}), {score} before swap", 'warn')
+
+            if inactive_wins >= _SWAP_AFTER:
+                _set_active_vendor(inactive)
+                _set_streaks(0, 0)   # fresh slate for the new active vendor
+                swapped = True
+                applog.event('warmup', f"SWAPPED active vendor {active} -> {inactive}", 'warn')
+                _discord_swap_ping(active, inactive, pid)
+            else:
+                _set_streaks(inactive_wins, active_wins)
+        else:
+            # active vendor held the round. Only wipe the inactive vendor's streak once the
+            # active one has won _WIPE_AFTER in a row — one fluky round is not enough to
+            # erase real evidence.
+            active_wins += 1
+            if active_wins >= _WIPE_AFTER and inactive_wins > 0:
+                inactive_wins = 0
+            _set_streaks(inactive_wins, active_wins)
+            score = f"{inactive_wins}/{_SWAP_AFTER}"
+    finally:
+        fcntl.flock(lock_fd, fcntl.LOCK_UN)
+        os.close(lock_fd)
+
+    # file log: one line for every round where something happened — the inactive vendor won,
+    # a ping failed or timed out, or the vendor was swapped. Quiet rounds are not written.
+    if inactive_won or openai_latency is None or gemini_latency is None:
+        outcome = f"{inactive if inactive_won else active} wins round, {inactive} streak {score}"
+        if swapped:
+            outcome += f", SWAPPED {active} -> {inactive}"
         line = (f"{currentTime()} [PID {pid}] active={active} "
-                f"openai={openai_latency:.2f}s {'LATE' if openai_late else 'ok'} "
-                f"gemini={gemini_latency:.2f}s {'LATE' if gemini_late else 'ok'}\n")
+                f"openai={_fmt_latency(openai_latency)} gemini={_fmt_latency(gemini_latency)} "
+                f"| {outcome}\n")
         try:
             # O_APPEND writes are atomic on Linux for small payloads, safe across all gunicorn workers
             fd = os.open(_LATE_WARMUP_LOG, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644)
@@ -192,38 +257,6 @@ def warmupCall():
             os.close(fd)
         except Exception as log_err:
             applog.event('warmup', f"could not write {_LATE_WARMUP_LOG}: {log_err}", 'warn')
-
-    # Single fcntl lock guards the whole read-modify-write of the streaks file so 4 workers
-    # can't race and undercount/overcount toward the swap threshold.
-    lock_fd = os.open(_STREAKS_FILE + ".lock", os.O_CREAT | os.O_RDWR)
-    try:
-        fcntl.flock(lock_fd, fcntl.LOCK_EX)
-        slow_streak, fast_streak = _get_streaks()
-
-        if active_latency >= _SLOW_THRESHOLD:
-            # active vendor is slow: build slow streak, reset fast streak (fast recovery is broken).
-            slow_streak += 1
-            fast_streak = 0
-            _set_streaks(slow_streak, fast_streak)
-            applog.event('warmup', f"{active} slow {active_latency:.2f}s ({slow_streak}/{_SWAP_AFTER} before swap)", 'warn')
-
-            if slow_streak >= _SWAP_AFTER:
-                new_vendor = "gemini" if active == "openai" else "openai"
-                _set_active_vendor(new_vendor)
-                _set_streaks(0, 0)   # fresh slate for the new active vendor
-                applog.event('warmup', f"SWAPPED active vendor {active} -> {new_vendor}", 'warn')
-                _discord_swap_ping(active, new_vendor, pid)
-        else:
-            # active vendor is fast. Build the fast streak; only wipe the slow streak once
-            # we've seen _WIPE_AFTER consecutive fast pings — one fluky fast ping is not
-            # enough to erase real slow evidence.
-            fast_streak += 1
-            if fast_streak >= _WIPE_AFTER and slow_streak > 0:
-                slow_streak = 0
-            _set_streaks(slow_streak, fast_streak)
-    finally:
-        fcntl.flock(lock_fd, fcntl.LOCK_UN)
-        os.close(lock_fd)
 
 
 # way better than firing warmup on every in-session index ('/' route) hit
@@ -282,6 +315,10 @@ def _call_gemini(system_prompt: str, user_input: str) -> str:
     return response.text
 
 
+class LLMUnavailable(Exception):
+    """Both vendors failed (or timed out) on a real request."""
+
+
 # pass to api
 def postRequest(username: str, userInput: dict) -> str:
     """ username only used for printing logs so i know whos adding tasks (can't see contents of task dw if anyone ends up reading for some reason)"""
@@ -304,10 +341,14 @@ def postRequest(username: str, userInput: dict) -> str:
         fallback = "gemini" if vendor == "openai" else "openai"
         applog.event('llm', f"{vendor} request failed, falling back to {fallback}: {e}", 'warn')
         fell_back = True
-        if fallback == "openai":
-            result = _call_openai(sysPrompt, full_input)
-        else:
-            result = _call_gemini(sysPrompt, full_input)
+        try:
+            if fallback == "openai":
+                result = _call_openai(sysPrompt, full_input)
+            else:
+                result = _call_gemini(sysPrompt, full_input)
+        except Exception as fallback_error:
+            applog.event('llm', f"{fallback} fallback failed too: {fallback_error}", 'error')
+            raise LLMUnavailable(f"{vendor} and {fallback} both failed") from fallback_error
         vendor = fallback
 
     internalClock = time.time() - start_time
@@ -359,9 +400,9 @@ def vendorMenu():
             continue
 
         if choice == 1:
-            slow, fast = _get_streaks()
+            inactive_wins, active_wins = _get_streaks()
             print(f"  vendor:  {_get_active_vendor()}")
-            print(f"  streaks: slow={slow} fast={fast}")
+            print(f"  streaks: inactive wins={inactive_wins} active wins={active_wins}")
         elif choice == 2:
             _cli_set_vendor("openai")
         elif choice == 3:
