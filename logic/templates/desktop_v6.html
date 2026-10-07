@@ -1356,8 +1356,8 @@
           notif_absolute_time: reminder.absoluteTime,
           reminder_display: reminder.display
         })
-      });
-      if (res.ok) {
+      }).catch(() => null);                    // null: the request never reached the server
+      if (res?.ok) {
         taskInput.value = '';
         taskInput.style.color = '';
         document.getElementById('charCounter').textContent = '0/200';
@@ -1366,7 +1366,9 @@
         window.ambientPulse?.(color);
         taskInput.placeholder = 'Try: ' + prompts[Math.floor(Math.random() * prompts.length)];
       } else {
-        alert('Failed to add task');
+        // the typed text stays in the box, so the user can just hit add again
+        const e = res ? await res.json().catch(() => ({})) : { error: "Couldn't reach Tasker, check your connection and try again" };
+        alert(e.error || 'Failed to add task, try again');
       }
     });
 
