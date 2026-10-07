@@ -112,14 +112,14 @@ async function boot() {
         for (int k = 0; k < ${MAX_CARDS}; k++) {
           vec4 rc = uCardRect[k];
           vec2 dc = max(abs(p.xy - rc.xy) - rc.zw, 0.0);
-          float w = uCardA[k] * exp(-dot(dc, dc) / 0.9);
+          float w = uCardA[k] * exp(-dot(dc, dc) / 1.6);
           tint += uCardCol[k] * w; wsum += w;
         }
         tint /= max(wsum, 1e-4);
         vec4 mv = modelViewMatrix * vec4(p, 1.0);
         gl_PointSize = size * (5.0 + near * 1.5 + tw * 3.5) * uPx / -mv.z;
         gl_Position = projectionMatrix * mv;
-        vColor = mix(color, tint * 1.25, min(wsum, 1.0) * 0.55);
+        vColor = mix(color, tint * 1.35, min(wsum, 1.0) * 0.75);
         vA = ii * (0.75 + 0.25 * sin(uTime * 1.6 + phase));
       }`,
     fragmentShader: `
