@@ -104,7 +104,7 @@ async function boot() {
         p.z += near * 0.12 * wave;
         vLit = near;
         // twinkle: each particle flares briefly on its own slow clock, so only a few are lit at once
-        float tw = pow(max(0.0, sin(uTime * (0.3 + seed * 0.45) + phase * 13.0)), 80.0);
+        float tw = pow(max(0.0, sin(uTime * (0.3 + seed * 0.45) + phase * 13.0)), 60.0);
         vTw = tw;
         // card light spill: particles close to where a card appears on screen take on its color,
         // measured from the card's edge so only the letters right next to it are lit
@@ -117,7 +117,7 @@ async function boot() {
         }
         tint /= max(wsum, 1e-4);
         vec4 mv = modelViewMatrix * vec4(p, 1.0);
-        gl_PointSize = size * (5.0 + near * 1.5 + tw * 3.5) * uPx / -mv.z;
+        gl_PointSize = size * (5.0 + near * 1.5 + tw * 4.0) * uPx / -mv.z;
         gl_Position = projectionMatrix * mv;
         vColor = mix(color, tint * 1.35, min(wsum, 1.0) * 0.75);
         vA = ii * (0.75 + 0.25 * sin(uTime * 1.6 + phase));
@@ -129,7 +129,7 @@ async function boot() {
         // bright core plus a wide soft halo; overlapping halos along the outlines read as bloom
         float d = length(gl_PointCoord - 0.5);
         float core = exp(-d * d * 260.0), halo = exp(-d * d * 18.0) * 0.34;
-        vec3 c = mix(vColor, vec3(0.62, 0.66, 1.0), vLit * 0.8) * (1.0 + vLit * 0.6 + vTw * 0.9);
+        vec3 c = mix(vColor, vec3(0.62, 0.66, 1.0), vLit * 0.8) * (1.0 + vLit * 0.6 + vTw * 1.15);
         gl_FragColor = vec4(c, (core + halo) * smoothstep(0.5, 0.35, d) * vA * uAlpha);
       }`,
     transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
