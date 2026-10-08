@@ -1,4 +1,4 @@
-# LLM SDKs: openai 3.x makes HTTPX2 the default and drops the http_client= kwarg used in logic/apiCall.py
+# LLM SDKs: openai 3.x makes HTTPX2 the default and drops the http_client= kwarg used in logic/llm_vendors.py
 openai>=2.21.0,<3
 google-genai>=2.20.0,<3
 

@@ -360,7 +360,7 @@ def postRequest(username: str, userInput: dict) -> str:
 
 
 # CLI: hot-swap vendor / reset streaks from inside the container.
-# Usage: docker exec -it tasker_testing python3 logic/apiCall.py
+# Usage: docker exec -it tasker_testing python3 logic/llm_vendors.py
 # Uses the same fcntl lock as warmupCall so a CLI write can't race a live warmup cycle.
 def _cli_set_vendor(new_vendor: str):
     lock_fd = os.open(_STREAKS_FILE + ".lock", os.O_CREAT | os.O_RDWR)
