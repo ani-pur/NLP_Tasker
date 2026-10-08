@@ -1,7 +1,7 @@
 # this program constructs user metadata that gets appended to user request to API
 import httpx
 from datetime import date,datetime
-from openai import OpenAI, APITimeoutError
+from openai import OpenAI, APITimeoutError, APIConnectionError
 from google import genai
 import time
 from textwrap import dedent
@@ -23,7 +23,10 @@ def currentTime():
 # using a custom httpx client cuz apparently a good chunk of the API "warmup" is actually just opening sockets and TLS handshakes (which add more time on top of loading the model) ((DISCLAIMER: according to gpt and gemini lol))
 # seems to work, has mostly fixed warmup issues in combination with the keep_warm_loop() implementation [defined below in module]
 
-http_client=httpx.Client(limits=httpx.Limits(max_keepalive_connections=20, keepalive_expiry=140.0)) # keepalive_expiry MUST be greater than keep_warm_loop() SLEEP
+# HTTP/2 on both vendor clients: a request that hits _TIMEOUT is cancelled on its own (RST_STREAM) and the
+# connection stays open, where HTTP/1.1 could only give up by closing the connection and reconnecting cold.
+# Concurrent requests in one worker also share the one warm connection instead of opening extra ones.
+http_client=httpx.Client(http2=True, limits=httpx.Limits(max_keepalive_connections=20, keepalive_expiry=140.0)) # keepalive_expiry MUST be greater than keep_warm_loop() SLEEP
 
 # Every call to either vendor (warmup pings AND real requests) gets this timeout and no SDK
 # retries, so a dead or crawling vendor fails fast and the fallback / the user's "try again" kicks in.
@@ -33,9 +36,14 @@ api_key=os.environ.get('API_KEY')
 openai_client = OpenAI(api_key=api_key,http_client=http_client,timeout=_TIMEOUT,max_retries=0)
 
 gemini_api_key=os.environ.get('GEMINI_API_KEY')
+# Same keepalive treatment as openai above. Left alone, the SDK's own client drops idle connections
+# after 5s, so every warmup ping (and most real requests) would redo DNS + TCP + TLS first.
+# A separate client rather than sharing http_client: the SDK closes the client it is given when it shuts down.
+gemini_http_client=httpx.Client(http2=True, limits=httpx.Limits(max_keepalive_connections=20, keepalive_expiry=140.0)) # keepalive_expiry MUST be greater than keep_warm_loop() SLEEP
 gemini_client = genai.Client(
     api_key=gemini_api_key,
     http_options=genai.types.HttpOptions(
+        httpx_client=gemini_http_client,
         timeout=int(_TIMEOUT * 1000),                             # this SDK takes milliseconds
         # The SDK also forwards the timeout to Gemini as a server-side deadline, and Gemini
         # rejects anything under 10s (400 INVALID_ARGUMENT). Pin that header to the minimum
@@ -50,7 +58,8 @@ _VENDOR_FILE = "/tmp/nlp_tasker_vendor"
 _STREAKS_FILE = "/tmp/nlp_tasker_streaks"   # holds "inactive_wins,active_wins" — two counters in one file, written atomically under the same lock
 _LATE_WARMUP_LOG = "/tmp/nlp_tasker_late_warmups.log"
 _SLOW_THRESHOLD = 3.0       # seconds — only colors the request log line now, swaps no longer use it
-_MARGIN = 0.6               # seconds — the inactive vendor must beat the active one by more than this to win a round
+_TRACE = os.environ.get("WARMUP_TRACE", "").lower() in ("1", "true", "yes")   # also log every ping's result, and quiet rounds
+_MARGIN = 0.3               # seconds — the inactive vendor must beat the active one by more than this to win a round
 _SWAP_AFTER = 3             # consecutive rounds the inactive vendor must win before flipping
 _WIPE_AFTER = 3             # consecutive rounds the active vendor must win before erasing the inactive one's streak
 # Each warmup cycle is one round between the two vendors:
@@ -63,6 +72,20 @@ _WIPE_AFTER = 3             # consecutive rounds the active vendor must win befo
 # 2 legitimate rounds of evidence — recovery has to be sustained too.
 # Cadence note: 4 gunicorn workers share these counters under one fcntl lock, so streaks
 # accumulate across workers (effective sample interval ~30s, not 120s per worker).
+
+
+def _claim_worker_number() -> int:
+    # Lowest free slot (1, 2, 3...), held with a lock for as long as this process lives. The OS drops
+    # the lock when the process dies, so a replacement worker picks the same small number back up.
+    number = 1
+    while True:
+        fd = os.open(f"/tmp/nlp_tasker_worker_{number}.lock", os.O_CREAT | os.O_RDWR)
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return number            # fd is left open on purpose: closing it would release the slot
+        except BlockingIOError:
+            os.close(fd)
+            number += 1
 
 
 def _get_active_vendor() -> str:
@@ -144,8 +167,35 @@ Instructions:
 - Optionally, if they have asked for timezone conversion, compute it accordingly and set due time according to their request."""
 
 
+def _describe_error(error: Exception) -> str:
+    """A failed vendor call as one readable log phrase: what happened in plain words, then the
+    low-level error in brackets for digging, e.g.
+    "no reply within 3s [ReadTimeout: The read operation timed out]"."""
+    # openai wraps network errors in its own types; the httpx error underneath says more
+    cause = error.__cause__ if isinstance(error, APIConnectionError) and error.__cause__ else error
+    if isinstance(cause, httpx.ConnectTimeout):
+        plain = f"couldn't connect within {_TIMEOUT:g}s"
+    elif isinstance(cause, httpx.TimeoutException) or isinstance(error, APITimeoutError):
+        plain = f"no reply within {_TIMEOUT:g}s"
+    elif isinstance(cause, httpx.TransportError) or isinstance(error, APIConnectionError):
+        plain = "connection failed"
+    else:
+        # the vendor answered, but with an error: openai keeps the HTTP status in .status_code, gemini in .code
+        status = getattr(error, "status_code", None) or getattr(error, "code", None)
+        plain = f"rejected with HTTP {status}" if isinstance(status, int) else "failed"
+    return f"{plain} [{type(cause).__name__}: {cause}]"
+
+
 def _fmt_latency(latency) -> str:
     return "FAILED" if latency is None else f"{latency:.2f}s"
+
+
+def _trace_ping(vendor: str, latency: float):
+    # one line per answered ping: green when quick, yellow when it only just made the timeout.
+    # A ping that failed is logged by warmupCall itself, as a flagged warning.
+    if _TRACE:
+        color = "green" if latency < 1.0 else "yellow" if latency >= 2.0 else None
+        applog.event('warmup', f"{vendor} ping {latency:.2f}s", color=color)
 
 
 def warmupCall():
@@ -164,6 +214,7 @@ def warmupCall():
             input=" "
         )
         openai_latency = time.time() - openai_startTime
+        _trace_ping("openai", openai_latency)
     except Exception as e:
         openai_error = e
 
@@ -178,18 +229,21 @@ def warmupCall():
             config=genai.types.GenerateContentConfig(
                 system_instruction="respond with 'warmed up'",
                 max_output_tokens=5,
+                # same thinking level as real requests (_call_gemini), so the ping measures what a task costs
+                thinking_config=genai.types.ThinkingConfig(thinking_level="minimal"),
                 # no tools are passed; this just stops the SDK's AFC warning on first call
                 automatic_function_calling=genai.types.AutomaticFunctionCallingConfig(disable=True),
             )
         )
         gemini_latency = time.time() - gemini_startTime
+        _trace_ping("gemini", gemini_latency)
     except Exception as e:
         gemini_error = e
 
     latencies = {"openai": openai_latency, "gemini": gemini_latency}
     for vendor, error in (("openai", openai_error), ("gemini", gemini_error)):
         if error is not None:
-            applog.event('warmup', f"{vendor} ping failed: {error}", 'warn')
+            applog.event('warmup', f"{vendor} ping: {_describe_error(error)}", 'warn')
 
     # Single fcntl lock guards the whole read-modify-write of the streaks file so 4 workers
     # can't race and undercount/overcount toward the swap threshold.
@@ -217,8 +271,10 @@ def warmupCall():
             inactive_wins += 1
             active_wins = 0
             score = f"{inactive_wins}/{_SWAP_AFTER}"
+            # how far ahead it was, next to the margin it had to clear (no lead to show when the active ping failed)
+            lead = "" if active_latency is None else f", {active_latency - inactive_latency:.2f}s faster"
             applog.event('warmup', f"{inactive} beat {active} ({_fmt_latency(inactive_latency)} vs "
-                                   f"{_fmt_latency(active_latency)}), {score} before swap", 'warn')
+                                   f"{_fmt_latency(active_latency)}{lead}, margin {_MARGIN:g}s), {score} before swap", 'warn')
 
             if inactive_wins >= _SWAP_AFTER:
                 _set_active_vendor(inactive)
@@ -237,6 +293,10 @@ def warmupCall():
                 inactive_wins = 0
             _set_streaks(inactive_wins, active_wins)
             score = f"{inactive_wins}/{_SWAP_AFTER}"
+            if _TRACE:
+                applog.event('warmup', f"{active} holds ({_fmt_latency(active_latency)} vs {inactive} "
+                                       f"{_fmt_latency(inactive_latency)}, margin {_MARGIN:g}s), "
+                                       f"{inactive} streak {score}, {active_wins} holds in a row")
     finally:
         fcntl.flock(lock_fd, fcntl.LOCK_UN)
         os.close(lock_fd)
@@ -249,7 +309,7 @@ def warmupCall():
             outcome += f", SWAPPED {active} -> {inactive}"
         line = (f"{currentTime()} [PID {pid}] active={active} "
                 f"openai={_fmt_latency(openai_latency)} gemini={_fmt_latency(gemini_latency)} "
-                f"| {outcome}\n")
+                f"margin={_MARGIN:g}s | {outcome}\n")
         try:
             # O_APPEND writes are atomic on Linux for small payloads, safe across all gunicorn workers
             fd = os.open(_LATE_WARMUP_LOG, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644)
@@ -284,6 +344,7 @@ def keep_warm_loop():
 # Each worker fires warmup call and hopefully all children threads per worker can share the warm socket, unless I am understanding ts horribly wrong
 # Guard: don't start the warmup loop when this file is run as a CLI (vendorMenu) — would needlessly ping vendors for the menu's lifetime.
 if __name__ != "__main__":
+    applog.set_worker(_claim_worker_number())   # numbered + color-coded in the logs
     warmup_thread = threading.Thread(target=keep_warm_loop, daemon=True)
     warmup_thread.start()
 
@@ -339,7 +400,7 @@ def postRequest(username: str, userInput: dict) -> str:
     except Exception as e:
         # active vendor failed on a real request — try the other one so user isn't left hanging
         fallback = "gemini" if vendor == "openai" else "openai"
-        applog.event('llm', f"{vendor} request failed, falling back to {fallback}: {e}", 'warn')
+        applog.event('llm', f"{vendor} request: {_describe_error(e)}, falling back to {fallback}", 'warn')
         fell_back = True
         try:
             if fallback == "openai":
@@ -347,7 +408,7 @@ def postRequest(username: str, userInput: dict) -> str:
             else:
                 result = _call_gemini(sysPrompt, full_input)
         except Exception as fallback_error:
-            applog.event('llm', f"{fallback} fallback failed too: {fallback_error}", 'error')
+            applog.event('llm', f"{fallback} fallback too: {_describe_error(fallback_error)}", 'error')
             raise LLMUnavailable(f"{vendor} and {fallback} both failed") from fallback_error
         vendor = fallback
 
