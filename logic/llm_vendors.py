@@ -57,6 +57,7 @@ gemini_client = genai.Client(
 _VENDOR_FILE = "/tmp/nlp_tasker_vendor"
 _STREAKS_FILE = "/tmp/nlp_tasker_streaks"   # holds "inactive_wins,active_wins" — two counters in one file, written atomically under the same lock
 _LATE_WARMUP_LOG = "/tmp/nlp_tasker_late_warmups.log"
+_LATENCY_FILE = "/tmp/nlp_tasker_latency"   # both vendors' ping times from the most recent warmup round (JSON), for the dashboard indicator
 _SLOW_THRESHOLD = 3.0       # seconds — only colors the request log line now, swaps no longer use it
 _TRACE = os.environ.get("WARMUP_TRACE", "").lower() in ("1", "true", "yes")   # also log every ping's result, and quiet rounds
 _MARGIN = 0.3               # seconds — the inactive vendor must beat the active one by more than this to win a round
@@ -113,6 +114,27 @@ def _get_streaks() -> tuple[int, int]:
             return int(inactive_wins), int(active_wins)
     except (FileNotFoundError, ValueError):
         return 0, 0
+
+
+def _set_latencies(latencies: dict):
+    # latest round wins, whichever worker ran it; atomic write like the other state files
+    fd, tmp = tempfile.mkstemp(dir="/tmp")
+    with os.fdopen(fd, "w") as f:
+        json.dump(latencies, f)
+    os.rename(tmp, _LATENCY_FILE)
+
+
+def get_vendor_status() -> dict:
+    """What the dashboard indicator shows: the active vendor and how long its ping took in the most
+    recent warmup round. latency is None when that ping failed (ping_failed) or no round has run yet."""
+    vendor = _get_active_vendor()
+    try:
+        with open(_LATENCY_FILE, "r") as f:
+            latencies = json.load(f)
+    except (FileNotFoundError, ValueError):
+        return {"vendor": vendor, "latency": None, "ping_failed": False}
+    latency = latencies.get(vendor)
+    return {"vendor": vendor, "latency": latency, "ping_failed": vendor in latencies and latency is None}
 
 
 def _discord_swap_ping(old: str, new: str, pid: int):
@@ -254,6 +276,7 @@ def warmupCall():
         # while we were pinging, and this round must be scored against whoever is active NOW.
         active = _get_active_vendor()
         inactive = "gemini" if active == "openai" else "openai"
+        _set_latencies(latencies)
         active_latency, inactive_latency = latencies[active], latencies[inactive]
 
         if inactive_latency is None:

@@ -392,6 +392,13 @@ def delete_task(task_id):
         applog.note(f"task {task_id} NOT deleted: db write failed", ok=False)
         return jsonify({'error': 'Task not found.'}), 404
 
+# the current task parser (active LLM vendor) and its latest ping time; the glass dashboard shows it as a tiny logo
+@app.get('/vendor')
+def active_vendor():
+    if 'username' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    return jsonify(api.get_vendor_status())
+
 # --- Push Notification Endpoints ---
 
 @app.get('/push/vapid-public-key')

@@ -289,6 +289,35 @@
     .enter-toggle input:checked + .switch { background: rgba(var(--accent-rgb),0.55); }
     .enter-toggle input:checked + .switch::after { transform: translateX(8px); background: var(--accent-ink); opacity: 0.9; }
     .enter-toggle input:focus-visible + .switch { outline: 2px solid rgba(var(--accent-rgb),0.6); outline-offset: 2px; }
+    /* which LLM vendor is the current task parser: one tiny logo, dim until hovered */
+    .vendor-ind {
+      position: relative; margin-left: auto; width: 22px; height: 22px; flex-shrink: 0;
+      display: inline-grid; place-items: center; color: var(--dim); cursor: default; transition: color 0.15s;
+    }
+    .vendor-ind[hidden] { display: none; }
+    .vendor-ind:hover { color: var(--fg); }
+    .vendor-ind svg { display: none; width: 16.5px; height: 16.5px; fill: currentColor; opacity: 0.85; transition: opacity 0.15s; }
+    .vendor-ind:hover svg { opacity: 1; }
+    /* the logo takes the color of the parser's latest ping time (same scale as the number in the tooltip) */
+    .vendor-ind[data-speed="fast"] { --speed: var(--good); }
+    .vendor-ind[data-speed="mid"] { --speed: var(--warn); }
+    .vendor-ind[data-speed="slow"] { --speed: var(--danger); }
+    .vendor-ind[data-speed], .vendor-ind[data-speed]:hover { color: var(--speed); }
+    .vendor-ind[data-vendor="gemini"] .v-gemini, .vendor-ind[data-vendor="openai"] .v-openai { display: block; }
+    @keyframes vendorSwap { from { opacity: 0; transform: scale(0.5) rotate(-40deg); } }
+    .vendor-ind.changed svg { animation: vendorSwap 0.45s cubic-bezier(0.23, 1, 0.32, 1); }
+    .vendor-ind .tip {
+      position: absolute; bottom: calc(100% + 9px); right: -8px; z-index: 30; width: max-content; padding: 6px 10px; border-radius: 9px;
+      font-family: 'Instrument Sans', sans-serif; font-size: 12px; color: var(--fg); white-space: nowrap;
+      background: linear-gradient(135deg, var(--sheen), transparent 40%), var(--help-bg);
+      backdrop-filter: blur(22px) saturate(160%); -webkit-backdrop-filter: blur(22px) saturate(160%);
+      border: 1px solid var(--rim-lo); box-shadow: var(--edge), var(--shadow);
+      opacity: 0; visibility: hidden; transform: translateY(3px); pointer-events: none;
+      transition: opacity 0.1s, transform 0.12s, visibility 0s linear 0.1s;
+    }
+    .vendor-ind:hover .tip { opacity: 1; visibility: visible; transform: none; transition-delay: 0s; }
+    /* the parser's latest ping time: green up to 1s, yellow up to 2s, red beyond that or when it didn't answer */
+    .vendor-ind .lat { font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; margin-left: 7px; padding-left: 8px; border-left: 1px solid var(--line-strong); color: var(--speed); }
     .submit-btn {
       background: var(--accent); color: var(--accent-ink); border: none; border-radius: 9px;
       padding: 8px 16px; font-family: 'Instrument Sans', sans-serif; font-size: 13.5px; font-weight: 600;
@@ -323,8 +352,8 @@
     }
     /* denser than other floating panes: it's reading material */
     .help-pop { background: linear-gradient(135deg, var(--sheen), transparent 40%), var(--help-bg); backdrop-filter: blur(22px) saturate(160%); -webkit-backdrop-filter: blur(22px) saturate(160%); }
-    :root, :root[data-scheme="dark"] { --help-bg: rgba(22,22,32,0.78); --cp-base: #24242e; }
-    :root[data-scheme="light"] { --help-bg: rgba(248,249,253,0.82); --cp-base: #f4f5fa; }
+    :root, :root[data-scheme="dark"] { --help-bg: rgba(22,22,32,0.78); --cp-base: #24242e; --good: #5fdc9a; }
+    :root[data-scheme="light"] { --help-bg: rgba(248,249,253,0.82); --cp-base: #f4f5fa; --good: #15803d; }
     .help-pop.open { opacity: 1; visibility: visible; transform: none; transition-delay: 0s; }
     .help-sec + .help-sec { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
     .help-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 500; letter-spacing: 1.4px; text-transform: uppercase; color: var(--muted); margin-bottom: 7px; }
@@ -703,6 +732,11 @@
         </div>
         <div class="composer-foot">
           <div class="composer-help">Tasker understands <b>dates, times, colors</b> and <b>reminders</b> automatically.</div>
+          <span class="vendor-ind" id="vendorInd" hidden>
+            <svg class="v-gemini" viewBox="0 0 24 24" aria-hidden="true"><path d="M11.04 19.32Q12 21.51 12 24q0-2.49.93-4.68.96-2.19 2.58-3.81t3.81-2.55Q21.51 12 24 12q-2.49 0-4.68-.93a12.3 12.3 0 0 1-3.81-2.58 12.3 12.3 0 0 1-2.58-3.81Q12 2.49 12 0q0 2.49-.96 4.68-.93 2.19-2.55 3.81a12.3 12.3 0 0 1-3.81 2.58Q2.49 12 0 12q2.49 0 4.68.96 2.19.93 3.81 2.55t2.55 3.81"/></svg>
+            <svg class="v-openai" viewBox="0 0 24 24" aria-hidden="true"><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></svg>
+            <span class="tip" role="tooltip" id="vendorTip"></span>
+          </span>
           <label class="enter-toggle">
             <input type="checkbox" id="enterToggle" checked><span class="switch"></span>enter to add
             <span class="tip" role="tooltip">
@@ -1440,6 +1474,42 @@
       }
     });
 
+    /* ── Vendor indicator ──
+       Asks the server which LLM vendor is the current parser, and how long its latest ping took:
+       on load, after a task is added, and about every 10 seconds while the tab is visible. */
+    const vendorInd = document.getElementById('vendorInd');
+    const VENDOR_NAMES = { gemini: 'Gemini', openai: 'OpenAI' };
+    const VENDOR_POLL_MS = 10000;          // fine at low traffic; raise it if many dashboards are open at once
+    let vendorTimer;
+    async function refreshVendor() {
+      clearTimeout(vendorTimer);
+      try {
+        const res = await fetch('/vendor');
+        const { vendor, latency, ping_failed } = res.ok ? await res.json() : {};
+        if (VENDOR_NAMES[vendor]) {
+          if (vendorInd.dataset.vendor && vendorInd.dataset.vendor !== vendor) {      // swapped: spin the new logo in
+            vendorInd.classList.remove('changed'); void vendorInd.offsetWidth; vendorInd.classList.add('changed');
+          }
+          vendorInd.dataset.vendor = vendor;
+          const tip = document.getElementById('vendorTip');
+          tip.textContent = `Current parser: ${VENDOR_NAMES[vendor]}`;
+          delete vendorInd.dataset.speed;                              // neutral until the first warmup round has run
+          if (typeof latency === 'number' || ping_failed) {
+            vendorInd.dataset.speed = ping_failed || latency > 2 ? 'slow' : latency > 1 ? 'mid' : 'fast';
+            const lat = document.createElement('span');
+            lat.className = 'lat';
+            lat.textContent = ping_failed ? 'no reply' : `${latency.toFixed(2)}s`;
+            tip.appendChild(lat);
+          }
+          vendorInd.hidden = false;
+        }
+      } catch {}
+      // up to 2s of jitter, so many open tabs don't all ask at the same moment
+      if (!document.hidden) vendorTimer = setTimeout(refreshVendor, VENDOR_POLL_MS + Math.random() * 2000);
+    }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) clearTimeout(vendorTimer); else refreshVendor(); });
+    refreshVendor();
+
     /* ── Submit ── */
     document.getElementById('submitBtn').addEventListener('click', async () => {
       if (addTaskCooldown) return;
@@ -1472,6 +1542,7 @@
         document.getElementById('charCounter').textContent = '0/200';
         checkLateTomorrow();
         fetchTasks();
+        refreshVendor();
         window.ambientPulse?.(color);
         taskInput.placeholder = 'Try: ' + prompts[Math.floor(Math.random() * prompts.length)];
       } else {
