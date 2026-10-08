@@ -367,9 +367,10 @@ def edit_task(task_id):
     color = data.get('color', '#FFFFFF')
     tz = data.get('user_tz_metadata', {})
     utc_offset_minutes = tz.get('utc_offset_minutes') if isinstance(tz, dict) else None
+    tz_name = tz.get('user timezone: ') if isinstance(tz, dict) else None
 
     success = tasks.edit_task(username, task_id, task_name, task_time,
-                              task_description, due_date, color, utc_offset_minutes)
+                              task_description, due_date, color, utc_offset_minutes, tz_name)
     if success:
         applog.note(f"task {task_id} edited" + ("" if due_date else " (no due date)"), ok=True)
         return jsonify({'message': 'Task updated successfully.'})
