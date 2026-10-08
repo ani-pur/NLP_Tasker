@@ -13,8 +13,7 @@
   login attempt was for, which task id changed, which LLM vendor answered;
 - `applog.event` for things that happen outside a request (warmup pings,
   vendor swaps, emails) or that deserve their own line (DB errors);
-- pure noise (static files, PWA icons, the service worker, favicon, the dashboard's
-  /vendor poll every 10s) is dropped.
+- pure noise (static files, PWA icons, the service worker, favicon) is dropped.
 
 Never pass task text, passwords or tokens to note()/event(). Request bodies are
 never logged, and `token` query params are masked.
@@ -95,8 +94,9 @@ def _marker(important):
     return _c("1;31", "[!]") if important else "   "
 
 
-def visitor():
-    """Short 'Chrome on Linux · from google.com' for anonymous page views."""
+def visitor(referer=True):
+    """Short 'Chrome on Linux · from google.com' describing the client; `referer=False` leaves
+    off where it came from (pointless on polled endpoints, it's always our own page)."""
     ua = request.headers.get("User-Agent", "")
     low = ua.lower()
     if not ua:
@@ -111,7 +111,7 @@ def visitor():
                        if key in low), None)
         if system:
             browser += f" on {system}"
-    ref = request.headers.get("Referer")
+    ref = request.headers.get("Referer") if referer else None
     if ref:
         browser += " · from " + _clean(re.sub(r"^https?://", "", ref).rstrip("/"), 50)
     return browser
@@ -172,7 +172,7 @@ def _is_noise(path):
     return (
         path.startswith("/static/")
         or path.startswith("/pwa/")
-        or path in ("/sw.js", "/favicon.ico", "/vendor")   # /vendor: polled every 10s by every open dashboard
+        or path in ("/sw.js", "/favicon.ico")
     )
 
 

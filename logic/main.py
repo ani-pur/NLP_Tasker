@@ -395,9 +395,15 @@ def delete_task(task_id):
 # the current task parser (active LLM vendor) and its latest ping time; the glass dashboard shows it as a tiny logo
 @app.get('/vendor')
 def active_vendor():
+    # every open glass dashboard polls this every 10s; log who is asking (browser, OS, address)
+    client = f"{applog.visitor(referer=False)} · {applog.client_ip()}"
     if 'username' not in session:
+        applog.note(client, ok=False)
         return jsonify({'error': 'Not authenticated'}), 401
-    return jsonify(api.get_vendor_status())
+    status = api.get_vendor_status()
+    latency = "no reply" if status['ping_failed'] else f"{status['latency']:.2f}s" if status['latency'] is not None else "no ping yet"
+    applog.note(f"{status['vendor']} {latency} · {client}")
+    return jsonify(status)
 
 # --- Push Notification Endpoints ---
 
