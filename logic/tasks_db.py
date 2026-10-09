@@ -1,7 +1,8 @@
 import psycopg2
 from psycopg2.pool import ThreadedConnectionPool
 from contextlib import contextmanager
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 import json
 import os
 import re
@@ -49,12 +50,13 @@ def parse_api_response(jsonInput: str) -> dict:
         raise ValueError(f"Invalid JSON after sanitization: {cleaned!r}") from e
 
 
-def _build_task_datetime(due_date_str, task_time_str, utc_offset_minutes):
+def _build_task_datetime(due_date_str, task_time_str, utc_offset_minutes, tz_name=None):
     """Combine due_date + task_time into a single UTC datetime.
 
     due_date_str: "DD Mon YYYY" e.g. "14 Mar 2026"
     task_time_str: "HH:MM AM/PM" e.g. "5:00 PM" or None
     utc_offset_minutes: from JS Date.getTimezoneOffset() (e.g. 300 for EST=UTC-5)
+    tz_name: the browser's IANA timezone, e.g. "America/Chicago", or None
     """
     if not due_date_str:
         return None
@@ -72,7 +74,16 @@ def _build_task_datetime(due_date_str, task_time_str, utc_offset_minutes):
     else:
         local_dt = local_dt.replace(hour=23, minute=59)
 
-    # convert to UTC: JS getTimezoneOffset() returns minutes to ADD to get UTC
+    # convert to UTC. Preferred: the timezone name, which gives the offset that applies ON THE DUE DATE.
+    # utc_offset_minutes is the browser's offset right now, so across a clock change (DST) it is an
+    # hour off and the reminders with it.
+    if isinstance(tz_name, str) and tz_name:
+        try:
+            return local_dt.replace(tzinfo=ZoneInfo(tz_name)).astimezone(timezone.utc).replace(tzinfo=None)
+        except Exception:
+            pass    # unknown or malformed name (it comes from the browser): fall back to the offset below
+
+    # fallback: JS getTimezoneOffset() returns minutes to ADD to get UTC
     # e.g. EST (UTC-5) returns 300, IST (UTC+5:30) returns -330
     if utc_offset_minutes is not None:
         local_dt = local_dt + timedelta(minutes=utc_offset_minutes)
@@ -94,15 +105,16 @@ def add_task(username: str, jsonInput: str, task_data: dict, color: str = '#FFFF
     userInput = task_data.get('task_description')
     user_tz_metadata = task_data.get('user_tz_metadata', {})
     utc_offset_minutes = user_tz_metadata.get('utc_offset_minutes') if isinstance(user_tz_metadata, dict) else None
+    tz_name = user_tz_metadata.get('user timezone: ') if isinstance(user_tz_metadata, dict) else None
 
     # build normalized UTC datetime for notifications
-    task_datetime_utc = _build_task_datetime(due_date, task_time, utc_offset_minutes)
+    task_datetime_utc = _build_task_datetime(due_date, task_time, utc_offset_minutes, tz_name)
 
     # compute notify_at
     notify_at = None
     if notif_absolute_time and due_date:
         # absolute reminder: "remind at 2:00 PM" → combine with due_date
-        notify_at = _build_task_datetime(due_date, notif_absolute_time, utc_offset_minutes)
+        notify_at = _build_task_datetime(due_date, notif_absolute_time, utc_offset_minutes, tz_name)
     elif task_datetime_utc is not None:
         # relative reminder: offset hours before task time
         offset_hours = notif_time_offset if notif_time_offset is not None else DEFAULT_NOTIF_OFFSET_HOURS
@@ -184,8 +196,8 @@ def get_all_tasks(username, sort_order):
 # Recomputes task_datetime (UTC) and shifts any linked notification's notify_at
 # by the same delta so the reminder keeps its original lead time.
 def edit_task(username, task_id, task_name, task_time, task_description,
-              due_date, color, utc_offset_minutes=None):
-    new_task_datetime = _build_task_datetime(due_date, task_time, utc_offset_minutes)
+              due_date, color, utc_offset_minutes=None, tz_name=None):
+    new_task_datetime = _build_task_datetime(due_date, task_time, utc_offset_minutes, tz_name)
 
     with get_db_connection() as conn:
         with conn.cursor() as cur:

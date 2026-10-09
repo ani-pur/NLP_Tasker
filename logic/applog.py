@@ -5,7 +5,7 @@
     30 Sep 26  06:05:16 PM  worker 8               [!] warmup    openai slow 5.00s (3/3)
 
 - every line starts the same way: date + time, then who (the logged-in user,
-  the visitor's IP, or the worker pid for background work);
+  the visitor's IP, or the numbered, color-coded worker for background work);
 - a red [!] on anything worth a look: 4xx/5xx, auth POSTs, failed outcomes,
   warnings and errors;
 - status color-coded (2xx green / 3xx cyan / 4xx yellow / 5xx red);
@@ -63,6 +63,17 @@ def client_ip():
     return request.headers.get("CF-Connecting-IP") or request.remote_addr or "?"
 
 
+_worker = None      # (label, color) once this process has been given a worker number, see set_worker()
+_WORKER_COLORS = ("36", "35", "34", "96", "95", "94")   # no green/yellow/red: those mean something in the message text
+
+
+def set_worker(number):
+    """Give this process's background lines (warmup pings, vendor swaps) a small worker number
+    and its own color, so interleaved lines from several gunicorn workers can be told apart."""
+    global _worker
+    _worker = (f"worker {number} (pid {os.getpid()})", _WORKER_COLORS[(number - 1) % len(_WORKER_COLORS)])
+
+
 def _actor(label=None):
     """Padded, colored actor. Padding goes on the plain text *before* the color
     codes, otherwise the ANSI escapes count toward the width and misalign rows."""
@@ -72,6 +83,8 @@ def _actor(label=None):
             label = session.get("username")
             color = None if label else "2"
             label = label or client_ip()
+        elif _worker:
+            label, color = _worker
         else:
             label = f"worker {os.getpid()}"
     return _c(color, f"{_clean(label, 40):<{ACTOR_W}}")
@@ -81,8 +94,9 @@ def _marker(important):
     return _c("1;31", "[!]") if important else "   "
 
 
-def visitor():
-    """Short 'Chrome on Linux · from google.com' for anonymous page views."""
+def visitor(referer=True):
+    """Short 'Chrome on Linux · from google.com' describing the client; `referer=False` leaves
+    off where it came from (pointless on polled endpoints, it's always our own page)."""
     ua = request.headers.get("User-Agent", "")
     low = ua.lower()
     if not ua:
@@ -97,7 +111,7 @@ def visitor():
                        if key in low), None)
         if system:
             browser += f" on {system}"
-    ref = request.headers.get("Referer")
+    ref = request.headers.get("Referer") if referer else None
     if ref:
         browser += " · from " + _clean(re.sub(r"^https?://", "", ref).rstrip("/"), 50)
     return browser
@@ -118,13 +132,16 @@ def note(text, ok=None):
     g._log_notes.append((_clean(text), ok))
 
 
-def event(area, text, level="info"):
-    """Log one line that isn't a request: `level` is info, warn or error."""
+def event(area, text, level="info", color=None):
+    """Log one line that isn't a request: `level` is info, warn or error.
+    An info line can be tinted with `color` ("green" or "yellow") without being flagged."""
     text = _clean(text, 300)
     if level == "error":
         text = _c("1;31", text)
     elif level == "warn":
         text = _c("33", text)
+    elif color:
+        text = _c({"green": "32", "yellow": "33"}.get(color), text)
     line = f"{_stamp()}  {_actor()}  {_marker(level != 'info')} {_c('1', f'{area:<{AREA_W}}')} {text}"
     log.log({"error": logging.ERROR, "warn": logging.WARNING}.get(level, logging.INFO), line)
 

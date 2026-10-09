@@ -649,6 +649,7 @@
         "todaysDate (yyyy/mm/dd): ": now.toLocaleDateString('en-CA'),
         "current time: ": ` ${now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })} `,
         "current day: ": ` ${now.toLocaleDateString('en-US', { weekday: 'long' })} `,
+        "user timezone: ": Intl.DateTimeFormat().resolvedOptions().timeZone,   // e.g. "America/Chicago"
         "utc_offset_minutes": now.getTimezoneOffset()
       };
     }

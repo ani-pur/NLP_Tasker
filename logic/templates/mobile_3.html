@@ -19,6 +19,12 @@
       --fg: #e4e4e7;
       --muted: #71717a;
       --accent: #818cf8;
+      --soft: #b9b9c4;                      /* body text on glass: brighter than --muted so it stays readable */
+      /* Frosted panes. The dark tint carries the contrast by itself, so text reads the same where
+         the browser's blur is weak or missing (Android/Chrome vs iOS); the blur is polish on top. */
+      --glass: linear-gradient(135deg, rgba(255,255,255,0.075), rgba(255,255,255,0.02) 60%), rgba(12,12,18,0.6);
+      --glass-blur: blur(22px) saturate(150%);
+      --ease: cubic-bezier(0.23, 1, 0.32, 1);
       /* used by _theme_menu.html */
       --panel: #0e0e12;
       --line: var(--border);
@@ -42,34 +48,24 @@
     .ambient { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
 
     /* Animations */
-    .task-enter {
-      animation: slideUp 0.5s cubic-bezier(0.23, 1, 0.32, 1) both;
+    @keyframes cardIn {
+      0%   { opacity: 0; transform: translateY(14px) scale(0.97); }
+      100% { opacity: 1; transform: none; }
     }
-    @keyframes slideUp {
-      0%   { opacity: 0; transform: translateY(20px) scale(0.96); }
-      100% { opacity: 1; transform: translateY(0) scale(1); }
+    /* a freshly added task also glows in its own color for a moment */
+    @keyframes addedGlow {
+      0%, 30% { box-shadow: 0 0 0 1px var(--c), 0 0 22px -4px var(--c); }
+      100%    { box-shadow: var(--card-shadow); }
     }
+    /* 'backwards', not 'both': an animation that keeps holding opacity after it ends makes Chrome
+       treat the element as its own backdrop, and the blur behind it stops working */
+    .task-card.entering { animation: cardIn 0.34s var(--ease) backwards; }
+    .task-card.just-added { animation: cardIn 0.34s var(--ease) backwards, addedGlow 1.6s ease-out 0.1s backwards; }
 
     .snap { animation: snap 180ms ease-out; }
     @keyframes snap {
       0%   { opacity: 0; transform: translateY(-4px) scale(1.05); }
       100% { opacity: 1; transform: translateY(0) scale(1); }
-    }
-
-    summary { list-style: none; }
-    summary::-webkit-details-marker { display: none; }
-
-    .task-details {
-      animation: expand 0.2s ease-out;
-    }
-    @keyframes expand {
-      from { opacity: 0; transform: translateY(-4px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .tap-active {
-      background-color: rgba(0, 0, 0, 0.3) !important;
-      transform: scale(0.985);
     }
 
     .btn-pressed {
@@ -149,8 +145,8 @@
 
     /* Input card */
     .input-card {
-      background: var(--surface);
-      backdrop-filter: blur(24px) saturate(150%);
+      background: var(--glass);
+      -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
       border: 1px solid var(--border);
       border-radius: 20px;
       padding: 20px;
@@ -241,8 +237,8 @@
     }
 
     .stat-box {
-      background: var(--surface);
-      backdrop-filter: blur(16px);
+      background: var(--glass);
+      -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
       border: 1px solid var(--border);
       border-radius: 12px;
       padding: 12px;
@@ -309,57 +305,64 @@
 
     #taskList li { list-style: none; }
 
+    /* A task: one frosted card holding the header row and, once opened, its details, so the
+       details sit on the same glass as the title. --c is the task's color. */
     .task-card {
-      background: var(--surface);
-      backdrop-filter: blur(20px) saturate(150%);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 16px 18px;
-      transition: all 0.15s;
+      --c: var(--accent);
+      --card-shadow: inset 0 1px 0 rgba(255,255,255,0.07), 0 12px 26px -18px rgba(0,0,0,0.9);
       position: relative;
       overflow: hidden;
+      border-radius: 16px;
+      background: linear-gradient(135deg, color-mix(in srgb, var(--c) 15%, transparent), transparent 65%), var(--glass);
+      -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+      border: 1px solid color-mix(in srgb, var(--c) 22%, var(--border-hover));
+      box-shadow: var(--card-shadow);
+      transition: border-color 0.2s, transform 0.15s var(--ease);
     }
+    .task-card::before {                     /* color bar */
+      content: ''; position: absolute; left: 0; top: 13px; bottom: 13px; width: 3px;
+      border-radius: 0 3px 3px 0; background: var(--c);
+    }
+    .task-card.overdue { border-color: rgba(248,113,113,0.4); }
+    .task-card.open { border-color: color-mix(in srgb, var(--c) 48%, var(--border-hover)); }
+    .task-card.pressed { transform: scale(0.985); }
 
-    .task-card .color-bar {
-      position: absolute;
-      left: 0;
-      top: 10px;
-      bottom: 10px;
-      width: 3px;
-      border-radius: 0 3px 3px 0;
+    .task-head {
+      display: flex; align-items: center; gap: 10px;
+      padding: 15px 14px 15px 18px; cursor: pointer; outline: none;
     }
+    .task-head:focus-visible { box-shadow: inset 0 0 0 2px rgba(129,140,248,0.55); border-radius: 16px; }
+    .task-head-main { flex: 1; min-width: 0; }
 
     .task-name {
       font-size: 15px;
       font-weight: 700;
       letter-spacing: -0.3px;
       line-height: 1.3;
-      padding-left: 10px;
+      overflow-wrap: anywhere;
+      color: color-mix(in srgb, var(--c) 85%, #fff);
     }
 
-    .task-meta {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      margin-top: 6px;
-      padding-left: 10px;
-    }
+    .task-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 7px; }
+
+    .chev { flex-shrink: 0; color: var(--muted); transition: transform 0.22s var(--ease), color 0.15s; }
+    .task-card.open .chev { transform: rotate(180deg); color: var(--fg); }
 
     .time-pill {
       font-family: 'IBM Plex Mono', monospace;
       font-size: 10px;
       font-weight: 500;
-      color: var(--muted);
-      background: rgba(255,255,255,0.04);
-      border: 1px solid var(--border);
+      color: var(--soft);
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border-hover);
       padding: 3px 8px;
       border-radius: 6px;
     }
 
     .time-pill.overdue {
-      color: #f87171;
-      background: rgba(248,113,113,0.08);
-      border-color: rgba(248,113,113,0.2);
+      color: #fca5a5;
+      background: rgba(248,113,113,0.12);
+      border-color: rgba(248,113,113,0.32);
     }
 
     .reminder-badge {
@@ -367,50 +370,54 @@
       font-size: 10px;
       font-weight: 500;
       color: #fbbf24;
-      background: rgba(120,53,15,0.2);
-      border: 1px solid rgba(251,191,36,0.2);
+      background: rgba(120,53,15,0.28);
+      border: 1px solid rgba(251,191,36,0.28);
       padding: 3px 8px;
       border-radius: 6px;
     }
 
+    /* details slide open: the grid row animates 0fr -> 1fr, so no height has to be measured */
+    .task-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.22s var(--ease); }
+    .task-card.open .task-body { grid-template-rows: 1fr; }
+    .task-body-inner { min-height: 0; overflow: hidden; visibility: hidden; transition: visibility 0s linear 0.22s; }
+    .task-card.open .task-body-inner { visibility: visible; transition-delay: 0s; }
     .task-expand {
-      margin-top: 12px;
-      color: var(--muted);
-      font-size: 12px;
+      margin: 0 14px 0 18px;
+      padding: 12px 0 14px;
+      border-top: 1px solid var(--border-hover);
+      color: var(--soft);
+      font-size: 13px;
       line-height: 1.6;
-      border-top: 1px solid var(--border);
-      padding: 12px 10px 0 10px;
+      overflow-wrap: anywhere;
+      opacity: 0; transform: translateY(-5px);
+      transition: opacity 0.15s ease, transform 0.22s var(--ease);
     }
+    .task-card.open .task-expand { opacity: 1; transform: none; transition-delay: 0.04s; }
+    .task-desc.empty { color: var(--muted); font-style: italic; }
+    .task-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
 
-    .delete-btn {
-      background: none;
-      border: 1px solid rgba(248,113,113,0.2);
-      color: #f87171;
+    .delete-btn, .edit-btn {
       font-family: 'IBM Plex Mono', monospace;
       font-size: 10px;
       font-weight: 600;
       cursor: pointer;
-      padding: 6px 14px;
-      border-radius: 6px;
-      margin-top: 10px;
-      float: right;
-      transition: all 0.15s;
+      padding: 7px 14px;
+      border-radius: 7px;
+      transition: background 0.15s, transform 0.12s;
+    }
+    .delete-btn:active, .edit-btn:active { transform: scale(0.95); }
+    .delete-btn { color: #fca5a5; background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3); }
+    .edit-btn { color: #a5b4fc; background: rgba(129,140,248,0.12); border: 1px solid rgba(129,140,248,0.32); }
+
+    /* a deleted task folds out of the list before the list refreshes */
+    #taskList li.leaving {
+      overflow: hidden; pointer-events: none; opacity: 0; transform: scale(0.96); margin-bottom: -10px;
+      transition: height 0.2s cubic-bezier(0.4, 0, 0.2, 1), margin-bottom 0.2s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.14s ease, transform 0.2s ease;
     }
 
-    .edit-btn {
-      background: none;
-      border: 1px solid rgba(129,140,248,0.25);
-      color: var(--accent);
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 10px;
-      font-weight: 600;
-      cursor: pointer;
-      padding: 6px 14px;
-      border-radius: 6px;
-      margin-top: 10px;
-      margin-right: 8px;
-      float: right;
-      transition: all 0.15s;
+    @media (prefers-reduced-motion: reduce) {
+      .task-card, .task-card.entering, .task-card.just-added { animation: none; transition: none; }
+      .task-body, .task-expand, .chev, #taskList li.leaving { transition: none; }
     }
 
     /* ── Edit modal ── */
@@ -689,11 +696,67 @@
         "todaysDate (yyyy/mm/dd): ": now.toLocaleDateString('en-CA'),
         "current time: ": now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
         "current day: ": now.toLocaleDateString('en-US', { weekday: 'long' }),
+        "user timezone: ": Intl.DateTimeFormat().resolvedOptions().timeZone,   // e.g. "America/Chicago"
         "utc_offset_minutes": now.getTimezoneOffset()
       };
     }
 
     let currentTasks = [];                 // last fetched rows, used by the edit modal
+
+    function escapeHtml(s) {
+      return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+    }
+    // CSS value for a task's --c: its hex color, or a soft white for "no color" (#FFFFFF)
+    function cssColor(hex) {
+      if (!/^#[0-9a-f]{3,8}$/i.test(hex || '') || hex.toUpperCase() === '#FFFFFF') return '#dcdce4';
+      return hex;
+    }
+
+    const CHEVRON = '<svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
+    const openIds = new Set();             // expanded cards, kept open across list refreshes
+    let knownIds = null;                   // task ids already on screen; null until the first load
+
+    // one task card: tap the header to slide its details open
+    function buildTask(task, isPastDue) {
+      const [id, , name, time, desc, due, color, reminder_display] = task;
+      const dueDateDisplay = due ? due.replace(/ 00:00:00.*$/, '') : '';
+      const fullDateTime = `${dueDateDisplay}${time ? ' \u00b7 ' + time : ''}`.trim();
+      const open = openIds.has(id);
+      const meta =
+        (fullDateTime ? `<span class="time-pill${isPastDue ? ' overdue' : ''}">${escapeHtml(fullDateTime)}</span>` : '') +
+        (reminder_display ? `<span class="reminder-badge">\ud83d\udd14 ${escapeHtml(reminder_display)}</span>` : '');
+
+      const li = document.createElement('li');
+      li.dataset.id = id;
+      li.innerHTML = `
+        <div class="task-card${isPastDue ? ' overdue' : ''}${open ? ' open' : ''}" style="--c:${cssColor(color)};">
+          <div class="task-head" role="button" tabindex="0" aria-expanded="${open}">
+            <div class="task-head-main">
+              <div class="task-name">${escapeHtml(name)}</div>
+              ${meta ? `<div class="task-meta">${meta}</div>` : ''}
+            </div>
+            ${CHEVRON}
+          </div>
+          <div class="task-body"><div class="task-body-inner"><div class="task-expand">
+            <div class="task-desc${desc ? '' : ' empty'}">${desc ? escapeHtml(desc) : 'No details'}</div>
+            <div class="task-actions">
+              <button class="edit-btn" onclick="openEdit(${id})">edit</button>
+              <button class="delete-btn" onclick="deleteTask(${id})">delete</button>
+            </div>
+          </div></div></div>
+        </div>`;
+
+      const card = li.firstElementChild, head = card.querySelector('.task-head');
+      const toggle = () => {
+        const nowOpen = card.classList.toggle('open');
+        head.setAttribute('aria-expanded', nowOpen);
+        if (nowOpen) openIds.add(id); else openIds.delete(id);
+      };
+      head.addEventListener('click', toggle);
+      head.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
+      addTapFeedback(head, card);
+      return li;
+    }
 
     async function loadTasks() {
       try {
@@ -701,7 +764,6 @@
         const tasks = await res.json();
         currentTasks = tasks;
         const list = document.getElementById('taskList');
-        list.innerHTML = '';
 
         const now = new Date();
         const pastDueTasks = [];
@@ -726,69 +788,61 @@
         document.getElementById('statOverdue').textContent = pastDueTasks.length;
         document.getElementById('statTotal').textContent = tasks.length;
 
-        let staggerIndex = 0;
+        const firstLoad = knownIds === null;
+        const seen = new Set();
+        const frag = document.createDocumentFragment();
+        let staggerIndex = 0, fresh = null;
 
-        const appendTask = (task, isPastDue, idx) => {
-          const [id, __, name, time, desc, due, color, reminder_display] = task;
-          const dueDateDisplay = due ? due.replace(/ 00:00:00.*$/, '') : '';
-          const timeDisplay = time ? ' \u00b7 ' + time : '';
-          const fullDateTime = `${dueDateDisplay}${timeDisplay}`.trim();
-
-          const li = document.createElement('li');
-          li.className = 'task-enter';
-          li.style.animationDelay = `${idx * 50}ms`;
-
-          const cardBorder = isPastDue ? 'border-color:rgba(248,113,113,0.3);' : '';
-
-          li.innerHTML = `
-            <details class="group">
-              <summary style="outline:none;cursor:pointer;">
-                <div class="task-card" style="${cardBorder}">
-                  <div class="color-bar" style="background:${color || '#818cf8'};"></div>
-                  <div class="task-name" style="color:${color || '#818cf8'}">${name}</div>
-                  <div class="task-meta">
-                    ${fullDateTime ? `<span class="time-pill${isPastDue ? ' overdue' : ''}">${fullDateTime}</span>` : ''}
-                    ${reminder_display ? `<span class="reminder-badge">\ud83d\udd14 ${reminder_display}</span>` : ''}
-                  </div>
-                </div>
-              </summary>
-              <div class="task-expand task-details">
-                ${desc}
-                <button class="delete-btn" onclick="deleteTask(${id})">delete</button>
-                <button class="edit-btn" onclick="openEdit(${id})">edit</button>
-                <div style="clear:both;"></div>
-              </div>
-            </details>
-          `;
-
-          addTapFeedback(li);
-          list.appendChild(li);
+        const appendTask = (task, isPastDue) => {
+          const li = buildTask(task, isPastDue), card = li.firstElementChild, id = task[0];
+          seen.add(id);
+          // first load: everything cascades in; later refreshes: only a brand-new task animates
+          if (firstLoad) { card.classList.add('entering'); card.style.animationDelay = `${Math.min(staggerIndex++ * 35, 420)}ms`; }
+          else if (!knownIds.has(id)) { card.classList.add('entering', 'just-added'); fresh = li; }
+          frag.appendChild(li);
         };
 
-        pastDueTasks.forEach(task => appendTask(task, true, staggerIndex++));
+        pastDueTasks.forEach(task => appendTask(task, true));
 
         if (pastDueTasks.length > 0) {
           const divider = document.createElement('li');
           divider.className = 'past-due-divider';
           divider.innerHTML = `<span class="divider-label">Past Due</span>`;
-          list.appendChild(divider);
+          frag.appendChild(divider);
         }
 
-        upcomingTasks.forEach(task => appendTask(task, false, staggerIndex++));
+        upcomingTasks.forEach(task => appendTask(task, false));
+
+        list.replaceChildren(frag);
+        knownIds = seen;
+        openIds.forEach(id => { if (!seen.has(id)) openIds.delete(id); });
+        fresh?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });   // a new task may land off-screen
       } catch (err) {
         console.error("Error loading tasks:", err);
       }
     }
 
-    function addTapFeedback(el) {
-      el.addEventListener('touchstart', () => el.classList.add('tap-active'), {passive: true});
-      el.addEventListener('touchend', () => setTimeout(() => el.classList.remove('tap-active'), 50));
-      el.addEventListener('touchcancel', () => el.classList.remove('tap-active'));
+    // press feedback on the whole card while its header is held
+    function addTapFeedback(head, card) {
+      head.addEventListener('touchstart', () => card.classList.add('pressed'), {passive: true});
+      head.addEventListener('touchend', () => setTimeout(() => card.classList.remove('pressed'), 80));
+      head.addEventListener('touchcancel', () => card.classList.remove('pressed'));
     }
 
     async function deleteTask(id) {
       const res = await fetch('/tasks/' + id, { method: 'DELETE' });
-      if (res.ok) loadTasks();
+      if (!res.ok) return alert('Failed to delete task');
+      // fold the card out of the list, then refresh
+      const li = document.querySelector(`#taskList li[data-id="${id}"]`);
+      if (li) {
+        li.style.height = li.offsetHeight + 'px';
+        void li.offsetHeight;
+        li.classList.add('leaving');
+        li.style.height = '0px';
+        await new Promise(r => setTimeout(r, 210));
+      }
+      openIds.delete(id);
+      loadTasks();
     }
 
     /* ── Edit task ── */

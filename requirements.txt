@@ -1,10 +1,10 @@
-# LLM SDKs: openai 3.x makes HTTPX2 the default and drops the http_client= kwarg used in logic/apiCall.py
+# LLM SDKs: openai 3.x makes HTTPX2 the default and drops the http_client= kwarg used in logic/llm_vendors.py
 openai>=2.21.0,<3
 google-genai>=2.20.0,<3
 
 # Float within the current major
 Flask>=3.1.3,<4
-httpx>=0.28.1,<0.29
+httpx[http2]>=0.28.1,<0.29   # the http2 extra pulls in h2; logic/llm_vendors.py turns HTTP/2 on for both vendor clients
 psycopg2-binary>=2.9.12,<3
 Werkzeug>=3.1.8,<4
 gunicorn>=26.2.0,<27

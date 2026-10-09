@@ -41,6 +41,8 @@ services:
     environment:
       TZ: America/Chicago
       PYTHONUNBUFFERED: 1
+      # also log every ordinary warmup ping and every round the active vendor held (chatty; leave unset in prod)
+      WARMUP_TRACE: 1
       POSTGRES_USER: tasker
       POSTGRES_PASSWORD: tasker
       POSTGRES_DB: tasker

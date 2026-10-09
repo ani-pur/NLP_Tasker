@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_from_directory, make_response
 from logic import hasher
 from logic import tasks_db as tasks
-from logic import apiCall as api
+from logic import llm_vendors as api
 from logic import applog
 import secrets
 import os
@@ -91,6 +91,11 @@ def service_worker():
     response.headers['Service-Worker-Allowed'] = '/'
     response.headers['Content-Type'] = 'application/javascript'
     return response
+
+# HEALTH CHECK
+@app.get('/health-check')
+def health_check():
+    return jsonify({"Status": "Up"})
 
 @app.route('/info', methods=['GET'])
 def info():
@@ -367,9 +372,10 @@ def edit_task(task_id):
     color = data.get('color', '#FFFFFF')
     tz = data.get('user_tz_metadata', {})
     utc_offset_minutes = tz.get('utc_offset_minutes') if isinstance(tz, dict) else None
+    tz_name = tz.get('user timezone: ') if isinstance(tz, dict) else None
 
     success = tasks.edit_task(username, task_id, task_name, task_time,
-                              task_description, due_date, color, utc_offset_minutes)
+                              task_description, due_date, color, utc_offset_minutes, tz_name)
     if success:
         applog.note(f"task {task_id} edited" + ("" if due_date else " (no due date)"), ok=True)
         return jsonify({'message': 'Task updated successfully.'})
@@ -390,6 +396,19 @@ def delete_task(task_id):
     else:
         applog.note(f"task {task_id} NOT deleted: db write failed", ok=False)
         return jsonify({'error': 'Task not found.'}), 404
+
+# the current task parser (active LLM vendor) and its latest ping time; the glass dashboard shows it as a tiny logo
+@app.get('/vendor')
+def active_vendor():
+    # every open glass dashboard polls this every 10s; log who is asking (browser, OS, address)
+    client = f"{applog.visitor(referer=False)} · {applog.client_ip()}"
+    if 'username' not in session:
+        applog.note(client, ok=False)
+        return jsonify({'error': 'Not authenticated'}), 401
+    status = api.get_vendor_status()
+    latency = "no reply" if status['ping_failed'] else f"{status['latency']:.2f}s" if status['latency'] is not None else "no ping yet"
+    applog.note(f"{status['vendor']} {latency} · {client}")
+    return jsonify(status)
 
 # --- Push Notification Endpoints ---
 
