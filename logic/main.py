@@ -92,6 +92,11 @@ def service_worker():
     response.headers['Content-Type'] = 'application/javascript'
     return response
 
+# HEALTH CHECK
+@app.get('/health-check')
+def health_check():
+    return jsonify({"Status": "Up"})
+
 @app.route('/info', methods=['GET'])
 def info():
     applog.note(applog.visitor())
