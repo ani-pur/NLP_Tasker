@@ -41,8 +41,6 @@ services:
     environment:
       TZ: America/Chicago
       PYTHONUNBUFFERED: 1
-      # log every warmup ping going out and coming back (leave unset in prod: it's chatty)
-      WARMUP_TRACE: 1
       POSTGRES_USER: tasker
       POSTGRES_PASSWORD: tasker
       POSTGRES_DB: tasker

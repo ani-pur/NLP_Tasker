@@ -63,7 +63,9 @@ _STREAKS_FILE = "/tmp/nlp_tasker_streaks"   # holds "inactive_wins,active_wins" 
 _LATE_WARMUP_LOG = "/tmp/nlp_tasker_late_warmups.log"
 _LATENCY_FILE = "/tmp/nlp_tasker_latency"   # both vendors' ping times from the most recent warmup round (JSON), for the dashboard indicator
 _SLOW_THRESHOLD = 3.0       # seconds — only colors the request log line now, swaps no longer use it
-_TRACE = os.environ.get("WARMUP_TRACE", "").lower() in ("1", "true", "yes")   # also log every ping's result, and quiet rounds
+# Log every ping's result, every round's verdict and every scheduled reconnect. On by default;
+# set WARMUP_TRACE=0 in the environment to go back to logging only failures, lost rounds and swaps.
+_TRACE = os.environ.get("WARMUP_TRACE", "1").lower() not in ("0", "false", "no", "off")
 _MARGIN = 0.3               # seconds — the inactive vendor must beat the active one by more than this to win a round
 _SWAP_AFTER = 3             # consecutive rounds the inactive vendor must win before flipping
 _WIPE_AFTER = 3             # consecutive rounds the active vendor must win before erasing the inactive one's streak
