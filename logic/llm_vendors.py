@@ -23,14 +23,18 @@ def currentTime():
 # using a custom httpx client cuz apparently a good chunk of the API "warmup" is actually just opening sockets and TLS handshakes (which add more time on top of loading the model) ((DISCLAIMER: according to gpt and gemini lol))
 # seems to work, has mostly fixed warmup issues in combination with the keep_warm_loop() implementation [defined below in module]
 
-# HTTP/2 on both vendor clients: a request that hits _TIMEOUT is cancelled on its own (RST_STREAM) and the
-# connection stays open, where HTTP/1.1 could only give up by closing the connection and reconnecting cold.
-# Concurrent requests in one worker also share the one warm connection instead of opening extra ones.
+# HTTP/2 on both vendor clients: concurrent requests in one worker share the one warm connection instead
+# of opening extra cold ones, and a request that hits _TIMEOUT can be cancelled without closing it.
+# The catch: the vendors retire an HTTP/2 connection after about an hour, and httpcore only notices a
+# server-closed HTTP/2 connection when it next uses it (for HTTP/1.1 it checks first). So each worker
+# replaces its own connections every _RECONNECT_AFTER, and a call that still lands on a dead connection
+# is retried once (_with_retry).
 http_client=httpx.Client(http2=True, limits=httpx.Limits(max_keepalive_connections=20, keepalive_expiry=140.0)) # keepalive_expiry MUST be greater than keep_warm_loop() SLEEP
 
 # Every call to either vendor (warmup pings AND real requests) gets this timeout and no SDK
 # retries, so a dead or crawling vendor fails fast and the fallback / the user's "try again" kicks in.
 _TIMEOUT = 3.0              # seconds
+_RECONNECT_AFTER = 30 * 60  # seconds — how often a worker closes and reopens its vendor connections, well inside the vendors' ~60 min limit
 
 api_key=os.environ.get('API_KEY')
 openai_client = OpenAI(api_key=api_key,http_client=http_client,timeout=_TIMEOUT,max_retries=0)
@@ -116,8 +120,17 @@ def _get_streaks() -> tuple[int, int]:
         return 0, 0
 
 
-def _set_latencies(latencies: dict):
-    # latest round wins, whichever worker ran it; atomic write like the other state files
+def _set_latencies(latencies: dict, keep_previous=()):
+    # latest round wins, whichever worker ran it; atomic write like the other state files.
+    # keep_previous: vendors whose ping this round ran on a new connection; their last normal number stays.
+    if keep_previous:
+        try:
+            with open(_LATENCY_FILE, "r") as f:
+                previous = json.load(f)
+        except (FileNotFoundError, ValueError):
+            previous = {}
+        latencies = {v: t for v, t in latencies.items() if v not in keep_previous}
+        latencies.update({v: previous[v] for v in keep_previous if v in previous})
     fd, tmp = tempfile.mkstemp(dir="/tmp")
     with os.fdopen(fd, "w") as f:
         json.dump(latencies, f)
@@ -212,39 +225,79 @@ def _fmt_latency(latency) -> str:
     return "FAILED" if latency is None else f"{latency:.2f}s"
 
 
-def _trace_ping(vendor: str, latency: float):
-    # one line per answered ping: green when quick, yellow when it only just made the timeout.
-    # A ping that failed is logged by warmupCall itself, as a flagged warning.
-    if _TRACE:
-        color = "green" if latency < 1.0 else "yellow" if latency >= 2.0 else None
-        applog.event('warmup', f"{vendor} ping {latency:.2f}s", color=color)
+# --- connection upkeep (per worker: each gunicorn worker has its own two httpx clients and pools) ---
+_HTTP_CLIENTS = {"openai": http_client, "gemini": gemini_http_client}
+_next_reconnect = time.monotonic() + _RECONNECT_AFTER    # this worker's next scheduled reconnect
+_pool_warned = False
 
 
-def warmupCall():
-    """Pings BOTH vendors every cycle, then scores the round: the faster vendor wins (see _MARGIN).
-    The inactive vendor takes over after winning _SWAP_AFTER rounds in a row."""
-    pid = os.getpid()
-
-    # --- ping OpenAI ---
-    openai_latency = None   # None = failed or timed out; always loses to a ping that answered
-    openai_error = None
-    openai_startTime = time.time()
+def _pooled_connections(vendor: str):
+    """Every connection object in this worker's pool for a vendor, or None if they can't be reached.
+    httpx has no public way to look at or close pooled connections, so this reads two private attributes;
+    if a future httpx moves them, the scheduled reconnect switches itself off and _with_retry still covers us."""
+    global _pool_warned
     try:
+        return list(_HTTP_CLIENTS[vendor]._transport._pool.connections)
+    except Exception as e:
+        if not _pool_warned:
+            _pool_warned = True
+            applog.event('warmup', f"cannot reach httpx's connection pool ({type(e).__name__}: {e}); "
+                                   f"scheduled reconnects are off, dead connections are still retried", 'warn')
+        return None
+
+
+def _open_connections(vendor: str):
+    # the connections a request could actually go out on. A connection that has failed stays in the pool,
+    # unusable, until its keep-alive runs out; is_available() is how httpcore tells the two apart.
+    connections = _pooled_connections(vendor)
+    if connections is None:
+        return None
+    try:
+        return [c for c in connections if c.is_available()]
+    except Exception:
+        return None
+
+
+def _close_idle_connections(vendor: str):
+    # a connection carrying a request right now is left alone; it gets replaced at the next reconnect
+    for connection in _pooled_connections(vendor) or []:
+        try:
+            if connection.is_idle():
+                connection.close()
+        except Exception:
+            pass
+
+
+def _is_dead_connection(error: Exception) -> bool:
+    """True when a call failed because the kept-alive connection had already been closed by the other
+    side (Broken pipe, Connection reset, an HTTP/2 protocol error). That fails at once, and a second try
+    opens a new connection. Not a timeout (a slow vendor must not get a second 3s) and not a failure to
+    connect at all (DNS down, network unreachable), where trying again changes nothing."""
+    cause = error.__cause__ if isinstance(error, APIConnectionError) and error.__cause__ else error
+    return isinstance(cause, httpx.TransportError) and not isinstance(cause, (httpx.TimeoutException, httpx.ConnectError))
+
+
+def _with_retry(vendor: str, call):
+    """Runs one vendor call, once more if it landed on a dead connection. Returns (result, retried)."""
+    try:
+        return call(), False
+    except Exception as e:
+        if not _is_dead_connection(e):
+            raise
+        cause = e.__cause__ if isinstance(e, APIConnectionError) and e.__cause__ else e
+        applog.event('llm', f"{vendor} connection had been closed by the other side, retrying on a new one "
+                            f"[{type(cause).__name__}: {cause}]")
+        return call(), True
+
+
+def _send_ping(vendor: str):
+    if vendor == "openai":
         openai_client.responses.create(
             model="gpt-5.4-nano-2026-03-17",
             instructions="warmup ping to handle cold-start latency, respond with 'warmed up'",
             input=" "
         )
-        openai_latency = time.time() - openai_startTime
-        _trace_ping("openai", openai_latency)
-    except Exception as e:
-        openai_error = e
-
-    # --- ping Gemini ---
-    gemini_latency = None
-    gemini_error = None
-    gemini_startTime = time.time()
-    try:
+    else:
         gemini_client.models.generate_content(
             model="gemini-3-flash-preview",
             contents="warmup ping",
@@ -257,15 +310,63 @@ def warmupCall():
                 automatic_function_calling=genai.types.AutomaticFunctionCallingConfig(disable=True),
             )
         )
-        gemini_latency = time.time() - gemini_startTime
-        _trace_ping("gemini", gemini_latency)
+
+
+def _ping(vendor: str):
+    """One warmup ping. Returns (latency, error, new_connection).
+    latency is None when the ping failed or timed out (error says why); it always loses to a ping that answered.
+    new_connection is True when the ping had to open a connection first (scheduled reconnect, a retry, the
+    first ping after startup): its time then includes the connection setup and says nothing about the vendor."""
+    before = _open_connections(vendor)
+    started = time.time()
+    try:
+        _, retried = _with_retry(vendor, lambda: _send_ping(vendor))
     except Exception as e:
-        gemini_error = e
+        return None, e, False
+    latency = time.time() - started
+    after = _open_connections(vendor)
+    swapped_connection = before is not None and after is not None and not any(a is b for a in after for b in before)
+    new_connection = retried or swapped_connection
+    _trace_ping(vendor, latency, new_connection)
+    return latency, None, new_connection
+
+
+def _trace_ping(vendor: str, latency: float, new_connection: bool = False):
+    # one line per answered ping: green when quick, yellow when it only just made the timeout.
+    # A ping that failed is logged by warmupCall itself, as a flagged warning.
+    if _TRACE:
+        color = None if new_connection else "green" if latency < 1.0 else "yellow" if latency >= 2.0 else None
+        applog.event('warmup', f"{vendor} ping {latency:.2f}s" + (" (new connection)" if new_connection else ""), color=color)
+
+
+def warmupCall():
+    """Pings BOTH vendors every cycle, then scores the round: the faster vendor wins (see _MARGIN).
+    The inactive vendor takes over after winning _SWAP_AFTER rounds in a row."""
+    global _next_reconnect
+    pid = os.getpid()
+
+    # scheduled reconnect: drop this worker's idle vendor connections so the pings below open fresh ones,
+    # before the vendors close them on us. User requests then keep finding a warm connection.
+    if time.monotonic() >= _next_reconnect:
+        for vendor in _HTTP_CLIENTS:
+            _close_idle_connections(vendor)
+        _next_reconnect = time.monotonic() + _RECONNECT_AFTER
+        if _TRACE:
+            applog.event('warmup', f"scheduled reconnect (every {_RECONNECT_AFTER // 60} min): closed idle vendor connections")
+
+    openai_latency, openai_error, openai_new = _ping("openai")
+    gemini_latency, gemini_error, gemini_new = _ping("gemini")
 
     latencies = {"openai": openai_latency, "gemini": gemini_latency}
     for vendor, error in (("openai", openai_error), ("gemini", gemini_error)):
         if error is not None:
             applog.event('warmup', f"{vendor} ping: {_describe_error(error)}", 'warn')
+
+    # A ping on a new connection is slower for reasons that have nothing to do with the vendor, so when both
+    # answered and either was on a new connection, the round counts for nobody. A ping that FAILED is still
+    # a real result and is scored as before.
+    on_new_connection = [v for v, new in (("openai", openai_new), ("gemini", gemini_new)) if new]
+    unscored = bool(on_new_connection) and openai_latency is not None and gemini_latency is not None
 
     # Single fcntl lock guards the whole read-modify-write of the streaks file so 4 workers
     # can't race and undercount/overcount toward the swap threshold.
@@ -276,7 +377,12 @@ def warmupCall():
         # while we were pinging, and this round must be scored against whoever is active NOW.
         active = _get_active_vendor()
         inactive = "gemini" if active == "openai" else "openai"
-        _set_latencies(latencies)
+        _set_latencies(latencies, keep_previous=on_new_connection if unscored else ())
+        if unscored:
+            if _TRACE:
+                applog.event('warmup', f"round not scored: {' and '.join(on_new_connection)} on a new connection "
+                                       f"(openai {_fmt_latency(openai_latency)}, gemini {_fmt_latency(gemini_latency)})")
+            return
         active_latency, inactive_latency = latencies[active], latencies[inactive]
 
         if inactive_latency is None:
@@ -373,18 +479,18 @@ if __name__ != "__main__":
 
 
 def _call_openai(system_prompt: str, user_input: str) -> str:
-    response = openai_client.responses.create(
+    response, _ = _with_retry("openai", lambda: openai_client.responses.create(
         model="gpt-5.4-nano-2026-03-17",
         instructions=dedent(system_prompt),
         input=user_input,
         text={ "verbosity": "low" },
         reasoning={ "effort": "none" }
-    )
+    ))
     return response.output_text
 
 
 def _call_gemini(system_prompt: str, user_input: str) -> str:
-    response = gemini_client.models.generate_content(
+    response, _ = _with_retry("gemini", lambda: gemini_client.models.generate_content(
         model="gemini-3-flash-preview",
         contents=user_input,
         config={
@@ -395,7 +501,7 @@ def _call_gemini(system_prompt: str, user_input: str) -> str:
             },
             "automatic_function_calling": {"disable": True}
         }
-    )
+    ))
     return response.text
 
 
