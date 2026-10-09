@@ -63,9 +63,11 @@ _STREAKS_FILE = "/tmp/nlp_tasker_streaks"   # holds "inactive_wins,active_wins" 
 _LATE_WARMUP_LOG = "/tmp/nlp_tasker_late_warmups.log"
 _LATENCY_FILE = "/tmp/nlp_tasker_latency"   # both vendors' ping times from the most recent warmup round (JSON), for the dashboard indicator
 _SLOW_THRESHOLD = 3.0       # seconds — only colors the request log line now, swaps no longer use it
-# Log every ping's result, every round's verdict and every scheduled reconnect. On by default;
-# set WARMUP_TRACE=0 in the environment to go back to logging only failures, lost rounds and swaps.
-_TRACE = os.environ.get("WARMUP_TRACE", "1").lower() not in ("0", "false", "no", "off")
+# Always logged: anything that happened. Failed pings, rounds the inactive vendor won, swaps, scheduled
+# reconnects, connections found closed by the other side, pings that opened a new connection, rounds
+# not scored. WARMUP_TRACE=1 adds the routine lines too: every ordinary ping and every round the
+# active vendor simply held.
+_TRACE = os.environ.get("WARMUP_TRACE", "").lower() in ("1", "true", "yes")
 _MARGIN = 0.3               # seconds — the inactive vendor must beat the active one by more than this to win a round
 _SWAP_AFTER = 3             # consecutive rounds the inactive vendor must win before flipping
 _WIPE_AFTER = 3             # consecutive rounds the active vendor must win before erasing the inactive one's streak
@@ -334,11 +336,14 @@ def _ping(vendor: str):
 
 
 def _trace_ping(vendor: str, latency: float, new_connection: bool = False):
-    # one line per answered ping: green when quick, yellow when it only just made the timeout.
+    # A ping that opened a new connection is always logged. An ordinary ping only with WARMUP_TRACE:
+    # green when quick, yellow when it only just made the timeout.
     # A ping that failed is logged by warmupCall itself, as a flagged warning.
-    if _TRACE:
-        color = None if new_connection else "green" if latency < 1.0 else "yellow" if latency >= 2.0 else None
-        applog.event('warmup', f"{vendor} ping {latency:.2f}s" + (" (new connection)" if new_connection else ""), color=color)
+    if new_connection:
+        applog.event('warmup', f"{vendor} ping {latency:.2f}s (new connection)")
+    elif _TRACE:
+        color = "green" if latency < 1.0 else "yellow" if latency >= 2.0 else None
+        applog.event('warmup', f"{vendor} ping {latency:.2f}s", color=color)
 
 
 def warmupCall():
@@ -353,8 +358,7 @@ def warmupCall():
         for vendor in _HTTP_CLIENTS:
             _close_idle_connections(vendor)
         _next_reconnect = time.monotonic() + _RECONNECT_AFTER
-        if _TRACE:
-            applog.event('warmup', f"scheduled reconnect (every {_RECONNECT_AFTER // 60} min): closed idle vendor connections")
+        applog.event('warmup', f"scheduled reconnect (every {_RECONNECT_AFTER // 60} min): closed idle vendor connections")
 
     openai_latency, openai_error, openai_new = _ping("openai")
     gemini_latency, gemini_error, gemini_new = _ping("gemini")
@@ -381,9 +385,8 @@ def warmupCall():
         inactive = "gemini" if active == "openai" else "openai"
         _set_latencies(latencies, keep_previous=on_new_connection if unscored else ())
         if unscored:
-            if _TRACE:
-                applog.event('warmup', f"round not scored: {' and '.join(on_new_connection)} on a new connection "
-                                       f"(openai {_fmt_latency(openai_latency)}, gemini {_fmt_latency(gemini_latency)})")
+            applog.event('warmup', f"round not scored: {' and '.join(on_new_connection)} on a new connection "
+                                   f"(openai {_fmt_latency(openai_latency)}, gemini {_fmt_latency(gemini_latency)})")
             return
         active_latency, inactive_latency = latencies[active], latencies[inactive]
 
