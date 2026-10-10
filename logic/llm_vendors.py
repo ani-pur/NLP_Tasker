@@ -17,7 +17,7 @@ except ImportError:       # run as a script (vendor menu): logic/ itself is on s
     import applog
 
 # --- models and how hard they think: edit here, every call below (real requests AND warmup pings) reads these ---
-OPENAI_MODEL = "gpt-4.1-mini"
+OPENAI_MODEL = "gpt-5.4-mini"
 OPENAI_REASONING_EFFORT = "none"     
 OPENAI_VERBOSITY = "low"
 
