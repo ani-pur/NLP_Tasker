@@ -16,6 +16,15 @@ try:
 except ImportError:       # run as a script (vendor menu): logic/ itself is on sys.path
     import applog
 
+# --- models and how hard they think: edit here, every call below (real requests AND warmup pings) reads these ---
+OPENAI_MODEL = "gpt-6-luna"
+OPENAI_REASONING_EFFORT = "none"     # lowest this model takes
+OPENAI_VERBOSITY = "low"
+
+GEMINI_MODEL = "gemini-3-flash-preview"
+GEMINI_THINKING_LEVEL = "minimal"    # lowest this model takes
+GEMINI_TEMPERATURE = 0.1
+
 def currentTime():
     # returns current local time formatted for logs as: [HH:MM:SS AM/PM]
     return f"[{datetime.now().strftime('%a %b %d %Y %I:%M:%S %p')}]"
@@ -297,19 +306,21 @@ def _with_retry(vendor: str, call):
 def _send_ping(vendor: str):
     if vendor == "openai":
         openai_client.responses.create(
-            model="gpt-5.4-nano-2026-03-17",
+            model=OPENAI_MODEL,
             instructions="warmup ping to handle cold-start latency, respond with 'warmed up'",
-            input=" "
+            input=" ",
+            # same effort as real requests (_call_openai), so the ping measures what a task costs
+            reasoning={ "effort": OPENAI_REASONING_EFFORT }
         )
     else:
         gemini_client.models.generate_content(
-            model="gemini-3-flash-preview",
+            model=GEMINI_MODEL,
             contents="warmup ping",
             config=genai.types.GenerateContentConfig(
                 system_instruction="respond with 'warmed up'",
                 max_output_tokens=5,
                 # same thinking level as real requests (_call_gemini), so the ping measures what a task costs
-                thinking_config=genai.types.ThinkingConfig(thinking_level="minimal"),
+                thinking_config=genai.types.ThinkingConfig(thinking_level=GEMINI_THINKING_LEVEL),
                 # no tools are passed; this just stops the SDK's AFC warning on first call
                 automatic_function_calling=genai.types.AutomaticFunctionCallingConfig(disable=True),
             )
@@ -485,24 +496,24 @@ if __name__ != "__main__":
 
 def _call_openai(system_prompt: str, user_input: str) -> str:
     response, _ = _with_retry("openai", lambda: openai_client.responses.create(
-        model="gpt-5.4-nano-2026-03-17",
+        model=OPENAI_MODEL,
         instructions=dedent(system_prompt),
         input=user_input,
-        text={ "verbosity": "low" },
-        reasoning={ "effort": "none" }
+        text={ "verbosity": OPENAI_VERBOSITY },
+        reasoning={ "effort": OPENAI_REASONING_EFFORT }
     ))
     return response.output_text
 
 
 def _call_gemini(system_prompt: str, user_input: str) -> str:
     response, _ = _with_retry("gemini", lambda: gemini_client.models.generate_content(
-        model="gemini-3-flash-preview",
+        model=GEMINI_MODEL,
         contents=user_input,
         config={
             "system_instruction": system_prompt,
-            "temperature": 0.1,
+            "temperature": GEMINI_TEMPERATURE,
             "thinking_config": {
-                "thinking_level": "minimal"
+                "thinking_level": GEMINI_THINKING_LEVEL
             },
             "automatic_function_calling": {"disable": True}
         }
