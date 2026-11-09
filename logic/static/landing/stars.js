@@ -43,6 +43,7 @@
   const fs = `
     precision highp float;
     uniform vec2 uRes, uPar; uniform float uTime, uPx, uBand, uNeb, uLvl;
+    uniform vec4 uLogo;                                                   // the particle logo: center, radii (css px, gl y up)
     uniform vec4 uCopy;                                                   // the hero copy's box (css px, gl y up): the sky clears behind it
     uniform vec4 uCa[3], uCb[3];                                          // comets: head x, y (css px), angle, alpha | tail length, spread, -, seed
     float h21(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
@@ -153,6 +154,9 @@
       vec2 cq = max(abs(fc - (uCopy.xy + uCopy.zw * .5)) - uCopy.zw * .5, 0.);
       float clr = uCopy.z > 0. ? exp(-dot(cq, cq) / 22000.) : 0.;
       light *= 1. - clr * .88; dense *= 1. - clr;
+      // a faint shadow behind the particle logo, so it stands off bright gas
+      vec2 lq = (fc - uLogo.xy) / max(uLogo.zw, vec2(1.));
+      light *= 1. - exp(-dot(lq, lq) * 1.6) * .42;
 
       // stars: far dust (thick inside the gas), mid, near; nearer layers drift (and shift with the mouse) more
       float gl = .4 + .6 * hi;
@@ -352,6 +356,7 @@
     gl.uniform1f(uBand, L.band); gl.uniform1f(uNeb, L.neb);
     gl.uniform4fv(uCa, ca); gl.uniform4fv(uCb, cb);
     const cr = copyEl?.getBoundingClientRect(), kr = canvas.getBoundingClientRect();
+    { const w = canvas.width / px, h = canvas.height / px; gl.uniform4f(U('uLogo'), w * 0.6, h * 0.53, w * 0.22, h * 0.13); }   // where hero3d puts the logo
     if (cr) gl.uniform4f(U('uCopy'), cr.left - kr.left - 30, kr.bottom - cr.bottom - 30, cr.width + 60, cr.height + 60);
     const hr = hero.getBoundingClientRect(), sc = Math.max(0, Math.min(1, -hr.top / (hr.height * 0.75)));
     const wet = sc > 0.001 && burn;
