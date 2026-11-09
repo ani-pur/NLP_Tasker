@@ -1,5 +1,5 @@
 // Hero scene for the landing page, mounted into #hero-stage.
-// Particles gather into the logo and stay as the logo; task cards (some carrying a custom
+// The particle logo fades in where it stands; task cards (some carrying a custom
 // reminder pill) fade in and orbit it. Scrolling past the hero lifts and fades the scene,
 // and rendering stops once it's out of view.
 // A classic script (not a module) so the page also works opened straight from disk; Three.js is
@@ -93,8 +93,9 @@ async function boot() {
       varying vec3 vColor; varying float vA; varying float vLit; varying float vTw;
       float sm(float x) { x = clamp(x, 0.0, 1.0); return x * x * (3.0 - 2.0 * x); }
       void main() {
-        float ii = sm(uIntro * 1.5 - seed * 0.5);
-        vec3 p = mix(dir * vec3(11.0, 7.0, 6.0) - vec3(0.0, 0.0, 3.0), position, ii);
+        // intro: the logo fades in where it stands, each particle a touch apart, settling the last bit into place
+        float ii = sm(uIntro * 1.35 - seed * 0.35);
+        vec3 p = position + dir * 0.22 * (1.0 - ii);
         p += dir * 0.05 * sin(uTime * 0.9 + phase);             // slow breathing once formed
         // cursor: particles near it drift a little outward on a slow wave and light up, then settle back
         vec2 off = p.xy - uMouse; float d = length(off);

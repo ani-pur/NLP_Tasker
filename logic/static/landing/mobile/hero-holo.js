@@ -6,7 +6,7 @@
 import { stage, HEX, glowMaterial, fontsReady } from './three-stage.js';
 import { buildModel, fmtDay, fmtTime, fmtMonthDay, dayKey } from './dates.js';
 
-const SHOW_FOR = 4.2;                                            // seconds each popup stays up
+const SHOW_FOR = 3.2;                                            // seconds each popup stays up
 const LIFT = 0.3;                                                // how high the active day rises (before its bob)
 const GAP = 20;                                                  // px between a day and its popup's arrow
 const WD = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
@@ -164,7 +164,7 @@ export async function start(host) {
   // camera framing: fixed, with the grid's sway and a slow drift
   const fit = () => (COLS * (S + GAP_TILES)) / 2 / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) / camera.aspect;
   let lookY = null;                                               // vertical aim; set by anchor() once per screen size
-  function frame(t, sway = Math.sin(t * 0.14), drift = Math.sin(t * 0.09), tilt = Math.sin(t * 0.1)) {
+  function frame(t, sway = Math.sin(t * 0.2), drift = Math.sin(t * 0.13), tilt = Math.sin(t * 0.14)) {
     const dist = Math.max(8, fit() * 1.3);
     grid.rotation.y = sway * 0.11;
     const el = 0.88 + tilt * 0.03;                                // camera elevation: higher = less tilt, far rows closer
@@ -202,6 +202,8 @@ export async function start(host) {
   on(document, 'visibilitychange', () => { if (!document.hidden) applyModel(); });
 
   s.onResize.push(() => { lookY = null; });
+  // coming back from warp, the logo animates from the middle back up to the top: aim again once it lands
+  if (logoEl) on(logoEl, 'transitionend', () => { lookY = null; });
   s.loop((t) => {
     shared.uTime.value = t;
     if (lookY === null) anchor();
