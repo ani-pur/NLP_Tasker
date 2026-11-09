@@ -8,10 +8,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <link rel="manifest" href="/pwa/manifest.webmanifest">
   <meta name="theme-color" content="#07070a">
-  <meta name="description" content="A to-do list you just talk to. Type tasks the way you'd say them; Tasker sorts them and reminds you before they're due.">
+  <meta name="description" content="A calendar you just talk to. Type tasks the way you'd say them; Tasker sorts them and reminds you before they're due.">
   <title>Tasker | Let Tasker remember it</title>
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='landing/glassdemo.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='landing/mobile/phonedemo.css') }}">
   <script src="{{ url_for('static', filename='landing/tier.js') }}"></script>
   <style>
     :root {
@@ -29,6 +30,14 @@
     a { color: inherit; text-decoration: none; }
     button { font: inherit; color: inherit; }
     .mono { font-family: 'IBM Plex Mono', monospace; }
+
+    /* Behaves like an app, not a document: press-and-hold doesn't select text or open iOS's magnifier /
+       callout, taps don't flash, and quick repeated taps don't double-tap-zoom (pinch zoom still works).
+       "send link" writes to the clipboard directly, so it doesn't need selection. */
+    html { touch-action: manipulation; }
+    body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+    * { -webkit-tap-highlight-color: transparent; }
+    img { -webkit-user-drag: none; }
 
     /* ── top bar: stays put, frosted ── */
     header {
@@ -50,21 +59,42 @@
     .btn.primary { background: var(--fg); color: var(--bg); border-color: var(--fg); }
     .btn.accent { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); min-height: 36px; padding: 0 16px; font-size: 13px; }
 
-    /* ── hero: the 3D scene in a block on top, the copy under it ── */
-    .hero { border-bottom: 1px solid var(--line); padding-bottom: 40px; }
-    .stage-wrap { position: relative; height: clamp(240px, 80vw, 52svh); overflow: hidden; }   /* the scene is width-bound: taller only adds empty space */
-    .stage-wrap::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 30%; pointer-events: none; background: linear-gradient(transparent, var(--bg)); }
+    /* ── hero: the 3D scene (hero.js: holo calendar, or warp) in a block on top, the copy under it ── */
+    .hero { border-bottom: 1px solid var(--line); padding-bottom: 28px; }
+    .stage-wrap { position: relative; height: clamp(330px, 53svh, 520px); overflow: hidden; }
+    .stage-wrap::after { content: ''; position: absolute; z-index: 2; left: 0; right: 0; bottom: 0; height: 24%; pointer-events: none; background: linear-gradient(transparent, var(--bg)); }
     #hero-stage { position: absolute; inset: 0; touch-action: pan-y; }
-    /* shown while Three.js loads (and for good if WebGL isn't there), then fades under the live scene */
-    .stage-fallback {
-      position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; transition: opacity 1.2s ease;
-      font-size: clamp(64px, 22vw, 110px); font-weight: 500; letter-spacing: -0.04em; color: transparent;
-      -webkit-text-stroke: 1px rgba(237, 237, 240, 0.35); text-shadow: 0 0 40px rgba(var(--accent-rgb), 0.35);
-    }
-    .stage-fallback i { font-style: normal; -webkit-text-stroke-color: var(--accent); }
-    #hero-stage.live ~ .stage-fallback { opacity: 0; }
-    .fps { position: absolute; z-index: 3; right: var(--gut); top: 12px; font: 600 10.5px 'IBM Plex Mono', monospace; color: #a4d007; opacity: 0.7; pointer-events: none; font-variant-numeric: tabular-nums; }
-    .hero-copy { position: relative; z-index: 2; padding: 0 var(--gut); margin-top: -24px; }
+    #hero-stage canvas.gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    /* the logo is real text over the scene, so it's always sharp (and it's what's left if WebGL isn't there) */
+    .hero-logo { position: absolute; z-index: 4; left: 0; right: 0; top: 10px; text-align: center; pointer-events: none;
+      font-size: clamp(44px, 13vw, 76px); font-weight: 500; letter-spacing: -0.05em; line-height: 1;
+      text-shadow: 0 0 28px rgba(var(--accent-rgb), 0.5), 0 0 70px rgba(var(--accent-rgb), 0.25); transition: top 0.5s cubic-bezier(0.2, 0.7, 0.2, 1), font-size 0.5s; }
+    .hero-logo i { font-style: normal; color: var(--accent); }
+    #hero-stage[data-mode="warp"] ~ .hero-logo { top: 50%; transform: translateY(-50%); font-size: clamp(50px, 15vw, 86px); }
+    .hero-ui > * { position: absolute; }
+    .warp-hint { z-index: 4; left: 0; right: 0; bottom: 20%; text-align: center; font: 11px 'IBM Plex Mono', monospace; letter-spacing: 1px; color: var(--dim); pointer-events: none; transition: opacity 0.4s; }
+    #hero-stage.warping .warp-hint { opacity: 0; }
+    /* the switch: small and quiet on purpose, for the keen-eyed */
+    .hero-switch { position: absolute; z-index: 10; right: calc(var(--gut) - 8px); top: 10px; display: inline-flex; align-items: center; gap: 6px; padding: 7px 10px; border-radius: 99px; border: 1px solid rgba(255,255,255,0.08); background: rgba(7,7,10,0.35); color: var(--dim); font: 500 10.5px 'IBM Plex Mono', monospace; letter-spacing: 0.5px; cursor: pointer; }
+    .hero-switch::after { content: attr(data-next); }
+    .hero-switch svg { opacity: 0.8; }
+    .hero-switch:active { transform: scale(0.95); }
+    /* the day popup on the holo calendar */
+    .pop { z-index: 8; left: 0; top: 0; min-width: 150px; max-width: calc(100% - 20px); padding: 9px 12px 10px 15px; border-radius: 12px; pointer-events: none;
+      background: rgba(14, 14, 22, 0.8); border: 1px solid rgba(255, 255, 255, 0.14);
+      backdrop-filter: blur(12px) saturate(160%); -webkit-backdrop-filter: blur(12px) saturate(160%);
+      box-shadow: 0 12px 30px -10px rgba(0,0,0,0.9), 0 0 24px -12px var(--c1); opacity: 0; transition: opacity 0.3s; }
+    .pop.on { opacity: 1; }
+    .pop::before { content: ''; position: absolute; left: 0; top: 9px; bottom: 9px; width: 3px; border-radius: 0 3px 3px 0; background: var(--bar, var(--c1)); }
+    .pop::after { content: ''; position: absolute; left: var(--ax, 50%); bottom: -6px; width: 10px; height: 10px; margin-left: -5px; transform: rotate(45deg); background: rgb(18, 18, 26); border-right: 1px solid rgba(255,255,255,0.14); border-bottom: 1px solid rgba(255,255,255,0.14); }
+    .pop.below::after { bottom: auto; top: -6px; transform: rotate(225deg); }   /* small screens: popup under its day, arrow up */
+    .pop .ph { font: 500 10px 'IBM Plex Mono', monospace; letter-spacing: 1.2px; text-transform: uppercase; color: var(--dim); margin-bottom: 4px; }
+    .pop .row + .row { margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.08); }
+    .pop .row b { display: block; font: 600 13.5px 'Instrument Sans', system-ui; color: var(--c); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pop .row span { font: 500 10.5px 'IBM Plex Mono', monospace; color: #c0c0cc; white-space: nowrap; }
+    .pop .row em { font-style: normal; color: #ff6b6b; }
+    .pop .row i { font-style: normal; color: #fbbf24; margin-left: 4px; }
+    .hero-copy { position: relative; z-index: 2; padding: 0 var(--gut); margin-top: 4px; }
     h1 { font-size: clamp(40px, 11.5vw, 60px); font-weight: 600; letter-spacing: -0.045em; line-height: 0.98; }
     .lede { margin-top: 18px; font-size: 16.5px; color: var(--muted); }
     .lede + .lede { margin-top: 10px; }
@@ -81,6 +111,12 @@
     .kicker b { color: var(--accent); font-weight: 500; }
     h2 { font-size: clamp(27px, 7.6vw, 36px); font-weight: 600; letter-spacing: -0.03em; line-height: 1.08; }
     .sub { margin-top: 12px; color: var(--muted); font-size: 15.5px; }
+
+    /* ── phone demo, then the desktop one ── */
+    .pdemo-wrap { margin-top: 28px; }
+    .pdemo-hint { margin-top: 14px; text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: var(--dim); }
+    .pdemo-hint b { font-weight: 500; color: var(--muted); }
+    .big { margin-top: 56px; padding-top: 40px; border-top: 1px solid var(--line); }
 
     /* ── the desktop dashboard, running live, scaled down to fit ── */
     .desk { margin-top: 26px; }
@@ -105,26 +141,14 @@
     .desk .gd-blob.b4 { background: radial-gradient(closest-side, #ec66aa, transparent); opacity: 0.4; }
     .desk-stand { width: 26%; height: 14px; margin: 0 auto; background: linear-gradient(rgba(255,255,255,0.1), rgba(255,255,255,0.03)); clip-path: polygon(12% 0, 88% 0, 100% 100%, 0 100%); }
     .desk-foot { width: 40%; height: 3px; margin: 0 auto; border-radius: 3px; background: rgba(255, 255, 255, 0.1); }
-    .desk-hint { display: flex; justify-content: space-between; gap: 12px; margin-top: 14px; font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: var(--dim); }
-    .desk-hint b { font-weight: 500; color: var(--muted); }
-    .live-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #6CE5A9; margin-right: 6px; vertical-align: 1px; box-shadow: 0 0 8px #6CE5A9; animation: pulse 2s ease-in-out infinite; }
-    @keyframes pulse { 50% { opacity: 0.35; } }
+    /* top-left over the demo, where the eye lands first; it turns red while zoomed so you can't miss how to get out */
+    .desk-hint { position: absolute; z-index: 3; left: 14px; top: 14px; pointer-events: none; padding: 5px 10px; border-radius: 99px;
+      font: 500 10.5px 'IBM Plex Mono', monospace; color: #d6d6e0; background: rgba(10, 10, 16, 0.78); border: 1px solid rgba(255,255,255,0.16);
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transition: background 0.2s, border-color 0.2s; }
+    .desk-hint b { font-weight: 600; color: #fff; }
+    .desk.zoomed .desk-hint { background: rgba(229, 62, 62, 0.92); border-color: #ff8a8a; color: #fff; box-shadow: 0 6px 18px -6px rgba(229, 62, 62, 0.8); }
 
-    /* desktop vs phone, side by side */
-    .compare { margin-top: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .cmp { border: 1px solid var(--line); border-radius: 14px; padding: 15px 14px 16px; background: rgba(255, 255, 255, 0.02); }
-    .cmp.hi { border-color: color-mix(in srgb, var(--accent) 45%, transparent); background: linear-gradient(160deg, rgba(var(--accent-rgb), 0.14), rgba(var(--accent-rgb), 0.02) 70%); }
-    .cmp h3 { display: flex; align-items: center; gap: 8px; font-size: 14.5px; font-weight: 600; letter-spacing: -0.2px; }
-    .cmp h3 svg { flex: none; color: var(--muted); }
-    .cmp.hi h3 svg { color: var(--accent); }
-    .cmp h3 + .mono { margin-top: 3px; font-size: 10.5px; letter-spacing: 1px; text-transform: uppercase; color: var(--dim); }
-    .cmp.hi h3 + .mono { color: var(--accent); }
-    .cmp ul { list-style: none; margin-top: 12px; display: grid; gap: 8px; font-size: 13px; line-height: 1.35; color: var(--muted); }
-    .cmp li { display: grid; grid-template-columns: 12px 1fr; gap: 6px; }
-    .cmp li::before { content: '+'; font-family: 'IBM Plex Mono', monospace; color: var(--dim); }
-    .cmp.hi li { color: var(--fg); }
-    .cmp.hi li::before { color: var(--accent); }
-    .handoff { margin-top: 18px; display: flex; align-items: center; gap: 14px; padding: 14px 14px 14px 16px; border: 1px dashed var(--line-strong); border-radius: 14px; }
+    .handoff { margin-top: 26px; display: flex; align-items: center; gap: 14px; padding: 14px 14px 14px 16px; border: 1px dashed var(--line-strong); border-radius: 14px; }
     .handoff p { flex: 1; font-size: 13.5px; color: var(--muted); line-height: 1.4; }
     .handoff p b { color: var(--fg); font-weight: 600; }
     .handoff .btn { min-height: 42px; padding: 0 16px; font-size: 13px; flex: none; }
@@ -155,7 +179,7 @@
     .rems .def i { color: color-mix(in srgb, var(--accent) 75%, var(--dim)); }
     .rems .custom b { color: var(--warn); }
     .rems .custom i { color: color-mix(in srgb, var(--warn) 70%, var(--dim)); }
-    .ctl { margin-top: 16px; display: flex; align-items: center; gap: 14px; }
+    .ctl { margin-bottom: 18px; display: flex; align-items: center; gap: 14px; }
     .pp { flex: none; width: 40px; height: 40px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--line-strong); background: transparent; color: var(--muted); cursor: pointer; }
     .pp:active { background: rgba(255, 255, 255, 0.06); }
     .pp svg { width: 13px; height: 13px; fill: currentColor; }
@@ -232,7 +256,6 @@
     .reveal.in { opacity: 1; transform: none; }
     @media (prefers-reduced-motion: reduce) {
       .reveal, .hero-copy > * { opacity: 1; transform: none; transition: none; animation: none; }
-      .live-dot { animation: none; }
     }
     @media (hover: hover) {
       nav > a.plain:hover, footer a:hover { color: var(--fg); }
@@ -241,7 +264,6 @@
     /* a landscape phone or a small tablet that still got this page: keep it a readable column */
     @media (min-width: 640px) {
       .hero-copy, .sec, .end { max-width: 640px; margin-left: auto; margin-right: auto; }
-      .hero-copy { margin-top: -24px; }
       .sec.full { max-width: none; }
       .sec.full > * { max-width: 760px; margin-left: auto; margin-right: auto; }
       .sec.full > .desk { max-width: 760px; }
@@ -258,56 +280,48 @@
   </header>
 
   <main>
+{% block hero %}
     <section class="hero">
       <div class="stage-wrap">
         <div id="hero-stage" aria-hidden="true"></div>
-        <div class="stage-fallback" aria-hidden="true">tasker<i>.</i></div>
+        <div class="hero-logo" aria-hidden="true">tasker<i>.</i></div>
+        <button class="hero-switch" type="button" data-hero-switch data-next="warp"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 12h12M12 6l6 6-6 6"/></svg></button>
       </div>
       <div class="hero-copy">
-        <h1>A to-do list you just talk to.</h1>
+        <h1>A calendar you just talk to.</h1>
         <p class="lede pitch">Everything you need to do, in one place.</p>
         <p class="lede">Write tasks the way they come out of your head. Tasker pulls out all the important information, sorts everything, and pings you before it's due.</p>
-        <div class="actions"><a class="btn primary" href="/signup">request access</a><a class="btn" href="#desk">see it on the big screen ↓</a></div>
+        <div class="actions"><a class="btn primary" href="/signup">request access</a><a class="btn" href="#demo">see the demo ↓</a></div>
       </div>
     </section>
 
-    <section class="sec full reveal" id="desk">
-      <div class="kicker"><b>Best on desktop</b> · the full dashboard</div>
-      <h2>Made for the big screen.</h2>
-      <p class="sub">On a computer your tasks sit right next to a full month calendar, so you can see your whole week at a glance. This is the real dashboard, running live:</p>
-      <div class="desk" id="desk-demo">
-        <div class="desk-frame">
-          <div class="desk-view" role="button" tabindex="0" aria-label="Tasker desktop dashboard, live demo. Tap to zoom in.">
-            <div class="desk-sizer"><div id="gdemo"></div></div>
-          </div>
-        </div>
-        <div class="desk-stand"></div><div class="desk-foot"></div>
-        <div class="desk-hint"><span><span class="live-dot"></span>live demo</span><span data-zoom-hint><b>tap</b> to zoom in</span></div>
-      </div>
+    {% endblock %}
+    <section class="sec full reveal" id="demo">
+{% block phone_demo %}
+      <div class="kicker"><b>Demo</b> · on your phone</div>
+      <h2>Tasker, in your pocket.</h2>
+      <p class="sub">This is the app on your phone, running live. Type it the way you'd say it and it lands in your list, sorted.</p>
+      <div class="pdemo-wrap"><div id="pdemo"></div></div>
+      <div class="pdemo-hint"><b>tap</b> a task to open it</div>
 
-      <div class="compare">
-        <div class="cmp hi">
-          <h3><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Computer</h3>
-          <div class="mono">the full experience</div>
-          <ul>
-            <li>Tasks and a month calendar side by side</li>
-            <li>Point at a task, its day lights up</li>
-            <li>Glass theme, colored light behind every task</li>
-          </ul>
+    {% endblock %}
+      <div class="big" id="desk">
+        <div class="kicker"><b>Best on desktop</b> · the full dashboard</div>
+        <h2>Intended for the big screen.</h2>
+        <p class="sub">On a computer your tasks sit right next to a full month calendar, so you can see your whole month at a glance. Here's the desktop dashboard, running live:</p>
+        <div class="desk" id="desk-demo">
+          <div class="desk-frame">
+            <div class="desk-hint" data-zoom-hint aria-hidden="true"><b>tap</b> to zoom in</div>
+            <div class="desk-view" role="button" tabindex="0" aria-label="Tasker desktop dashboard, live demo. Tap to zoom in.">
+              <div class="desk-sizer"><div id="gdemo"></div></div>
+            </div>
+          </div>
+          <div class="desk-stand"></div><div class="desk-foot"></div>
         </div>
-        <div class="cmp">
-          <h3><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg>Phone</h3>
-          <div class="mono">on the go</div>
-          <ul>
-            <li>Add tasks the moment you think of them</li>
-            <li>Reminder notifications</li>
-            <li>Add to home screen, opens like an app</li>
-          </ul>
+        <div class="handoff">
+          <p><b>Your tasks sync everywhere.</b> Send yourself the link and open the full dashboard on your computer.</p>
+          <button class="btn" type="button" data-share>send link</button>
         </div>
-      </div>
-      <div class="handoff">
-        <p><b>On your phone right now?</b> Send yourself the link and open it on your computer later.</p>
-        <button class="btn" type="button" data-share>send link</button>
       </div>
     </section>
 
@@ -316,6 +330,13 @@
       <h2>Just say it. Tasker works out the rest.</h2>
       <p class="sub">Every task gets a reminder notification when it's due, plus a default one 3 hours before. Ask for more and you get them too.</p>
       <div class="readout" id="readout">
+        <div class="ctl">
+          <button class="pp" type="button" data-toggle aria-label="Pause" aria-pressed="false">
+            <svg class="i-pause" viewBox="0 0 16 16" aria-hidden="true"><rect x="4" y="3" width="3" height="10" rx="1"/><rect x="9" y="3" width="3" height="10" rx="1"/></svg>
+            <svg class="i-play" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.2v9.6a.6.6 0 0 0 .9.5l7.4-4.8a.6.6 0 0 0 0-1L5.9 2.7a.6.6 0 0 0-.9.5z"/></svg>
+          </button>
+          <div class="next"><i data-bar></i></div>
+        </div>
         <div class="label">you type</div>
         <div class="in"><span data-typed></span><span class="caret">▍</span></div>
         <div class="fields">
@@ -323,13 +344,6 @@
           <div class="rf"><span>due</span><span data-f="due"></span></div>
           <div class="rf"><span>color</span><span data-f="color"></span></div>
           <div class="rf"><span>reminder notifications</span><span data-f="rem" class="rems"></span></div>
-        </div>
-        <div class="ctl">
-          <button class="pp" type="button" data-toggle aria-label="Pause" aria-pressed="false">
-            <svg class="i-pause" viewBox="0 0 16 16" aria-hidden="true"><rect x="4" y="3" width="3" height="10" rx="1"/><rect x="9" y="3" width="3" height="10" rx="1"/></svg>
-            <svg class="i-play" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.2v9.6a.6.6 0 0 0 .9.5l7.4-4.8a.6.6 0 0 0 0-1L5.9 2.7a.6.6 0 0 0-.9.5z"/></svg>
-          </button>
-          <div class="next"><i data-bar></i></div>
         </div>
       </div>
     </section>
@@ -401,22 +415,6 @@
   </footer>
 
   <script>
-    // fps counter in the stage's corner; only updates while the stage is on screen
-    (function () {
-      const wrap = document.querySelector('.stage-wrap');
-      const el = document.createElement('div'); el.className = 'fps'; el.setAttribute('aria-hidden', 'true');
-      wrap.appendChild(el);
-      let frames = 0, last = performance.now();
-      requestAnimationFrame(function tick(now) {
-        frames++;
-        if (scrollY < wrap.offsetTop + wrap.offsetHeight && now - last >= 500) {
-          el.textContent = Math.round(frames * 1000 / (now - last)) + ' fps' + (window.heroParticles ? ' · ' + window.heroParticles.toLocaleString() + ' particles' : '');
-          frames = 0; last = now;
-        }
-        requestAnimationFrame(tick);
-      });
-    })();
-
     // scroll reveal: each .reveal fades up once, the first time it enters the viewport
     (function () {
       const els = document.querySelectorAll('.reveal');
@@ -501,6 +499,9 @@
   </script>
   <script src="{{ url_for('static', filename='landing/readout.js') }}"></script>
   <script src="{{ url_for('static', filename='landing/glassdemo.js') }}"></script>
-  <script src="{{ url_for('static', filename='landing/mobile/hero3d.js') }}"></script>
+  <script src="{{ url_for('static', filename='landing/mobile/phonedemo.js') }}"></script>
+  {% block hero_script %}
+  <script type="module" src="{{ url_for('static', filename='landing/mobile/hero.js') }}"></script>
+  {% endblock %}
 </body>
 </html>

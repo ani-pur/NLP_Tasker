@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="manifest" href="/pwa/manifest.webmanifest">
   <meta name="theme-color" content="#07070a">
-  <meta name="description" content="A to-do list you just talk to. Type tasks the way you'd say them; Tasker sorts them and reminds you before they're due.">
+  <meta name="description" content="A calendar you just talk to. Type tasks the way you'd say them; Tasker sorts them and reminds you before they're due.">
   <title>Tasker | Let Tasker remember it</title>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='landing/glassdemo.css') }}">
@@ -98,8 +98,9 @@
     .rems .def i { color: color-mix(in srgb, var(--accent) 75%, var(--dim)); }
     .rems .custom b { color: var(--warn); }
     .rems .custom i { color: color-mix(in srgb, var(--warn) 70%, var(--dim)); }
-    /* sits full while typing, drains during the hold; the next example starts when it's empty */
-    .ctl { margin-top: 18px; display: flex; align-items: center; gap: 14px; }
+    /* above the example, so it's clear it can be paused to read; the bar sits full while typing,
+       drains during the hold, and the next example starts when it's empty */
+    .ctl { margin-bottom: 20px; display: flex; align-items: center; gap: 14px; }
     .pp { flex: none; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--line-strong); background: transparent; color: var(--muted); cursor: pointer; transition: color 0.2s, border-color 0.2s, background 0.2s; }
     .pp:hover { color: var(--fg); border-color: var(--muted); background: rgba(255, 255, 255, 0.04); }
     .pp svg { width: 12px; height: 12px; fill: currentColor; }
@@ -228,7 +229,7 @@
       <div id="hero-stage" aria-hidden="true"></div>
       <div class="hero-shade"></div>
       <div class="hero-copy">
-        <h1>A to-do list you just talk to.</h1>
+        <h1>A calendar you just talk to.</h1>
         <p class="lede pitch">Everything you need to do, in one place.</p>
         <p class="lede">Write tasks the way they come out of your head. Tasker pulls out all the important information, sorts everything, and pings you before it's due.</p>
         <div class="actions"><a class="btn primary" href="/signup">request access</a><a class="btn" href="#how">see how it works ↓</a></div>
@@ -241,6 +242,13 @@
         <h2>Just say it. Tasker works out the rest.</h2>
         <p class="sub">Every task gets a reminder notification when it's due, plus a default one 3 hours before. Ask for more and you get them too.</p>
         <div class="readout" id="readout">
+          <div class="ctl">
+            <button class="pp" type="button" data-toggle aria-label="Pause" aria-pressed="false">
+              <svg class="i-pause" viewBox="0 0 16 16" aria-hidden="true"><rect x="4" y="3" width="3" height="10" rx="1"/><rect x="9" y="3" width="3" height="10" rx="1"/></svg>
+              <svg class="i-play" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.2v9.6a.6.6 0 0 0 .9.5l7.4-4.8a.6.6 0 0 0 0-1L5.9 2.7a.6.6 0 0 0-.9.5z"/></svg>
+            </button>
+            <div class="next"><i data-bar></i></div>
+          </div>
           <div class="label">you type</div>
           <div class="in"><span data-typed></span><span class="caret">▍</span></div>
           <div class="fields">
@@ -248,13 +256,6 @@
             <div class="rf"><span>due</span><span data-f="due"></span></div>
             <div class="rf"><span>color</span><span data-f="color"></span></div>
             <div class="rf"><span>reminder<br>notifications</span><span data-f="rem" class="rems"></span></div>
-          </div>
-          <div class="ctl">
-            <button class="pp" type="button" data-toggle aria-label="Pause" aria-pressed="false">
-              <svg class="i-pause" viewBox="0 0 16 16" aria-hidden="true"><rect x="4" y="3" width="3" height="10" rx="1"/><rect x="9" y="3" width="3" height="10" rx="1"/></svg>
-              <svg class="i-play" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.2v9.6a.6.6 0 0 0 .9.5l7.4-4.8a.6.6 0 0 0 0-1L5.9 2.7a.6.6 0 0 0-.9.5z"/></svg>
-            </button>
-            <div class="next"><i data-bar></i></div>
           </div>
         </div>
       </div>
