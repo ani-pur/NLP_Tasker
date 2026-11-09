@@ -62,7 +62,7 @@
 
     /* ── hero: the 3D scene (hero.js: holo calendar, or warp) in a block on top, the copy under it ── */
     .hero { border-bottom: 1px solid var(--line); padding-bottom: 28px; }
-    .stage-wrap { position: relative; height: clamp(362px, calc(51svh + 32px), 492px); overflow: hidden; }
+    .stage-wrap { position: relative; height: clamp(350px, 100vw, 492px);   /* by width: the grid is sized by width, and a home-screen app has a taller viewport */ overflow: hidden; }
     .stage-wrap::after { content: ''; position: absolute; z-index: 2; left: 0; right: 0; bottom: 0; height: 24%; pointer-events: none; background: linear-gradient(transparent, var(--bg)); }
     #hero-stage { position: absolute; inset: 0; touch-action: pan-y; }
     #hero-stage canvas.gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
