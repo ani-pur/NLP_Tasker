@@ -174,8 +174,19 @@ export async function start(host) {
   }
   // sit the grid (weekday letters included) just under the logo, with one line of space. Worked out once per
   // screen size with the grid at rest, not per frame, so the sway moves the grid but nothing chases it.
+  // where the logo's bottom edge rests. Measured on a hidden, non-animating copy: coming back from warp the
+  // real logo is still sliding up from the middle, and measuring it mid-slide put the grid too low
+  function logoRestBottom() {
+    if (!logoEl) return 80;
+    const c = logoEl.cloneNode(true);
+    c.style.cssText = 'transition:none;visibility:hidden;';
+    logoEl.after(c);
+    const b = c.offsetTop + c.offsetHeight;
+    c.remove();
+    return b;
+  }
   function anchor() {
-    const want = (logoEl ? logoEl.offsetTop + logoEl.offsetHeight : 80) + 46;   // a clear gap between the logo and the grid
+    const want = logoRestBottom() + 46;                           // a clear gap between the logo and the grid
     lookY = Math.max(8, fit() * 1.3) * 0.07;
     for (let i = 0; i < 40; i++) {
       frame(0, 0, 0, 0);
@@ -202,8 +213,6 @@ export async function start(host) {
   on(document, 'visibilitychange', () => { if (!document.hidden) applyModel(); });
 
   s.onResize.push(() => { lookY = null; });
-  // coming back from warp, the logo animates from the middle back up to the top: aim again once it lands
-  if (logoEl) on(logoEl, 'transitionend', () => { lookY = null; });
   s.loop((t) => {
     shared.uTime.value = t;
     if (lookY === null) anchor();
