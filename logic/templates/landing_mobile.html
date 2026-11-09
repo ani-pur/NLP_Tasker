@@ -268,6 +268,16 @@
       .sec.full > * { max-width: 760px; margin-left: auto; margin-right: auto; }
       .sec.full > .desk { max-width: 760px; }
     }
+    /* ── scroll cue: a hairline on the right edge with a glow running down it; fades out near the end ── */
+    .scroll-cue { position: fixed; top: 14svh; bottom: 8svh; right: 3px; width: 1px; z-index: 40; pointer-events: none;
+      background: linear-gradient(transparent, rgba(255, 255, 255, 0.07) 15%, rgba(255, 255, 255, 0.07) 85%, transparent);
+      overflow: hidden; transition: opacity 0.6s; }
+    .scroll-cue::after { content: ''; position: absolute; left: 0; width: 1px; height: 22%; top: -22%;
+      background: linear-gradient(transparent, rgba(var(--accent-rgb), 0.9), transparent);
+      box-shadow: 0 0 6px 1px rgba(var(--accent-rgb), 0.45); animation: cue 3.2s cubic-bezier(0.45, 0, 0.35, 1) infinite; }
+    @keyframes cue { 0% { top: -22%; opacity: 0; } 15% { opacity: 1; } 80% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
+    .scroll-cue.done { opacity: 0; }
+    @media (prefers-reduced-motion: reduce) { .scroll-cue::after { animation-duration: 8s; } }
   </style>
 </head>
 <body>
@@ -298,9 +308,9 @@
     {% endblock %}
     <section class="sec full reveal" id="demo">
 {% block phone_demo %}
-      <div class="kicker"><b>Demo</b> · on your phone</div>
+      <div class="kicker"><b>Demo</b></div>
       <h2>Tasker, in your pocket.</h2>
-      <p class="sub">This is the app on your phone, running live. Type it the way you'd say it and it lands in your list, sorted.</p>
+      <p class="sub">Type it the way you'd say it and it lands in your list, sorted.</p>
       <div class="pdemo-wrap"><div id="pdemo"></div></div>
       <div class="pdemo-hint"><b>tap</b> a task to open it</div>
 
@@ -503,5 +513,14 @@
   {% block hero_script %}
   <script type="module" src="{{ url_for('static', filename='landing/mobile/hero.js') }}"></script>
   {% endblock %}
+<div class="scroll-cue" aria-hidden="true"></div>
+<script>
+  // hide the scroll cue once you're near the bottom
+  (() => {
+    const cue = document.querySelector('.scroll-cue');
+    const check = () => cue.classList.toggle('done', innerHeight + scrollY > document.documentElement.scrollHeight - innerHeight * 0.6);
+    addEventListener('scroll', check, { passive: true }); addEventListener('resize', check); check();
+  })();
+</script>
 </body>
 </html>
