@@ -276,9 +276,9 @@
     .scroll-cue::before { content: ''; position: absolute; top: 0; bottom: 0; left: 7px; width: 1px;
       background: linear-gradient(transparent, rgba(255, 255, 255, 0.06) 15%, rgba(255, 255, 255, 0.06) 85%, transparent); }
     .scroll-cue.done { opacity: 0; }
-    .cue-dot { position: absolute; left: 6px; top: -1.5px; width: 3px; height: 3px; border-radius: 50%; opacity: 0;
+    .cue-dot { position: absolute; left: 6px; top: -1.5px; width: 3px; height: 3px; border-radius: 50%;
       background: #fff; box-shadow: 0 0 3px 1px rgba(var(--accent-rgb), 0.95), 0 0 8px 2px rgba(var(--accent-rgb), 0.4); will-change: transform, opacity; }
-    .cue-tail { position: absolute; left: 7px; top: 0; width: 1px; height: 100px; transform-origin: 50% 100%; opacity: 0;
+    .cue-tail { position: absolute; left: 7px; top: 0; width: 1px; height: 100px; transform-origin: 50% 100%;
       background: linear-gradient(rgba(var(--accent-rgb), 0), rgba(var(--accent-rgb), 0.5) 35%, rgba(205, 210, 255, 0.95)); will-change: transform, opacity; }
   </style>
 </head>
@@ -519,37 +519,46 @@
 <script>
   // scroll cue: the dot eases in, darts across the middle, and eases out (an S-curve). Its tail's far
   // end has momentum, roughly like real physics: it lags behind while the dot speeds up (so the tail
-  // grows, up to 100px), then keeps its speed while the dot brakes, closing the gap until it catches
-  // up. Paused once you're near the bottom of the page or the tab is hidden.
+  // grows, up to 100px), then keeps its speed while the dot brakes, closing the gap until it catches up.
+  // The physics is simulated once and baked into keyframes, so the browser's compositor plays it off the
+  // main thread: no per-frame JS, and the hero / demos / scrolling can't make it stutter. Rebaked if the
+  // track's height changes; paused once you're near the bottom of the page.
   (() => {
     const cue = document.querySelector('.scroll-cue'), dot = cue.querySelector('.cue-dot'), tail = cue.querySelector('.cue-tail');
+    if (!dot.animate) return;
     const slow = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const MOVE = slow ? 8000 : 4500, REST = 2400, MAX = 100, LAG = 0.28;       // LAG: how slowly the tail end picks up speed (s)
+    const MOVE = slow ? 8000 : 4500, REST = 200, MAX = 100, LAG = 0.28;       // LAG: how slowly the tail end picks up speed (s)
     const ease = p => p < 0.5 ? 8 * p ** 4 : 1 - (2 - 2 * p) ** 4 / 2;          // quartic in-out: slow, dart, slow
-    let raf = 0, last = 0, cycle = -1, prevY = 0, f = 0, v = 0;
-    function frame(now) {
-      raf = requestAnimationFrame(frame);
-      const dt = Math.min(0.033, (now - (last || now)) / 1000); last = now;
-      const n = Math.floor(now / (MOVE + REST)), p = (now % (MOVE + REST)) / MOVE;
-      if (n !== cycle) { cycle = n; prevY = f = v = 0; }
-      if (p >= 1) { dot.style.opacity = tail.style.opacity = 0; return; }
-      const y = cue.clientHeight * ease(p), dv = dt ? (y - prevY) / dt : 0; prevY = y;
-      if (dv > v) v += (dv - v) * (1 - Math.exp(-dt / LAG));                    // speeding up: the tail end lags behind
-      f += v * dt;                                                              // braking: it just keeps going
-      if (f >= y) { f = y; v = Math.min(v, dv); }                               // caught up: rides with the dot again
-      if (y - f > MAX) f = y - MAX;
-      const len = y - f, a = Math.min(1, p / 0.1, (1 - p) / 0.1);
-      dot.style.transform = `translate3d(0, ${y}px, 0)`; dot.style.opacity = a;
-      tail.style.transform = `translate3d(0, ${y - MAX}px, 0) scaleY(${len / MAX})`; tail.style.opacity = a;
+    let anims = [], bakedH = 0;
+    function bake() {
+      const H = cue.clientHeight; if (!H || H === bakedH) return; bakedH = H;
+      const total = MOVE + REST, STEP = 1 / 240, KEY = 4, dk = [], tk = [];     // simulate at 240Hz, keep every 4th step (60 keys/s)
+      let prevY = 0, f = 0, v = 0;
+      for (let i = 0, N = Math.round(MOVE / 1000 / STEP); i <= N; i++) {
+        const p = i / N, y = H * ease(p), dv = i ? (y - prevY) / STEP : 0; prevY = y;
+        if (dv > v) v += (dv - v) * (1 - Math.exp(-STEP / LAG));               // speeding up: the tail end lags behind
+        f += v * STEP;                                                          // braking: it just keeps going
+        if (f >= y) { f = y; v = Math.min(v, dv); }                             // caught up: rides with the dot again
+        if (y - f > MAX) f = y - MAX;
+        if (i % KEY && i !== N) continue;
+        const offset = p * MOVE / total, opacity = Math.min(1, p / 0.06, (1 - p) / 0.06);
+        dk.push({ offset, opacity, transform: `translate3d(0, ${y.toFixed(2)}px, 0)` });
+        tk.push({ offset, opacity, transform: `translate3d(0, ${(y - MAX).toFixed(2)}px, 0) scaleY(${((y - f) / MAX).toFixed(4)})` });
+      }
+      for (const k of [dk, tk]) k.push({ ...k[k.length - 1], offset: 1, opacity: 0 });   // rest, hidden, then loop
+      const t = anims[0]?.currentTime ?? 0, paused = anims[0]?.playState === 'paused';
+      anims.forEach(x => x.cancel());
+      anims = [dot.animate(dk, { duration: total, iterations: Infinity }), tail.animate(tk, { duration: total, iterations: Infinity })];
+      anims.forEach(x => { x.currentTime = t; if (paused) x.pause(); });
     }
     const check = () => {
       const done = innerHeight + scrollY > document.documentElement.scrollHeight - innerHeight * 0.6;
-      if (cue.classList.contains('done') !== done) cue.classList.toggle('done', done);
-      if (done || document.hidden) { cancelAnimationFrame(raf); raf = 0; last = 0; }
-      else if (!raf) raf = requestAnimationFrame(frame);
+      if (cue.classList.contains('done') === done) return;
+      cue.classList.toggle('done', done);
+      anims.forEach(x => done ? x.pause() : x.play());
     };
-    addEventListener('scroll', check, { passive: true }); addEventListener('resize', check);
-    document.addEventListener('visibilitychange', check); check();
+    bake(); new ResizeObserver(bake).observe(cue);
+    addEventListener('scroll', check, { passive: true }); addEventListener('resize', check); check();
   })();
 </script>
 </body>
