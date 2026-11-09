@@ -85,6 +85,13 @@ def pwa_icon_192():
 def pwa_icon_512():
     return send_from_directory("static", "icon-512.png")
 
+# iOS ignores the manifest's icons: "Add to Home Screen" uses the page's apple-touch-icon link, or else
+# asks for /apple-touch-icon(-precomposed).png at the site root. Both get the 192 icon.
+@app.get("/apple-touch-icon.png")
+@app.get("/apple-touch-icon-precomposed.png")
+def apple_touch_icon():
+    return send_from_directory("static", "icon-192.png")
+
 @app.get("/sw.js")
 def service_worker():
     response = make_response(send_from_directory("static", "sw.js"))
