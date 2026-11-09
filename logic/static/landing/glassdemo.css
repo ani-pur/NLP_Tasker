@@ -20,6 +20,8 @@
 .gd-blob.b2 { width: 400px; height: 400px; right: 12%; top: -140px; background: #a880ff; animation: gdDrift 31s ease-in-out -8s infinite alternate-reverse; }
 .gd-blob.b3 { width: 380px; height: 380px; right: -80px; bottom: -120px; background: #38bde6; opacity: 0.4; animation: gdDrift 24s ease-in-out -4s infinite alternate; }
 .gd-blob.b4 { width: 260px; height: 260px; left: 36%; bottom: -80px; background: #ec66aa; opacity: 0.35; animation: gdDrift 29s ease-in-out -12s infinite alternate-reverse; }
+/* the task-color tint the blobs pulse to (see pulse() in glassdemo.js) */
+.gd-blob > i { position: absolute; inset: 0; border-radius: inherit; background: var(--tint, transparent); opacity: 0; }
 @keyframes gdDrift { 0% { transform: translate(0, 0) scale(1); } 50% { transform: translate(60px, 40px) scale(1.12); } 100% { transform: translate(-40px, 70px) scale(0.94); } }
 
 .gd-bar {

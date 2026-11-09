@@ -97,11 +97,25 @@ def service_worker():
 def health_check():
     return jsonify({"Status": "Up"})
 
+# Phones get their own landing page (landing_mobile.html); everything else gets landing.html.
+# Chromium browsers send Sec-CH-UA-Mobile on every request without being asked, and it follows
+# "Request desktop site"; the user-agent check covers Safari and Firefox. ?view=mobile|desktop forces one.
+def wants_mobile_landing():
+    view = request.args.get('view')
+    if view in ('mobile', 'desktop'):
+        return view == 'mobile'
+    return request.headers.get('Sec-CH-UA-Mobile') == '?1' or is_mobile()
+
 @app.route('/info', methods=['GET'])
 def info():
-    applog.note(applog.visitor())
-    # ?embed=1: just the live demo, shown in the dashboard's help overlay
-    return render_template('landing.html', embed=request.args.get('embed') == '1')
+    # ?embed=1: just the live demo, shown in the (desktop) dashboard's help overlay, so always the desktop page
+    embed = request.args.get('embed') == '1'
+    mobile = not embed and wants_mobile_landing()
+    applog.note(applog.visitor() + (" · mobile page" if mobile else ""))
+    response = make_response(render_template('landing_mobile.html' if mobile else 'landing.html', embed=embed))
+    # same URL, different page per device: keep any cache from handing one device the other's page
+    response.headers['Vary'] = 'User-Agent, Sec-CH-UA-Mobile'
+    return response
 
 # LOGIN ROUTE
 @app.route('/login', methods=['GET', 'POST'])
