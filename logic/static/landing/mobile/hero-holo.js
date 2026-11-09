@@ -175,7 +175,7 @@ export async function start(host) {
   // sit the grid (weekday letters included) just under the logo, with one line of space. Worked out once per
   // screen size with the grid at rest, not per frame, so the sway moves the grid but nothing chases it.
   function anchor() {
-    const want = (logoEl ? logoEl.offsetTop + logoEl.offsetHeight : 80) + 14;
+    const want = (logoEl ? logoEl.offsetTop + logoEl.offsetHeight : 80) + 46;   // a clear gap between the logo and the grid
     lookY = Math.max(8, fit() * 1.3) * 0.07;
     for (let i = 0; i < 40; i++) {
       frame(0, 0, 0, 0);
