@@ -176,7 +176,7 @@
   // when you stop: turbulent flame tongues lick up off it on a black-body heat ramp, the sky above shimmers
   // in the heat and chars dark with glowing spots, smoke curls up, and embers rise, drift and burn out.
   // Below the line the sky is gone.
-  const fsLiquid = `
+  const fsBurn = `
     precision highp float;
     uniform sampler2D uSky; uniform vec2 uRes; uniform float uPx, uTime, uScroll;
     float h21(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
@@ -244,7 +244,7 @@
     if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) { console.warn('hero sky:', gl.getProgramInfoLog(pr)); return null; }
     return pr;
   }
-  const prog = link(fs), liquid = link(fsLiquid);
+  const prog = link(fs), burn = link(fsBurn);
   if (!prog) { ui?.remove(); return; }
   gl.useProgram(prog);
   gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
@@ -266,9 +266,9 @@
     else fn();
   }
 
-  const L2 = n => liquid && gl.getUniformLocation(liquid, n);
+  const L2 = n => burn && gl.getUniformLocation(burn, n);
   const lq = { sky: L2('uSky'), res: L2('uRes'), px: L2('uPx'), time: L2('uTime'), scroll: L2('uScroll') };
-  // the texture the sky renders into while the liquid pass is on
+  // the texture the sky renders into while the burn pass is on
   const skyTex = gl.createTexture(), fbo = gl.createFramebuffer();
   gl.bindTexture(gl.TEXTURE_2D, skyTex);
   for (const [k, v] of [[gl.TEXTURE_MIN_FILTER, gl.LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_2D, k, v);
@@ -346,7 +346,7 @@
     const mx = hi ? mouse.x * 46 : 0, my = hi ? -mouse.y * 30 : 0;
     par.x += (sx + mx - par.x) * Math.min(1, dt * 2.5); par.y += (sy + my - par.y) * Math.min(1, dt * 2.5);
     updateComets(now);
-    gl.useProgram(prog);                                              // (the liquid pass may have left its program bound)
+    gl.useProgram(prog);                                              // (the burn pass may have left its program bound)
     gl.uniform2f(uRes, canvas.width, canvas.height); gl.uniform1f(uPx, px); gl.uniform2f(uPar, par.x, par.y);
     gl.uniform1f(uTime, (now - t0) / 1000); gl.uniform1f(uLvl, LEVELS.indexOf(level));
     gl.uniform1f(uBand, L.band); gl.uniform1f(uNeb, L.neb);
@@ -354,7 +354,7 @@
     const cr = copyEl?.getBoundingClientRect(), kr = canvas.getBoundingClientRect();
     if (cr) gl.uniform4f(U('uCopy'), cr.left - kr.left - 30, kr.bottom - cr.bottom - 30, cr.width + 60, cr.height + 60);
     const hr = hero.getBoundingClientRect(), sc = Math.max(0, Math.min(1, -hr.top / (hr.height * 0.75)));
-    const wet = sc > 0.001 && liquid;
+    const wet = sc > 0.001 && burn;
     // stats for the hero's counter: rough star count (by layer density), comets, render size, passes
     const area = (canvas.width / px) * (canvas.height / px);
     window.heroSkyStats = {
@@ -366,7 +366,7 @@
       gl.drawArrays(gl.TRIANGLES, 0, 3);
       if (!wet) return;
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-      gl.useProgram(liquid);
+      gl.useProgram(burn);
       gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, skyTex);
       gl.uniform1i(lq.sky, 0); gl.uniform2f(lq.res, canvas.width, canvas.height); gl.uniform1f(lq.px, px);
       gl.uniform1f(lq.time, (now - t0) / 1000); gl.uniform1f(lq.scroll, sc);

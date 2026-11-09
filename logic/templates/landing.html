@@ -72,26 +72,10 @@
     .hero.sky-on .hero-shade::after { opacity: 1; }
     .hero-copy { position: absolute; z-index: 2; left: 28px; bottom: 9vh; max-width: 620px; }
     h1 { font-size: clamp(46px, 5.8vw, 104px); font-weight: 600; letter-spacing: -0.045em; line-height: 0.95; }
-    /* with the sky on: no big shade, the sky runs to the left edge; each line of copy gets its own black
-       strip that hugs the words (box-decoration-break: clone), so the text stays readable and the sky shows around it */
-    /* with the sky on, the headline, the pitch line and the paragraph each sit in their own rounded black box.
-       The box is drawn behind the text (a ::before outset by the padding), so it never moves the layout; the
-       script below shrink-wraps each one to its widest line. Only the black fades in with the sky (--hla). */
-    @property --hla { syntax: '<number>'; inherits: true; initial-value: 0; }
-    .hero-copy { --hla: 0; transition: --hla 0.6s ease; }
-    .hero.sky-on.boxes .hero-copy { --hla: 1; }   /* the boxes are only on with ?copy=boxes */
-    .hero-copy h1, .hero-copy .lede { position: relative; isolation: isolate; }
-    .hero-copy h1::before, .hero-copy .lede::before { content: ''; position: absolute; z-index: -1; border-radius: 14px;
-      background: rgba(0, 0, 0, var(--hla)); box-shadow: 0 0 0 1px rgba(255, 255, 255, calc(var(--hla) * 0.06)); }
-    .hero-copy h1::before { inset: -6px -20px -8px -20px; border-radius: 18px; }
-    .hero-copy .lede::before { inset: -6px -14px; }
-    .hero-copy .lede + .lede { margin-top: 20px; }
+    /* with the sky on, the copy keeps a soft dark halo (the sky itself also clears behind it, see stars.js) */
     .hero-copy h1, .hero-copy .lede { transition: text-shadow 0.6s ease; }
     .hero.sky-on .hero-copy h1 { text-shadow: 0 0 34px rgba(0, 0, 0, 0.95), 0 2px 12px rgba(0, 0, 0, 0.85); }
     .hero.sky-on .hero-copy .lede { text-shadow: 0 0 18px rgba(0, 0, 0, 1), 0 1px 6px rgba(0, 0, 0, 0.9); }
-    .hero.sky-on.boxes .hero-copy h1, .hero.sky-on.boxes .hero-copy .lede { text-shadow: none; }
-    .hero-copy .actions .btn:not(.primary) { transition: background-color 0.6s ease, color 0.2s, border-color 0.2s; }
-    .hero.sky-on.boxes .hero-copy .actions .btn:not(.primary) { background-color: #000; }
     .hero-copy h1 { text-shadow: 0 2px 14px rgba(7, 7, 10, 0.85), 0 0 48px rgba(7, 7, 10, 0.9); }
     .hero-copy .lede { text-shadow: 0 1px 10px rgba(7, 7, 10, 0.9); }
     .lede { margin-top: 26px; max-width: 46ch; font-size: 18px; color: var(--muted); }
@@ -278,9 +262,9 @@
       <div id="hero-stage" aria-hidden="true"></div>
       <div class="hero-shade"></div>
       <div class="hero-copy">
-        <h1><span class="hl">A calendar you just talk to.</span></h1>
-        <p class="lede pitch"><span class="hl">Everything you need to do, in one place.</span></p>
-        <p class="lede"><span class="hl">Write tasks the way they come out of your head. Tasker pulls out all the important information, sorts everything, and pings you before it's due.</span></p>
+        <h1>A calendar you just talk to.</h1>
+        <p class="lede pitch">Everything you need to do, in one place.</p>
+        <p class="lede">Write tasks the way they come out of your head. Tasker pulls out all the important information, sorts everything, and pings you before it's due.</p>
         <div class="actions"><a class="btn primary" href="/signup">request access</a><a class="btn" href="#how">see how it works ↓</a></div>
       </div>
       <div class="cue">scroll</div>
@@ -376,23 +360,6 @@
   </main>
 
   <script>
-    if (new URLSearchParams(location.search).get('copy') === 'boxes') document.querySelector('.hero')?.classList.add('boxes');
-
-    // shrink-wrap the hero copy's boxes: each block gets the width of its widest line, so its black box
-    // (drawn by CSS) hugs the text instead of spanning the column
-    (function () {
-      const els = document.querySelectorAll('.hero-copy h1, .hero-copy .lede');
-      function fit() {
-        els.forEach(el => {
-          el.style.width = '';
-          const span = el.querySelector('.hl'), l = el.getBoundingClientRect().left;
-          let right = 0; for (const r of span.getClientRects()) right = Math.max(right, r.right);
-          el.style.width = Math.ceil(right - l + 1) + 'px';
-        });
-      }
-      fit(); document.fonts?.ready.then(fit); addEventListener('resize', fit);
-    })();
-
     // fps counter in the hero's top-right corner; scrolls away with the hero and fades as it goes
     (function () {
       if (document.body.classList.contains('embed')) return;
