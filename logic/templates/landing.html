@@ -47,10 +47,53 @@
 
     /* ── hero: the 3D scene fills it; copy sits on the left over a soft shade ── */
     .hero { position: relative; height: calc(100vh - 57px); min-height: 640px; border-bottom: 1px solid var(--line); overflow: hidden; }
+    #hero-stars { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; transition: opacity 0.26s ease; }
+    #hero-stars.off { opacity: 0; }
+    .sky-ui { position: absolute; z-index: 3; right: 16px; top: 34px; display: flex; gap: 8px; }
+    /* sliding pills: the thumb glides under the active option */
+    .seg { position: relative; display: inline-flex; padding: 3px; border-radius: 999px; background: rgba(0, 0, 0, 0.72); border: 1px solid var(--line); transition: opacity 0.25s; }
+    .seg { transition: opacity 0.45s ease, transform 0.45s ease; }
+    .seg.dim { opacity: 0; transform: translateX(8px); pointer-events: none; }
+    .seg .thumb { position: absolute; top: 3px; bottom: 3px; left: 3px; width: 0; border-radius: 999px; background: rgba(255, 255, 255, 0.12);
+      transition: left 0.32s cubic-bezier(0.3, 0.8, 0.2, 1), width 0.32s cubic-bezier(0.3, 0.8, 0.2, 1), background 0.3s; }
+    .seg[data-v="fry"] .thumb { background: rgba(255, 92, 60, 0.28); box-shadow: 0 0 14px rgba(255, 92, 60, 0.35); }
+    .seg button { position: relative; z-index: 1; padding: 4px 11px; border: 0; background: none; cursor: pointer; border-radius: 999px;
+      font: 500 11px 'IBM Plex Mono', monospace; color: var(--dim); transition: color 0.2s; white-space: nowrap; }
+    .seg button:hover { color: var(--muted); }
+    .seg button[aria-pressed="true"] { color: var(--fg); }
+    .seg button[data-v="fry"][aria-pressed="true"] { color: #ffb19c; }
     #hero-stage { position: absolute; inset: 0; }
-    .hero-shade { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(90deg, var(--bg) 0%, rgba(7, 7, 10, 0.88) 28%, rgba(7, 7, 10, 0) 56%); }
+    /* the shade behind the copy: two layers that crossfade between plain and the sky */
+    .hero-shade { position: absolute; inset: 0; pointer-events: none; }
+    .hero-shade::before, .hero-shade::after { content: ''; position: absolute; inset: 0; transition: opacity 0.7s ease; }
+    .hero-shade::before { background: linear-gradient(90deg, rgba(7, 7, 10, 0.65) 0%, rgba(7, 7, 10, 0.61) 30%, rgba(7, 7, 10, 0.39) 44%, rgba(7, 7, 10, 0) 62%); }
+    .hero-shade::after { background: radial-gradient(ellipse 55% 65% at 0% 100%, rgba(7, 7, 10, 0.5), rgba(7, 7, 10, 0) 70%); opacity: 0; }   /* a slight bottom-left vignette */
+    .hero.sky-on .hero-shade::before { opacity: 0; }
+    .hero.sky-on .hero-shade::after { opacity: 1; }
     .hero-copy { position: absolute; z-index: 2; left: 28px; bottom: 9vh; max-width: 620px; }
     h1 { font-size: clamp(46px, 5.8vw, 104px); font-weight: 600; letter-spacing: -0.045em; line-height: 0.95; }
+    /* with the sky on: no big shade, the sky runs to the left edge; each line of copy gets its own black
+       strip that hugs the words (box-decoration-break: clone), so the text stays readable and the sky shows around it */
+    /* with the sky on, the headline, the pitch line and the paragraph each sit in their own rounded black box.
+       The box is drawn behind the text (a ::before outset by the padding), so it never moves the layout; the
+       script below shrink-wraps each one to its widest line. Only the black fades in with the sky (--hla). */
+    @property --hla { syntax: '<number>'; inherits: true; initial-value: 0; }
+    .hero-copy { --hla: 0; transition: --hla 0.6s ease; }
+    .hero.sky-on.boxes .hero-copy { --hla: 1; }   /* the boxes are only on with ?copy=boxes */
+    .hero-copy h1, .hero-copy .lede { position: relative; isolation: isolate; }
+    .hero-copy h1::before, .hero-copy .lede::before { content: ''; position: absolute; z-index: -1; border-radius: 14px;
+      background: rgba(0, 0, 0, var(--hla)); box-shadow: 0 0 0 1px rgba(255, 255, 255, calc(var(--hla) * 0.06)); }
+    .hero-copy h1::before { inset: -6px -20px -8px -20px; border-radius: 18px; }
+    .hero-copy .lede::before { inset: -6px -14px; }
+    .hero-copy .lede + .lede { margin-top: 20px; }
+    .hero-copy h1, .hero-copy .lede { transition: text-shadow 0.6s ease; }
+    .hero.sky-on .hero-copy h1 { text-shadow: 0 0 34px rgba(0, 0, 0, 0.95), 0 2px 12px rgba(0, 0, 0, 0.85); }
+    .hero.sky-on .hero-copy .lede { text-shadow: 0 0 18px rgba(0, 0, 0, 1), 0 1px 6px rgba(0, 0, 0, 0.9); }
+    .hero.sky-on.boxes .hero-copy h1, .hero.sky-on.boxes .hero-copy .lede { text-shadow: none; }
+    .hero-copy .actions .btn:not(.primary) { transition: background-color 0.6s ease, color 0.2s, border-color 0.2s; }
+    .hero.sky-on.boxes .hero-copy .actions .btn:not(.primary) { background-color: #000; }
+    .hero-copy h1 { text-shadow: 0 2px 14px rgba(7, 7, 10, 0.85), 0 0 48px rgba(7, 7, 10, 0.9); }
+    .hero-copy .lede { text-shadow: 0 1px 10px rgba(7, 7, 10, 0.9); }
     .lede { margin-top: 26px; max-width: 46ch; font-size: 18px; color: var(--muted); }
     .lede + .lede { margin-top: 12px; }
     .lede.pitch { color: var(--fg); }
@@ -178,7 +221,8 @@
     @media (prefers-reduced-motion: reduce) { .reveal, .hero-copy > * { opacity: 1; transform: none; transition: none; animation: none; } }
 
     @media (max-width: 900px) {
-      .hero-shade { background: linear-gradient(0deg, var(--bg) 0%, rgba(7, 7, 10, 0.9) 40%, rgba(7, 7, 10, 0) 70%); }
+      .hero-shade::before { background: linear-gradient(0deg, var(--bg) 0%, rgba(7, 7, 10, 0.9) 40%, rgba(7, 7, 10, 0) 70%); }
+      .hero-shade::after { background: linear-gradient(0deg, rgba(7, 7, 10, 0.6) 0%, rgba(7, 7, 10, 0) 45%); }
       .hero-copy { left: 20px; right: 20px; bottom: 8vh; }
       .sec { grid-template-columns: 1fr; }
       .sec > .idx { border-right: none; border-bottom: 1px solid var(--line); padding: 16px 20px; }
@@ -226,12 +270,17 @@
 
   <main class="wrap ruled">
     <section class="hero">
+      {% if not embed %}<canvas id="hero-stars" aria-hidden="true"></canvas>
+      <div class="sky-ui">
+        <div class="seg" data-seg="look" role="group" aria-label="Sky"><span class="thumb"></span><button type="button" data-v="milkyway">milky way</button><button type="button" data-v="nebula">nebula</button></div>
+        <div class="seg" data-seg="level" role="group" aria-label="Sky quality"><span class="thumb"></span><button type="button" data-v="plain">plain</button><button type="button" data-v="good">good</button><button type="button" data-v="fry">fry pc</button></div>
+      </div>{% endif %}
       <div id="hero-stage" aria-hidden="true"></div>
       <div class="hero-shade"></div>
       <div class="hero-copy">
-        <h1>A calendar you just talk to.</h1>
-        <p class="lede pitch">Everything you need to do, in one place.</p>
-        <p class="lede">Write tasks the way they come out of your head. Tasker pulls out all the important information, sorts everything, and pings you before it's due.</p>
+        <h1><span class="hl">A calendar you just talk to.</span></h1>
+        <p class="lede pitch"><span class="hl">Everything you need to do, in one place.</span></p>
+        <p class="lede"><span class="hl">Write tasks the way they come out of your head. Tasker pulls out all the important information, sorts everything, and pings you before it's due.</span></p>
         <div class="actions"><a class="btn primary" href="/signup">request access</a><a class="btn" href="#how">see how it works ↓</a></div>
       </div>
       <div class="cue">scroll</div>
@@ -327,6 +376,23 @@
   </main>
 
   <script>
+    if (new URLSearchParams(location.search).get('copy') === 'boxes') document.querySelector('.hero')?.classList.add('boxes');
+
+    // shrink-wrap the hero copy's boxes: each block gets the width of its widest line, so its black box
+    // (drawn by CSS) hugs the text instead of spanning the column
+    (function () {
+      const els = document.querySelectorAll('.hero-copy h1, .hero-copy .lede');
+      function fit() {
+        els.forEach(el => {
+          el.style.width = '';
+          const span = el.querySelector('.hl'), l = el.getBoundingClientRect().left;
+          let right = 0; for (const r of span.getClientRects()) right = Math.max(right, r.right);
+          el.style.width = Math.ceil(right - l + 1) + 'px';
+        });
+      }
+      fit(); document.fonts?.ready.then(fit); addEventListener('resize', fit);
+    })();
+
     // fps counter in the hero's top-right corner; scrolls away with the hero and fades as it goes
     (function () {
       if (document.body.classList.contains('embed')) return;
@@ -337,7 +403,11 @@
       requestAnimationFrame(function tick(now) {
         frames++;
         el.style.opacity = 0.75 * Math.max(0, 1 - scrollY / (hero.offsetHeight * 0.5));
-        if (now - last >= 500) { el.textContent = Math.round(frames * 1000 / (now - last)) + ' fps' + (window.heroParticles ? ' · ' + window.heroParticles.toLocaleString() + ' particles' : ''); frames = 0; last = now; }
+        if (now - last >= 500) {
+          const fps = frames * 1000 / (now - last), st = window.heroSkyStats, parts = (window.heroParticles || 0) + (st ? st.stars : 0);
+          el.textContent = Math.round(fps) + ' fps · ' + (1000 / fps).toFixed(1) + 'ms · ' + parts.toLocaleString() + ' particles';
+          frames = 0; last = now;
+        }
         requestAnimationFrame(tick);
       });
     })();
@@ -381,6 +451,7 @@
   </script>
   <script src="{{ url_for('static', filename='landing/readout.js') }}"></script>
   <script src="{{ url_for('static', filename='landing/glassdemo.js') }}"></script>
-  {% if not embed %}<script src="{{ url_for('static', filename='landing/hero3d.js') }}"></script>{% endif %}
+  {% if not embed %}<script src="{{ url_for('static', filename='landing/stars.js') }}"></script>
+  <script src="{{ url_for('static', filename='landing/hero3d.js') }}"></script>{% endif %}
 </body>
 </html>
