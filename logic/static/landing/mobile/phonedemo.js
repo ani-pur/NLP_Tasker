@@ -39,7 +39,7 @@
   mount.innerHTML = `
     <div class="pd" aria-label="Tasker on a phone, live demo">
       <div class="pd-screen">
-        <div class="pd-blob b1"></div><div class="pd-blob b2"></div><div class="pd-blob b3"></div><div class="pd-blob b4"></div>
+        <div class="pd-blob b1"><i></i></div><div class="pd-blob b2"><i></i></div><div class="pd-blob b3"><i></i></div><div class="pd-blob b4"><i></i></div>
         <div class="pd-island"></div>
         <div class="pd-status"><span>9:41</span><span class="pd-sig"><i></i><i></i><i></i><i></i><span class="pd-batt"></span></span></div>
         <div class="pd-head">
@@ -153,6 +153,19 @@
     scrollTo(0);
   }
 
+  // like the real dashboard's ambientPulse (static/ambient.js): after a task is added, the blobs fade
+  // most of the way to its color (0.7s), hold (1.3s), and fade back (1.4s)
+  const tints = [...mount.querySelectorAll('.pd-blob > i')];
+  const reduceTint = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function pulse(hex) {
+    if (reduceTint || !tints[0]?.animate) return;
+    for (const el of tints) {
+      el.style.setProperty('--tint', hex || '#D3D8EE');
+      el.getAnimations().forEach(a => a.cancel());
+      el.animate([{ opacity: 0 }, { opacity: 0.8, offset: 0.7 / 3.4 }, { opacity: 0.8, offset: 2 / 3.4 }, { opacity: 0 }], { duration: 3400, easing: 'ease-in-out' });
+    }
+  }
+
   async function loop() {
     reset();
     await sleep(1000);
@@ -166,6 +179,7 @@
         setText('');
         const t = mk(ex);
         tasks.push(t);
+        pulse(HEX[t.color]);
         render(t.id);
         // go look at it: scroll it into the middle of the screen and open it
         await sleep(450);

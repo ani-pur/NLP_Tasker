@@ -42,7 +42,7 @@
 
   mount.innerHTML = `
     <div class="gd">
-      <div class="gd-blob b1"></div><div class="gd-blob b2"></div><div class="gd-blob b3"></div><div class="gd-blob b4"></div>
+      <div class="gd-blob b1"><i></i></div><div class="gd-blob b2"><i></i></div><div class="gd-blob b3"><i></i></div><div class="gd-blob b4"><i></i></div>
       <div class="gd-bar">
         <div class="gd-brand">tasker<i>.</i></div>
         <div class="gd-barr"><span class="gd-user">anirudh</span><span>Log out</span></div>
@@ -185,6 +185,19 @@
     renderCal();
   }
 
+  // like the real dashboard's ambientPulse (static/ambient.js): after a task is added, the blobs fade
+  // most of the way to its color (0.7s), hold (1.3s), and fade back (1.4s)
+  const tints = [...mount.querySelectorAll('.gd-blob > i')];
+  const reduceTint = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function pulse(hex) {
+    if (reduceTint || !tints[0]?.animate) return;
+    for (const el of tints) {
+      el.style.setProperty('--tint', hex || '#D3D8EE');
+      el.getAnimations().forEach(a => a.cancel());
+      el.animate([{ opacity: 0 }, { opacity: 0.8, offset: 0.7 / 3.4 }, { opacity: 0.8, offset: 2 / 3.4 }, { opacity: 0 }], { duration: 3400, easing: 'ease-in-out' });
+    }
+  }
+
   async function loop() {
     reset();
     await sleep(900);
@@ -197,6 +210,7 @@
         setText('');
         const t = mk(ex);
         tasks.push(t);
+        pulse(HEX[t.color]);
         renderList(t.id);
         renderCal(key(t.dt));
         await sleep(2600);
