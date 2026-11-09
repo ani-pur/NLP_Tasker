@@ -268,16 +268,16 @@
       .sec.full > * { max-width: 760px; margin-left: auto; margin-right: auto; }
       .sec.full > .desk { max-width: 760px; }
     }
-    /* ── scroll cue: a hairline on the right edge with a glow running down it; fades out near the end ── */
-    .scroll-cue { position: fixed; top: 14svh; bottom: 8svh; right: 3px; width: 1px; z-index: 40; pointer-events: none;
-      background: linear-gradient(transparent, rgba(255, 255, 255, 0.07) 15%, rgba(255, 255, 255, 0.07) 85%, transparent);
-      overflow: hidden; transition: opacity 0.6s; }
-    .scroll-cue::after { content: ''; position: absolute; left: 0; width: 1px; height: 22%; top: -22%;
-      background: linear-gradient(transparent, rgba(var(--accent-rgb), 0.9), transparent);
-      box-shadow: 0 0 6px 1px rgba(var(--accent-rgb), 0.45); animation: cue 3.2s cubic-bezier(0.45, 0, 0.35, 1) infinite; }
-    @keyframes cue { 0% { top: -22%; opacity: 0; } 15% { opacity: 1; } 80% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
+    /* ── scroll cue: a faint hairline on the right edge with a glowing dot gliding down it (driven by the
+       script at the bottom: S-curve motion, the tail stretches with speed); fades out near the end ── */
+    .scroll-cue { position: fixed; top: 14svh; bottom: 8svh; right: 6px; width: 1px; z-index: 40; pointer-events: none;
+      background: linear-gradient(transparent, rgba(255, 255, 255, 0.06) 15%, rgba(255, 255, 255, 0.06) 85%, transparent);
+      transition: opacity 0.6s; }
     .scroll-cue.done { opacity: 0; }
-    @media (prefers-reduced-motion: reduce) { .scroll-cue::after { animation-duration: 8s; } }
+    .cue-dot { position: absolute; left: 0.5px; top: 0; width: 3px; height: 3px; margin: -1.5px 0 0 -1.5px; border-radius: 50%; opacity: 0;
+      background: #fff; box-shadow: 0 0 3px 1px rgba(var(--accent-rgb), 0.9), 0 0 9px 3px rgba(var(--accent-rgb), 0.35); will-change: transform, opacity; }
+    .cue-tail { position: absolute; left: 0; top: 0; width: 1px; height: 100px; transform-origin: 50% 100%; opacity: 0;
+      background: linear-gradient(transparent, rgba(var(--accent-rgb), 0.55)); will-change: transform, opacity; }
   </style>
 </head>
 <body>
@@ -513,13 +513,36 @@
   {% block hero_script %}
   <script type="module" src="{{ url_for('static', filename='landing/mobile/hero.js') }}"></script>
   {% endblock %}
-<div class="scroll-cue" aria-hidden="true"></div>
+<div class="scroll-cue" aria-hidden="true"><div class="cue-tail"></div><div class="cue-dot"></div></div>
 <script>
-  // hide the scroll cue once you're near the bottom
+  // scroll cue: a dot glides down the edge on an S-curve (sine ease in and out), so it starts and stops
+  // gently; its tail is as long as it is fast, growing from nothing and shrinking back to nothing.
+  // Hidden (and not animating) once you're near the bottom of the page.
   (() => {
-    const cue = document.querySelector('.scroll-cue');
-    const check = () => cue.classList.toggle('done', innerHeight + scrollY > document.documentElement.scrollHeight - innerHeight * 0.6);
-    addEventListener('scroll', check, { passive: true }); addEventListener('resize', check); check();
+    const cue = document.querySelector('.scroll-cue'), dot = cue.querySelector('.cue-dot'), tail = cue.querySelector('.cue-tail');
+    const slow = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const MOVE = slow ? 9000 : 5200, REST = 1400, TAIL = 70;
+    let raf = 0, t0 = performance.now();
+    function frame(now) {
+      const p = ((now - t0) % (MOVE + REST)) / MOVE;
+      if (p >= 1) { dot.style.opacity = tail.style.opacity = 0; }
+      else {
+        const H = cue.clientHeight, y = H * (1 - Math.cos(Math.PI * p)) / 2;          // S-curve position
+        const len = TAIL * Math.sin(Math.PI * p);                                     // its speed, 0 → max → 0
+        const a = Math.min(1, p / 0.12, (1 - p) / 0.12);                              // fade in at the top, out at the bottom
+        dot.style.transform = `translateY(${y}px)`; dot.style.opacity = a;
+        tail.style.transform = `translateY(${y - 100}px) scaleY(${len / 100})`; tail.style.opacity = a;
+      }
+      raf = requestAnimationFrame(frame);
+    }
+    const check = () => {
+      const done = innerHeight + scrollY > document.documentElement.scrollHeight - innerHeight * 0.6;
+      cue.classList.toggle('done', done);
+      if (done || document.hidden) { cancelAnimationFrame(raf); raf = 0; }
+      else if (!raf) raf = requestAnimationFrame(frame);
+    };
+    addEventListener('scroll', check, { passive: true }); addEventListener('resize', check);
+    document.addEventListener('visibilitychange', check); check();
   })();
 </script>
 </body>
