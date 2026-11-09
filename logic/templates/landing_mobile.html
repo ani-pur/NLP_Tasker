@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Phone version of landing.html, served by /info when wants_mobile_landing() says so (main.py).
+       Same brand and copy, laid out for one column and touch. The desktop page lives on its own in
+       landing.html; change that one without worrying about this one, and the other way round. -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <link rel="manifest" href="/pwa/manifest.webmanifest">
+  <meta name="theme-color" content="#07070a">
+  <meta name="description" content="A to-do list you just talk to. Type tasks the way you'd say them; Tasker sorts them and reminds you before they're due.">
+  <title>Tasker | Let Tasker remember it</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='landing/glassdemo.css') }}">
+  <script src="{{ url_for('static', filename='landing/tier.js') }}"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #07070a; --fg: #ededf0; --muted: #a9a9b6; --dim: #74747f;
+      --line: rgba(255, 255, 255, 0.09); --line-strong: rgba(255, 255, 255, 0.16);
+      --accent: #8b93ff; --accent-rgb: 139, 147, 255; --accent-ink: #0b0b14; --warn: #f5c542;
+      --gut: max(20px, env(safe-area-inset-left), env(safe-area-inset-right));
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { background: var(--bg); }
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+    body { color: var(--fg); font-family: 'Instrument Sans', system-ui, sans-serif; font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased; overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; color: inherit; }
+    .mono { font-family: 'IBM Plex Mono', monospace; }
+
+    /* ── top bar: stays put, frosted ── */
+    header {
+      position: sticky; top: 0; z-index: 20; height: calc(56px + env(safe-area-inset-top)); padding: env(safe-area-inset-top) var(--gut) 0;
+      display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line);
+      background: rgba(7, 7, 10, 0.72); backdrop-filter: blur(18px) saturate(160%); -webkit-backdrop-filter: blur(18px) saturate(160%);
+    }
+    .logo { font-size: 19px; font-weight: 700; letter-spacing: -0.5px; }
+    .logo i { font-style: normal; color: var(--accent); }
+    nav { display: flex; align-items: center; gap: 6px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; }
+    nav > a.plain { padding: 10px 12px; color: var(--muted); }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap;
+      font-family: 'IBM Plex Mono', monospace; font-size: 14px; line-height: 1;
+      min-height: 48px; padding: 0 22px; border-radius: 999px; border: 1px solid var(--line-strong); color: var(--fg); background: none;
+      transition: background 0.15s, border-color 0.15s, transform 0.1s; cursor: pointer;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn.primary { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+    .btn.accent { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); min-height: 36px; padding: 0 16px; font-size: 13px; }
+
+    /* ── hero: the 3D scene in a block on top, the copy under it ── */
+    .hero { border-bottom: 1px solid var(--line); padding-bottom: 40px; }
+    .stage-wrap { position: relative; height: clamp(240px, 80vw, 52svh); overflow: hidden; }   /* the scene is width-bound: taller only adds empty space */
+    .stage-wrap::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 30%; pointer-events: none; background: linear-gradient(transparent, var(--bg)); }
+    #hero-stage { position: absolute; inset: 0; touch-action: pan-y; }
+    /* shown while Three.js loads (and for good if WebGL isn't there), then fades under the live scene */
+    .stage-fallback {
+      position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; transition: opacity 1.2s ease;
+      font-size: clamp(64px, 22vw, 110px); font-weight: 500; letter-spacing: -0.04em; color: transparent;
+      -webkit-text-stroke: 1px rgba(237, 237, 240, 0.35); text-shadow: 0 0 40px rgba(var(--accent-rgb), 0.35);
+    }
+    .stage-fallback i { font-style: normal; -webkit-text-stroke-color: var(--accent); }
+    #hero-stage.live ~ .stage-fallback { opacity: 0; }
+    .fps { position: absolute; z-index: 3; right: var(--gut); top: 12px; font: 600 10.5px 'IBM Plex Mono', monospace; color: #a4d007; opacity: 0.7; pointer-events: none; font-variant-numeric: tabular-nums; }
+    .hero-copy { position: relative; z-index: 2; padding: 0 var(--gut); margin-top: -24px; }
+    h1 { font-size: clamp(40px, 11.5vw, 60px); font-weight: 600; letter-spacing: -0.045em; line-height: 0.98; }
+    .lede { margin-top: 18px; font-size: 16.5px; color: var(--muted); }
+    .lede + .lede { margin-top: 10px; }
+    .lede.pitch { color: var(--fg); }
+    .actions { margin-top: 26px; display: grid; gap: 10px; }
+    .hero-copy > * { opacity: 0; transform: translateY(14px); animation: rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) forwards; }
+    .hero-copy > :nth-child(1) { animation-delay: 0.35s; } .hero-copy > :nth-child(2) { animation-delay: 0.5s; }
+    .hero-copy > :nth-child(3) { animation-delay: 0.65s; } .hero-copy > :nth-child(4) { animation-delay: 0.8s; }
+    @keyframes rise { to { opacity: 1; transform: none; } }
+
+    /* ── sections ── */
+    .sec { padding: 40px var(--gut) 48px; border-bottom: 1px solid var(--line); }
+    .kicker { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--dim); margin-bottom: 12px; }
+    .kicker b { color: var(--accent); font-weight: 500; }
+    h2 { font-size: clamp(27px, 7.6vw, 36px); font-weight: 600; letter-spacing: -0.03em; line-height: 1.08; }
+    .sub { margin-top: 12px; color: var(--muted); font-size: 15.5px; }
+
+    /* ── the desktop dashboard, running live, scaled down to fit ── */
+    .desk { margin-top: 26px; }
+    .desk-frame {
+      position: relative; border-radius: 14px; padding: 6px; background: linear-gradient(160deg, rgba(255,255,255,0.14), rgba(255,255,255,0.03) 40%, rgba(255,255,255,0.08));
+      box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.08), 0 0 60px -20px rgba(var(--accent-rgb), 0.45);
+    }
+    .desk-frame::before { content: ''; position: absolute; top: 2px; left: 50%; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: rgba(255,255,255,0.25); }
+    .desk-view { --k: 0.24; position: relative; height: calc(800px * var(--k)); border-radius: 9px; overflow: hidden; background: #07070a; cursor: zoom-in; }
+    .desk.zoomed .desk-view { overflow-x: auto; overflow-y: hidden; cursor: zoom-out; overscroll-behavior-x: contain; scrollbar-width: none; }
+    .desk.zoomed .desk-view::-webkit-scrollbar { display: none; }
+    .desk-sizer { width: calc(1440px * var(--k)); height: 100%; }
+    /* glassdemo.css hides the calendar under 900px wide; here the demo always gets its full desktop layout */
+    .desk .gd { width: 1440px; height: 800px; max-width: none; margin: 0; border: none; border-radius: 0; box-shadow: none; transform: scale(var(--k)); transform-origin: 0 0; }
+    .desk .gd-body { grid-template-columns: minmax(340px, 400px) minmax(0, 1fr); }
+    .desk .gd-cal { display: flex; }
+    /* soft color fields instead of animated blur filters: same look, far cheaper on a phone */
+    .desk .gd-blob { filter: none; opacity: 0.6; }
+    .desk .gd-blob.b1 { background: radial-gradient(closest-side, #6e76ff, transparent); }
+    .desk .gd-blob.b2 { background: radial-gradient(closest-side, #a880ff, transparent); }
+    .desk .gd-blob.b3 { background: radial-gradient(closest-side, #38bde6, transparent); opacity: 0.45; }
+    .desk .gd-blob.b4 { background: radial-gradient(closest-side, #ec66aa, transparent); opacity: 0.4; }
+    .desk-stand { width: 26%; height: 14px; margin: 0 auto; background: linear-gradient(rgba(255,255,255,0.1), rgba(255,255,255,0.03)); clip-path: polygon(12% 0, 88% 0, 100% 100%, 0 100%); }
+    .desk-foot { width: 40%; height: 3px; margin: 0 auto; border-radius: 3px; background: rgba(255, 255, 255, 0.1); }
+    .desk-hint { display: flex; justify-content: space-between; gap: 12px; margin-top: 14px; font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: var(--dim); }
+    .desk-hint b { font-weight: 500; color: var(--muted); }
+    .live-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #6CE5A9; margin-right: 6px; vertical-align: 1px; box-shadow: 0 0 8px #6CE5A9; animation: pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 50% { opacity: 0.35; } }
+
+    /* desktop vs phone, side by side */
+    .compare { margin-top: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .cmp { border: 1px solid var(--line); border-radius: 14px; padding: 15px 14px 16px; background: rgba(255, 255, 255, 0.02); }
+    .cmp.hi { border-color: color-mix(in srgb, var(--accent) 45%, transparent); background: linear-gradient(160deg, rgba(var(--accent-rgb), 0.14), rgba(var(--accent-rgb), 0.02) 70%); }
+    .cmp h3 { display: flex; align-items: center; gap: 8px; font-size: 14.5px; font-weight: 600; letter-spacing: -0.2px; }
+    .cmp h3 svg { flex: none; color: var(--muted); }
+    .cmp.hi h3 svg { color: var(--accent); }
+    .cmp h3 + .mono { margin-top: 3px; font-size: 10.5px; letter-spacing: 1px; text-transform: uppercase; color: var(--dim); }
+    .cmp.hi h3 + .mono { color: var(--accent); }
+    .cmp ul { list-style: none; margin-top: 12px; display: grid; gap: 8px; font-size: 13px; line-height: 1.35; color: var(--muted); }
+    .cmp li { display: grid; grid-template-columns: 12px 1fr; gap: 6px; }
+    .cmp li::before { content: '+'; font-family: 'IBM Plex Mono', monospace; color: var(--dim); }
+    .cmp.hi li { color: var(--fg); }
+    .cmp.hi li::before { color: var(--accent); }
+    .handoff { margin-top: 18px; display: flex; align-items: center; gap: 14px; padding: 14px 14px 14px 16px; border: 1px dashed var(--line-strong); border-radius: 14px; }
+    .handoff p { flex: 1; font-size: 13.5px; color: var(--muted); line-height: 1.4; }
+    .handoff p b { color: var(--fg); font-weight: 600; }
+    .handoff .btn { min-height: 42px; padding: 0 16px; font-size: 13px; flex: none; }
+
+    /* ── you type ── */
+    .readout { margin-top: 26px; font-family: 'IBM Plex Mono', monospace; }
+    .readout .label { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--dim); }
+    /* room for three lines, the longest example on a 320px screen, so nothing below jumps */
+    .readout .in { margin-top: 10px; height: calc(1.45em * 3); font-size: 16px; line-height: 1.45; overflow-wrap: anywhere; }
+    .readout .in::before { content: '> '; color: var(--accent); }
+    .readout .caret { color: var(--accent); animation: blink 1s steps(1) infinite; }
+    @keyframes blink { 50% { opacity: 0; } }
+    .fields { margin-top: 18px; border-top: 1px solid var(--line); }
+    /* label above the value: the whole width goes to the value */
+    .rf { display: grid; gap: 4px; padding: 11px 0 12px; border-bottom: 1px solid var(--line); font-size: 14.5px; line-height: 22px; }
+    .rf > span:first-child { font-size: 10.5px; letter-spacing: 1.3px; text-transform: uppercase; line-height: 16px; color: var(--dim); }
+    .rf > span + span { min-height: 22px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .rf > .rems { min-height: calc(22px * 3 + 8px); }
+    .rf .v { animation: settle 0.35s ease-out; }
+    @keyframes settle { from { opacity: 0.25; } to { opacity: 1; } }
+    .nil { color: var(--dim); }
+    .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 8px; vertical-align: -1px; }
+    .rems div { display: grid; grid-template-columns: 78px minmax(0, 1fr); }
+    .rems div + div { margin-top: 4px; }
+    .rems b { font-weight: 500; }
+    .rems i { font-style: normal; color: var(--dim); overflow: hidden; text-overflow: ellipsis; }
+    .rems .def b { color: var(--accent); }
+    .rems .def i { color: color-mix(in srgb, var(--accent) 75%, var(--dim)); }
+    .rems .custom b { color: var(--warn); }
+    .rems .custom i { color: color-mix(in srgb, var(--warn) 70%, var(--dim)); }
+    .ctl { margin-top: 16px; display: flex; align-items: center; gap: 14px; }
+    .pp { flex: none; width: 40px; height: 40px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--line-strong); background: transparent; color: var(--muted); cursor: pointer; }
+    .pp:active { background: rgba(255, 255, 255, 0.06); }
+    .pp svg { width: 13px; height: 13px; fill: currentColor; }
+    .pp .i-play, .readout.paused .pp .i-pause { display: none; }
+    .readout.paused .pp .i-play { display: block; }
+    .readout.paused .caret { animation: none; }
+    .next { flex: 1; height: 2px; background: var(--line); border-radius: 2px; overflow: hidden; }
+    .next i { display: block; height: 100%; background: var(--accent); transform-origin: left; }
+
+    /* ── notifications: device mockups (phones first: that's what's in your hand) ── */
+    .devices { margin-top: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 26px 14px; }
+    .dev { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+    .dev.wide { grid-column: 1 / -1; align-items: center; }
+    .dev.wide figcaption { align-self: stretch; text-align: center; }
+    .dev figcaption { font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: var(--dim); }
+    .dev figcaption b { display: block; color: var(--fg); font-weight: 500; font-size: 12.5px; margin-bottom: 2px; }
+    .screen { position: relative; overflow: hidden; background: radial-gradient(120% 90% at 20% 0%, #1b1d3a 0%, #0c0c14 55%, #07070a 100%); }
+    .wall-b { background: radial-gradient(120% 90% at 80% 10%, #10263a 0%, #0b0f18 55%, #07070a 100%); }
+    .wall-c { background: radial-gradient(130% 80% at 50% 0%, #2a1a3e 0%, #110c1a 55%, #07070a 100%); }
+    .laptop .screen { width: min(320px, 100%); aspect-ratio: 16 / 10; border: 1px solid var(--line-strong); border-radius: 12px 12px 4px 4px; }
+    .laptop > div { width: min(320px, 100%); }
+    .laptop .menubar { position: absolute; top: 0; left: 0; right: 0; height: 14px; background: rgba(255, 255, 255, 0.05); display: flex; align-items: center; gap: 8px; padding: 0 10px; font-size: 7.5px; color: rgba(255, 255, 255, 0.55); }
+    .laptop .base { width: calc(100% + 30px); height: 10px; margin-left: -15px; border: 1px solid var(--line-strong); border-top: none; border-radius: 0 0 12px 12px; background: rgba(255, 255, 255, 0.03); }
+    .monitor > div { width: min(320px, 100%); }
+    .monitor .screen { width: 100%; aspect-ratio: 16 / 9; border: 1px solid var(--line-strong); border-radius: 8px; }
+    .monitor .taskbar { position: absolute; left: 0; right: 0; bottom: 0; height: 16px; background: rgba(255, 255, 255, 0.05); border-top: 1px solid rgba(255, 255, 255, 0.06); }
+    .monitor .stand { width: 4px; height: 22px; margin: 0 auto; background: var(--line-strong); }
+    .monitor .foot { width: 100px; height: 1px; margin: 0 auto; border-top: 1px solid var(--line-strong); }
+    .phone .screen { width: 100%; max-width: 170px; aspect-ratio: 9 / 19.5; border: 1px solid var(--line-strong); border-radius: 26px; }
+    .phone .island { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); width: 44px; height: 13px; border-radius: 99px; background: #000; }
+    .phone .hole { position: absolute; top: 9px; left: 50%; transform: translateX(-50%); width: 9px; height: 9px; border-radius: 50%; background: #000; }
+    .phone .lock { position: absolute; top: 40px; left: 0; right: 0; text-align: center; }
+    .phone .lock b { display: block; font-size: 40px; font-weight: 600; letter-spacing: -1.5px; line-height: 1; }
+    .phone .lock span { font-size: 9.5px; color: rgba(255, 255, 255, 0.6); }
+    .phone .status { position: absolute; top: 8px; left: 14px; right: 14px; display: flex; justify-content: space-between; font-size: 8px; color: rgba(255, 255, 255, 0.7); }
+    .nt {
+      position: absolute; display: grid; grid-template-columns: auto 1fr; column-gap: 7px; align-items: center;
+      opacity: 0; transition: opacity 0.35s ease, transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    .nt img { width: 100%; height: 100%; border-radius: 5px; display: block; }
+    .nt .ic { width: 20px; height: 20px; }
+    .nt .tt { font-weight: 600; font-size: 9.5px; color: #fff; line-height: 1.25; }
+    .nt .bd { font-size: 9px; color: rgba(255, 255, 255, 0.72); line-height: 1.3; }
+    .nt .ap { font-size: 8px; color: rgba(255, 255, 255, 0.55); }
+    .nt.show { opacity: 1; transform: none !important; }
+    .nt.mac { top: 22px; right: 10px; width: 62%; padding: 7px 9px; border-radius: 11px; background: rgba(58, 58, 68, 0.82); border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4); transform: translateX(110%); }
+    .nt.win { right: 8px; bottom: 24px; width: 56%; padding: 8px 10px; border-radius: 7px; background: rgba(38, 38, 44, 0.96); border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 8px 22px rgba(0, 0, 0, 0.5); transform: translateY(40%); grid-template-columns: 1fr; row-gap: 3px; }
+    .nt.win .head { display: flex; align-items: center; gap: 5px; }
+    .nt.win .head .ic { width: 11px; height: 11px; }
+    .nt.ios { left: 7px; right: 7px; bottom: 58px; padding: 8px 9px; border-radius: 16px; background: rgba(70, 70, 82, 0.62); border: 1px solid rgba(255, 255, 255, 0.1); transform: translateY(24px) scale(0.96); }
+    .nt.and { left: 7px; right: 7px; top: 26px; padding: 8px 10px; border-radius: 16px; background: rgba(44, 44, 54, 0.95); border: 1px solid rgba(255, 255, 255, 0.08); transform: translateY(-120%); grid-template-columns: 1fr; row-gap: 3px; }
+    .nt.and .head { display: flex; align-items: center; gap: 5px; font-size: 8px; color: rgba(255, 255, 255, 0.6); }
+    .nt.and .head .ic { width: 11px; height: 11px; }
+    .nt.and .acts { display: flex; gap: 12px; margin-top: 3px; font-size: 8.5px; font-weight: 600; color: #a9aeff; }
+    .nt .row { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+
+    /* ── changelog ── */
+    .log { margin-top: 18px; }
+    .log-row { padding: 14px 0; border-top: 1px solid var(--line); }
+    .log-row time { display: block; font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: var(--dim); margin-bottom: 3px; }
+    .log-row b { font-weight: 600; }
+    .log-row p { color: var(--muted); margin-top: 2px; font-size: 14.5px; }
+    .tag { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); border-radius: 999px; padding: 1px 8px; margin-left: 8px; vertical-align: 2px; }
+
+    /* ── closing call to action + footer ── */
+    .end { padding: 48px var(--gut) 40px; text-align: center; }
+    .end h2 { max-width: 14ch; margin: 0 auto; }
+    .end .actions { margin-top: 24px; }
+    footer { display: flex; justify-content: center; gap: 22px; padding: 22px var(--gut) calc(26px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--dim); }
+    footer a { padding: 6px 0; }
+
+    /* ── scroll reveal ── */
+    .reveal { opacity: 0; transform: translateY(18px); transition: opacity 0.7s ease, transform 0.8s cubic-bezier(0.2, 0.7, 0.2, 1); }
+    .reveal.in { opacity: 1; transform: none; }
+    @media (prefers-reduced-motion: reduce) {
+      .reveal, .hero-copy > * { opacity: 1; transform: none; transition: none; animation: none; }
+      .live-dot { animation: none; }
+    }
+    @media (hover: hover) {
+      nav > a.plain:hover, footer a:hover { color: var(--fg); }
+      .btn:hover { border-color: var(--muted); }
+    }
+    /* a landscape phone or a small tablet that still got this page: keep it a readable column */
+    @media (min-width: 640px) {
+      .hero-copy, .sec, .end { max-width: 640px; margin-left: auto; margin-right: auto; }
+      .hero-copy { margin-top: -24px; }
+      .sec.full { max-width: none; }
+      .sec.full > * { max-width: 760px; margin-left: auto; margin-right: auto; }
+      .sec.full > .desk { max-width: 760px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="logo" href="/">tasker<i>.</i></a>
+    <nav>
+      <a class="plain" href="/login">log in</a>
+      <a class="btn accent" href="/signup">sign up</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="stage-wrap">
+        <div id="hero-stage" aria-hidden="true"></div>
+        <div class="stage-fallback" aria-hidden="true">tasker<i>.</i></div>
+      </div>
+      <div class="hero-copy">
+        <h1>A to-do list you just talk to.</h1>
+        <p class="lede pitch">Everything you need to do, in one place.</p>
+        <p class="lede">Write tasks the way they come out of your head. Tasker pulls out all the important information, sorts everything, and pings you before it's due.</p>
+        <div class="actions"><a class="btn primary" href="/signup">request access</a><a class="btn" href="#desk">see it on the big screen ↓</a></div>
+      </div>
+    </section>
+
+    <section class="sec full reveal" id="desk">
+      <div class="kicker"><b>Best on desktop</b> · the full dashboard</div>
+      <h2>Made for the big screen.</h2>
+      <p class="sub">On a computer your tasks sit right next to a full month calendar, so you can see your whole week at a glance. This is the real dashboard, running live:</p>
+      <div class="desk" id="desk-demo">
+        <div class="desk-frame">
+          <div class="desk-view" role="button" tabindex="0" aria-label="Tasker desktop dashboard, live demo. Tap to zoom in.">
+            <div class="desk-sizer"><div id="gdemo"></div></div>
+          </div>
+        </div>
+        <div class="desk-stand"></div><div class="desk-foot"></div>
+        <div class="desk-hint"><span><span class="live-dot"></span>live demo</span><span data-zoom-hint><b>tap</b> to zoom in</span></div>
+      </div>
+
+      <div class="compare">
+        <div class="cmp hi">
+          <h3><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Computer</h3>
+          <div class="mono">the full experience</div>
+          <ul>
+            <li>Tasks and a month calendar side by side</li>
+            <li>Point at a task, its day lights up</li>
+            <li>Glass theme, colored light behind every task</li>
+          </ul>
+        </div>
+        <div class="cmp">
+          <h3><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg>Phone</h3>
+          <div class="mono">on the go</div>
+          <ul>
+            <li>Add tasks the moment you think of them</li>
+            <li>Reminder notifications</li>
+            <li>Add to home screen, opens like an app</li>
+          </ul>
+        </div>
+      </div>
+      <div class="handoff">
+        <p><b>On your phone right now?</b> Send yourself the link and open it on your computer later.</p>
+        <button class="btn" type="button" data-share>send link</button>
+      </div>
+    </section>
+
+    <section class="sec reveal" id="how">
+      <div class="kicker">How it works</div>
+      <h2>Just say it. Tasker works out the rest.</h2>
+      <p class="sub">Every task gets a reminder notification when it's due, plus a default one 3 hours before. Ask for more and you get them too.</p>
+      <div class="readout" id="readout">
+        <div class="label">you type</div>
+        <div class="in"><span data-typed></span><span class="caret">▍</span></div>
+        <div class="fields">
+          <div class="rf"><span>task</span><span data-f="task"></span></div>
+          <div class="rf"><span>due</span><span data-f="due"></span></div>
+          <div class="rf"><span>color</span><span data-f="color"></span></div>
+          <div class="rf"><span>reminder notifications</span><span data-f="rem" class="rems"></span></div>
+        </div>
+        <div class="ctl">
+          <button class="pp" type="button" data-toggle aria-label="Pause" aria-pressed="false">
+            <svg class="i-pause" viewBox="0 0 16 16" aria-hidden="true"><rect x="4" y="3" width="3" height="10" rx="1"/><rect x="9" y="3" width="3" height="10" rx="1"/></svg>
+            <svg class="i-play" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.2v9.6a.6.6 0 0 0 .9.5l7.4-4.8a.6.6 0 0 0 0-1L5.9 2.7a.6.6 0 0 0-.9.5z"/></svg>
+          </button>
+          <div class="next"><i data-bar></i></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="sec reveal">
+      <div class="kicker">Notifications · everywhere</div>
+      <h2>Pings on every screen you own.</h2>
+      <p class="sub">On your phone, your laptop and your desktop. Add Tasker to your home screen and it works like an app.</p>
+      <div class="devices" id="notifs">
+        <figure class="dev phone">
+          <div class="screen wall-c">
+            <div class="island"></div>
+            <div class="lock"><b data-clock>9:41</b><span data-date></span></div>
+            <div class="nt ios"><div class="ic" style="width:24px;height:24px"><img src="/pwa/icon-192.png" alt="" style="border-radius:6px"></div><div><div class="row"><span class="tt">Tasker</span><span class="ap">now</span></div><div class="tt" data-t></div><div class="bd" data-b></div></div></div>
+          </div>
+          <figcaption><b>iOS</b>Tasker app</figcaption>
+        </figure>
+        <figure class="dev phone">
+          <div class="screen">
+            <div class="hole"></div>
+            <div class="status"><span data-clock>9:41</span><span>▾ ▮</span></div>
+            <div class="nt and"><div class="head"><div class="ic"><img src="/pwa/icon-192.png" alt=""></div><span>Tasker · now</span></div><div class="tt" data-t></div><div class="bd" data-b></div><div class="acts"><span>Mark done</span><span>Snooze</span></div></div>
+          </div>
+          <figcaption><b>Android</b>Tasker app</figcaption>
+        </figure>
+        <figure class="dev wide laptop">
+          <div>
+            <div class="screen">
+              <div class="menubar"><span></span><span>File</span><span>Edit</span><span>View</span></div>
+              <div class="nt mac"><div class="ic"><img src="/pwa/icon-192.png" alt=""></div><div><div class="row"><span class="tt">Tasker</span><span class="ap">now</span></div><div class="tt" data-t></div><div class="bd" data-b></div></div></div>
+            </div>
+            <div class="base"></div>
+          </div>
+          <figcaption><b>macOS</b>Chrome, Firefox, Safari</figcaption>
+        </figure>
+        <figure class="dev wide monitor">
+          <div>
+            <div class="screen wall-b">
+              <div class="taskbar"></div>
+              <div class="nt win"><div class="head"><div class="ic"><img src="/pwa/icon-192.png" alt=""></div><span class="ap">Tasker</span></div><div class="tt" data-t></div><div class="bd" data-b></div></div>
+            </div>
+            <div class="stand"></div><div class="foot"></div>
+          </div>
+          <figcaption><b>Windows &amp; Linux</b>Chrome, Firefox</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="sec reveal">
+      <div class="kicker">Changelog · what's new</div>
+      <h2>Recently shipped</h2>
+      <div class="log">
+        <div class="log-row"><time>Sep 2026</time><b>Notifications on every platform</b><span class="tag">new</span><p>Windows, Linux, macOS, Android and iOS.</p></div>
+        <div class="log-row"><time>Sep 2026</time><b>Glass theme</b><span class="tag">new</span><p>The new default: color-tinted tasks next to a live calendar.</p></div>
+        <div class="log-row"><time>Sep 2026</time><b>Edit tasks</b><p>Change the name, date, time or color without retyping.</p></div>
+        <div class="log-row"><time>Earlier</time><b>Calendar view</b><p>Every task on its day, overdue ones flagged.</p></div>
+      </div>
+    </section>
+
+    <section class="end reveal">
+      <h2>Let Tasker remember it.</h2>
+      <div class="actions"><a class="btn primary" href="/signup">request access</a><a class="btn" href="/login">log in</a></div>
+    </section>
+  </main>
+
+  <footer>
+    <a href="https://github.com/ani-pur/NLP_Tasker">github</a>
+    <a href="/info?view=desktop">desktop version</a>
+  </footer>
+
+  <script>
+    // fps counter in the stage's corner; only updates while the stage is on screen
+    (function () {
+      const wrap = document.querySelector('.stage-wrap');
+      const el = document.createElement('div'); el.className = 'fps'; el.setAttribute('aria-hidden', 'true');
+      wrap.appendChild(el);
+      let frames = 0, last = performance.now();
+      requestAnimationFrame(function tick(now) {
+        frames++;
+        if (scrollY < wrap.offsetTop + wrap.offsetHeight && now - last >= 500) {
+          el.textContent = Math.round(frames * 1000 / (now - last)) + ' fps' + (window.heroParticles ? ' · ' + window.heroParticles.toLocaleString() + ' particles' : '');
+          frames = 0; last = now;
+        }
+        requestAnimationFrame(tick);
+      });
+    })();
+
+    // scroll reveal: each .reveal fades up once, the first time it enters the viewport
+    (function () {
+      const els = document.querySelectorAll('.reveal');
+      if (!('IntersectionObserver' in window)) { els.forEach(el => el.classList.add('in')); return; }
+      const io = new IntersectionObserver(entries => entries.forEach(e => {
+        if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+      }), { rootMargin: '0px 0px -6% 0px', threshold: 0.04 });
+      els.forEach(el => io.observe(el));
+    })();
+
+    // the desktop dashboard demo: rendered at a real 1440x800 and scaled to fit the frame.
+    // Tap to zoom in (and swipe sideways to look around), tap again to fit.
+    (function () {
+      const desk = document.getElementById('desk-demo');
+      const view = desk.querySelector('.desk-view'), hint = desk.querySelector('[data-zoom-hint]');
+      const ZOOM = 0.62;
+      let zoomed = false, moved = false, x0 = 0, y0 = 0;
+      const fit = () => view.clientWidth / 1440;
+      function apply() {
+        const k = zoomed ? Math.max(ZOOM, fit()) : fit();
+        view.style.setProperty('--k', k);
+        desk.classList.toggle('zoomed', zoomed);
+        hint.innerHTML = zoomed ? '<b>swipe</b> to look around · <b>tap</b> to fit' : '<b>tap</b> to zoom in';
+        view.setAttribute('aria-label', 'Tasker desktop dashboard, live demo. Tap to ' + (zoomed ? 'fit it to the screen.' : 'zoom in.'));
+      }
+      function toggle() {
+        zoomed = !zoomed;
+        apply();
+        // zooming in opens on the calendar, the part a phone can't show
+        view.scrollLeft = zoomed ? 420 * ZOOM : 0;
+      }
+      // a swipe to pan isn't a tap
+      view.addEventListener('pointerdown', e => { moved = false; x0 = e.clientX; y0 = e.clientY; });
+      view.addEventListener('pointermove', e => { if (Math.abs(e.clientX - x0) + Math.abs(e.clientY - y0) > 8) moved = true; });
+      view.addEventListener('click', () => { if (!moved) toggle(); });
+      view.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
+      new ResizeObserver(apply).observe(view);
+      apply();
+    })();
+
+    // "send link": the share sheet where there is one (AirDrop, messages, email...), else copy it
+    (function () {
+      const btn = document.querySelector('[data-share]');
+      const url = location.origin + '/';
+      btn.addEventListener('click', async () => {
+        if (navigator.share) {
+          try { await navigator.share({ title: 'Tasker', text: 'Open Tasker on my computer', url }); } catch {}
+          return;
+        }
+        try { await navigator.clipboard.writeText(url); btn.textContent = 'link copied'; }
+        catch { btn.textContent = location.host; }
+        setTimeout(() => { btn.textContent = 'send link'; }, 2400);
+      });
+    })();
+
+    // notifications: the same reminder cascades across the four screens, then the next one
+    (function () {
+      const root = document.getElementById('notifs');
+      if (!root) return;
+      const MSGS = [
+        ['Leg day at the gym', 'In 3 hours · Mon 7:00 AM'],
+        ['Submit lab report', 'Due tonight at 11:59 PM'],
+        ['Call mom', 'In 30 minutes · 12:00 PM'],
+        ['Dentist', 'Tomorrow at 9:00 AM'],
+      ];
+      const now = new Date();
+      root.querySelectorAll('[data-clock]').forEach(el => el.textContent = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }).replace(/ [AP]M/, ''));
+      root.querySelectorAll('[data-date]').forEach(el => el.textContent = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }));
+      const toasts = [...root.querySelectorAll('.nt')];
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+      (async function loop() {
+        for (let i = 0; ; i = (i + 1) % MSGS.length) {
+          const [title, body] = MSGS[i];
+          toasts.forEach(t => { t.querySelector('[data-t]').textContent = title; t.querySelector('[data-b]').textContent = body; });
+          for (const t of toasts) { t.classList.add('show'); await sleep(320); }
+          await sleep(3800);
+          for (const t of toasts) { t.classList.remove('show'); await sleep(70); }
+          await sleep(900);
+        }
+      })();
+    })();
+  </script>
+  <script src="{{ url_for('static', filename='landing/readout.js') }}"></script>
+  <script src="{{ url_for('static', filename='landing/glassdemo.js') }}"></script>
+  <script src="{{ url_for('static', filename='landing/mobile/hero3d.js') }}"></script>
+</body>
+</html>
