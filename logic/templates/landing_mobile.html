@@ -244,6 +244,8 @@
     .log-row b { font-weight: 600; }
     .log-row p { color: var(--muted); margin-top: 2px; font-size: 14.5px; }
     .tag { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); border-radius: 999px; padding: 1px 8px; margin-left: 8px; vertical-align: 2px; }
+    .log-row.more b { font-weight: 400; font-style: italic; color: var(--muted); }
+    .log-note { margin-top: 16px; font-size: 13px; color: var(--dim); }
 
     /* ── closing call to action + footer ── */
     .end { padding: 48px var(--gut) 40px; text-align: center; }
@@ -409,11 +411,16 @@
       <div class="kicker">Changelog · what's new</div>
       <h2>Recently shipped</h2>
       <div class="log">
-        <div class="log-row"><time>Sep 2026</time><b>Notifications on every platform</b><span class="tag">new</span><p>Windows, Linux, macOS, Android and iOS.</p></div>
-        <div class="log-row"><time>Sep 2026</time><b>Glass theme</b><span class="tag">new</span><p>The new default: color-tinted tasks next to a live calendar.</p></div>
-        <div class="log-row"><time>Sep 2026</time><b>Edit tasks</b><p>Change the name, date, time or color without retyping.</p></div>
-        <div class="log-row"><time>Earlier</time><b>Calendar view</b><p>Every task on its day, overdue ones flagged.</p></div>
+        <div class="log-row"><time>Nov 2026</time><b>Canvas calendar</b><span class="tag">new</span><p>Your assignments, synced from Canvas. UT Dallas for now.</p></div>
+        <div class="log-row"><time>Sep 2026</time><b>Glass theme</b><p>The new default: color-tinted tasks next to a live calendar.</p></div>
+        <div class="log-row"><time>Jun 2026</time><b>Calendar view</b><p>Every task on its day, overdue ones flagged.</p></div>
+        <div class="log-row"><time>Mar 2026</time><b>Cross-platform notifications</b><p>Windows, Linux, macOS, Android and iOS.</p></div>
+        <div class="log-row"><time>Jan 2026</time><b>On your phone</b><p>Add it to your home screen, use it like an app.</p></div>
+        <div class="log-row"><time>Jun 2025</time><b>Just type it</b><p>Plain English in, a sorted task out.</p></div>
+        <div class="log-row"><time>Mar 2025</time><b>Day one</b><p>A plain to-do list.</p></div>
+        <div class="log-row more"><b>…and many more</b></div>
       </div>
+      <p class="log-note">Started off hand-coded, now agent-assisted. Not vibe-coded slop, though I do like a funky UI.</p>
     </section>
 
     <section class="end reveal">
