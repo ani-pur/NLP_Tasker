@@ -306,20 +306,20 @@ def index():
     # Mobile UI
     if is_mobile():
         if ui_version == 5:
-            return render_template('mobile_2.html', username=session['username'])
+            return render_template('editorial_mobile.html', username=session['username'])
         elif ui_version in (2, 3):     # OG has no mobile layout, falls back to classic
-            return render_template('mobile_1.html', username=session['username'])
+            return render_template('classic_mobile.html', username=session['username'])
         else:
-            return render_template('mobile_3.html', username=session['username'])
+            return render_template('glass_mobile.html', username=session['username'])
 
     if ui_version == 2:
-        return render_template('desktop_v2.html', username=session['username'])
+        return render_template('og_desktop.html', username=session['username'])
     elif ui_version == 5:
-        return render_template('desktop_v5.html', username=session['username'])
+        return render_template('editorial_desktop.html', username=session['username'])
     elif ui_version == 3:
-        return render_template('desktop_v3.html', username=session['username'])
+        return render_template('classic_desktop.html', username=session['username'])
 
-    return render_template('desktop_v6.html', username=session['username'])
+    return render_template('glass_desktop.html', username=session['username'])
 
 
 # CALENDAR VIEW

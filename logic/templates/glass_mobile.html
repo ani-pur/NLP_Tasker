@@ -511,7 +511,7 @@
           <span class="char-counter" id="charCounter">0/200</span>
           <span id="reminderPreview" class="reminder-preview">🔔 <span id="reminderValue"></span></span>
         </div>
-        <button type="submit" id="submitBtn" class="submit-btn">Add Task</button>
+        <button type="submit" id="submitBtn" class="submit-btn ab-on"><span class="ab-fill" aria-hidden="true"></span><span class="ab-ring" aria-hidden="true"></span><span class="ab-label">Add Task</span><svg class="ab-check" aria-hidden="true" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>
       </form>
     </div>
 
@@ -687,8 +687,8 @@
     ['touchend','touchcancel','mouseup','mouseleave'].forEach(e => btn.addEventListener(e, () => btn.classList.remove('btn-pressed')));
 
     // --- Core ---
-    let addTaskCooldown = false;
-    const ADD_TASK_COOLDOWN_MS = 3000;
+    // the browser stops waiting on POST /tasks after this (the server's LLM calls give up well before it)
+    const ADD_TASK_TIMEOUT_MS = 15000;
 
     function buildUserTzMetadata() {
       const now = new Date();
@@ -928,9 +928,7 @@
 
     document.getElementById('taskForm').addEventListener('submit', async e => {
       e.preventDefault();
-      if (addTaskCooldown) return;
-      addTaskCooldown = true;
-      setTimeout(() => { addTaskCooldown = false; }, ADD_TASK_COOLDOWN_MS);
+      if (btn.disabled) return;                // a task is already on its way (_add_button.html)
 
       const desc = taskInput.value;
       if (desc.length < 10 || desc.length > 200) return alert('Task description must be 10\u2013200 characters');
@@ -938,7 +936,9 @@
       const reminder = parseReminder(desc);
       const color = extractColor(desc);
       const cleanedDesc = cleanDescription(desc, reminder, color);
+      const finish = addBtnStart(btn, color);
       const res = await fetch('/tasks', {
+        signal: AbortSignal.timeout?.(ADD_TASK_TIMEOUT_MS),
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -949,9 +949,11 @@
           notif_absolute_time: reminder.absoluteTime,
           reminder_display: reminder.display
         })
-      }).catch(() => null);                    // null: the request never reached the server
+      }).catch(err => err);                    // an Error: no reply (offline, or timed out)
 
       if (res?.ok) {
+        // the page updates now; the button finishes its own animation on its own time
+        finish(true);
         taskInput.value = '';
         taskInput.style.color = '';
         document.getElementById('charCounter').textContent = '0/200';
@@ -961,8 +963,11 @@
         window.ambientPulse?.(color);
       } else {
         // the typed text stays in the box, so the user can just hit add again
-        const e = res ? await res.json().catch(() => ({})) : { error: "Couldn't reach Tasker, check your connection and try again" };
-        alert(e.error || 'Failed to add task, try again');
+        const error = res instanceof Response ? (await res.json().catch(() => ({}))).error
+          : res?.name === 'TimeoutError' ? 'Tasker took too long to answer, try again'
+          : "Couldn't reach Tasker, check your connection and try again";
+        await finish(false);                   // alert() freezes the page, so the shake plays first
+        alert(error || 'Failed to add task, try again');
       }
     });
 
@@ -1029,5 +1034,6 @@
   <script src="{{ url_for('static', filename='ambient.js') }}" defer></script>
   {% include '_color_picker.html' %}
   {% include '_canvas_feed.html' %}
+  {% include '_add_button.html' %}
 </body>
 </html>

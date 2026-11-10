@@ -1,4 +1,4 @@
-// Phone demo for landing_mobile.html: a working copy of mobile_3 (the glass theme on a phone).
+// Phone demo for landing_mobile.html: a working copy of glass_mobile (the glass theme on a phone).
 // It types an example into the New Task box, taps Add, then scrolls down to the new card and opens
 // it, the way you'd check it landed, then scrolls back up for the next one. Tapping any card opens
 // or closes it, like the real thing. Same fixed timeline as ../glassdemo.js (Tue Mar 10 2026,
@@ -73,7 +73,7 @@
   const main = $('.pd-main'), scroller = $('.pd-scroll'), list = $('.pd-list');
   const ta = $('.pd-ta'), typed = $('.pd-typed'), count = $('.pd-count'), remPill = $('.pd-rem'), addBtn = $('.pd-add');
 
-  /* clock, in mobile_3's format: "TUE, MAR 10" over "10:12 AM" */
+  /* clock, in glass_mobile's format: "TUE, MAR 10" over "10:12 AM" */
   function clock() {
     const now = demoNow();
     const day = now.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
@@ -102,7 +102,7 @@
     </div>`;
   }
 
-  // like mobile_3: past-due tasks first, then the "Past Due" divider, then upcoming
+  // like glass_mobile: past-due tasks first, then the "Past Due" divider, then upcoming
   function render(newId) {
     const now = demoNow();
     const sorted = [...tasks].sort((a, b) => a.dt - b.dt);

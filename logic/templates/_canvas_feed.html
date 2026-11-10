@@ -1,4 +1,4 @@
-{# Canvas calendar feed, for the default theme (desktop_v6 + mobile_3). Two ways in, one small popup:
+{# Canvas calendar feed, for the default theme (glass_desktop + glass_mobile). Two ways in, one small popup:
      - the card (_canvas_promo.html, in the page's main column): shown until the user links Canvas or
        closes it with ×; comes back if Canvas stops accepting their link
      - the top-bar button (#canvasBtn, in the page's header): always there, with a status dot
@@ -203,7 +203,7 @@
     setInterval(() => { if (!pop.hidden) tickSync(); }, 1000);
 
     function refreshTasks() {
-      const f = window.fetchTasks || window.loadTasks;     // desktop_v6 / mobile_3
+      const f = window.fetchTasks || window.loadTasks;     // glass_desktop / glass_mobile
       if (typeof f === 'function') f();
     }
 
