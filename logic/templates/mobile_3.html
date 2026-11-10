@@ -450,6 +450,7 @@
     .edit-swatch.selected { border-color: #fff; box-shadow: 0 0 0 2px var(--accent); }
     .edit-swatch.none { background: linear-gradient(135deg, #2a2a30, #18181c); }
     .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+    .canvas-link { margin-right: auto; align-self: center; font-size: 12.5px; font-weight: 600; color: var(--accent); text-decoration: none; }
     .btn-ghost { background: var(--surface); border: 1px solid var(--border); color: var(--muted); border-radius: 10px; padding: 9px 16px; font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; }
     .btn-save { background: linear-gradient(135deg, #818cf8, #6366f1); color: #fff; border: none; border-radius: 10px; padding: 9px 20px; font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; }
 
@@ -478,6 +479,7 @@
       white-space: nowrap;
     }
   </style>
+  {% include '_palette.html' %}
 </head>
 <body>
 
@@ -488,6 +490,9 @@
     <div class="nav-right">
       <a href="{{ url_for('calendar') }}" class="logout-link" style="color:inherit;">Calendar</a>
       <span class="user-chip">{{ username }}</span>
+      <button id="canvasBtn" class="notif-btn" type="button" style="display:inline-grid" aria-label="Canvas calendar" aria-haspopup="dialog" title="Canvas calendar">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><i class="cf-state"></i>
+      </button>
       <button id="notifBtn" onclick="setupPushNotifications()" class="notif-btn" title="Enable notifications">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
       </button>
@@ -509,6 +514,8 @@
         <button type="submit" id="submitBtn" class="submit-btn">Add Task</button>
       </form>
     </div>
+
+    {% with promo_class='input-card' %}{% include '_canvas_promo.html' %}{% endwith %}
 
     <div class="stats-strip">
       <div class="stat-box">
@@ -561,16 +568,12 @@
           <input type="time" id="editTime">
         </div>
       </div>
+      <p class="edit-lock-note" id="editLockNote" hidden>Due date and time come from Canvas and update on their own.</p>
       <label>Color</label>
       <div class="edit-swatches">
-        <span class="edit-swatch" data-color="#87CEEB" style="background:#87CEEB"></span>
-        <span class="edit-swatch" data-color="#f05656" style="background:#f05656"></span>
-        <span class="edit-swatch" data-color="#6CE5A9" style="background:#6CE5A9"></span>
-        <span class="edit-swatch" data-color="#F8C8DC" style="background:#F8C8DC"></span>
-        <span class="edit-swatch" data-color="#ff7f00" style="background:#ff7f00"></span>
-        <span class="edit-swatch" data-color="#A96CE5" style="background:#A96CE5"></span>
-        <span class="edit-swatch" data-color="#FDDA0D" style="background:#FDDA0D"></span>
-        <span class="edit-swatch none" data-color="#FFFFFF" title="None"></span>
+        {% for c in task_palette %}<span class="edit-swatch" data-color="{{ c.hex }}" style="background:{{ c.hex }}" title="{{ c.name }}"></span>
+        {% endfor %}<span class="edit-swatch none" data-color="{{ no_color }}" title="No color"></span>
+        <span class="edit-swatch" data-color="" data-custom title="Custom color"></span>
       </div>
       <div class="modal-actions">
         <button class="btn-ghost" onclick="closeEdit()">Cancel</button>
@@ -594,13 +597,9 @@
     taskInput.placeholder = 'Try: ' + prompts[Math.floor(Math.random() * prompts.length)];
 
     // --- Color ---
-    const colorMap = {
-      blue: '#87CEEB', red: '#f05656', green: '#6CE5A9',
-      pink: '#F8C8DC', orange: '#ff7f00', purple: '#A96CE5', yellow: '#FDDA0D'
-    };
 
     function extractColor(text) {
-      const matches = text.toLowerCase().match(/\b(blue|red|green|pink|orange|purple|yellow)\b/g);
+      const matches = text.toLowerCase().match(colorWordRe('g'));
       if (matches && matches.length > 0) return colorMap[matches[matches.length - 1]];
       return '#FFFFFF';
     }
@@ -612,7 +611,7 @@
         cleaned = cleaned.replace(/(?:,\s*)?(?:remind(?:er)?|notify|alert)\s+(?:me\s+)?at\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)\b/gi, '');
       }
       if (color && color !== '#FFFFFF') {
-        cleaned = cleaned.replace(/\b(blue|red|green|pink|orange|purple|yellow)\b/gi, '');
+        cleaned = cleaned.replace(colorWordRe('gi'), '');
       }
       return cleaned.replace(/,\s*,/g, ',').replace(/\s{2,}/g, ' ').replace(/^[,\s]+|[,\s]+$/g, '').trim();
     }
@@ -670,7 +669,7 @@
     taskInput.addEventListener('input', (e) => {
       const text = e.target.value;
       document.getElementById('charCounter').textContent = `${text.length}/200`;
-      const matches = text.toLowerCase().match(/\b(blue|red|green|pink|orange|purple|yellow)\b/g);
+      const matches = text.toLowerCase().match(colorWordRe('g'));
       e.target.style.color = matches ? colorMap[matches[matches.length - 1]] : '';
       const reminder = parseReminder(text);
       const preview = document.getElementById('reminderPreview');
@@ -719,7 +718,7 @@
 
     // one task card: tap the header to slide its details open
     function buildTask(task, isPastDue) {
-      const [id, , name, time, desc, due, color, reminder_display] = task;
+      const [id, , name, time, desc, due, color, reminder_display, , canvas_url] = task;
       const dueDateDisplay = due ? due.replace(/ 00:00:00.*$/, '') : '';
       const fullDateTime = `${dueDateDisplay}${time ? ' \u00b7 ' + time : ''}`.trim();
       const open = openIds.has(id);
@@ -741,6 +740,7 @@
           <div class="task-body"><div class="task-body-inner"><div class="task-expand">
             <div class="task-desc${desc ? '' : ' empty'}">${desc ? escapeHtml(desc) : 'No details'}</div>
             <div class="task-actions">
+              ${canvas_url ? `<a class="canvas-link" href="${escapeHtml(canvas_url)}" target="_blank" rel="noopener noreferrer">Open in Canvas ↗</a>` : ''}
               <button class="edit-btn" onclick="openEdit(${id})">edit</button>
               <button class="delete-btn" onclick="deleteTask(${id})">delete</button>
             </div>
@@ -831,8 +831,10 @@
     }
 
     async function deleteTask(id) {
+      const imported = currentTasks.find(r => r[0] === id)?.[8];
       const res = await fetch('/tasks/' + id, { method: 'DELETE' });
       if (!res.ok) return alert('Failed to delete task');
+      if (imported) canvasDeleteHint();                                 // imported: it can be restored
       // fold the card out of the list, then refresh
       const li = document.querySelector(`#taskList li[data-id="${id}"]`);
       if (li) {
@@ -880,10 +882,8 @@
       return `${h}:${String(m).padStart(2,'0')} ${p}`;
     }
     function selectEditColor(hex) {
-      selectedEditColor = hex || '#FFFFFF';
-      document.querySelectorAll('#editModal .edit-swatch').forEach(s => {
-        s.classList.toggle('selected', s.dataset.color.toLowerCase() === selectedEditColor.toLowerCase());
-      });
+      selectedEditColor = hex || NO_COLOR;
+      syncSwatches(document.querySelector('#editModal .edit-swatches'), selectedEditColor);
     }
     function openEdit(id) {
       const t = currentTasks.find(x => x[0] === id);
@@ -894,6 +894,7 @@
       document.getElementById('editDesc').value = desc || '';
       document.getElementById('editDate').value = dueToInput(due);
       document.getElementById('editTime').value = timeTo24(time);
+      lockDueFields(!!t[8]);
       selectEditColor(color || '#FFFFFF');
       document.getElementById('editModal').classList.add('open');
     }
@@ -916,9 +917,10 @@
       if (res.ok) { closeEdit(); loadTasks(); }
       else { const e = await res.json().catch(() => ({})); alert(e.error || 'Failed to update task'); }
     }
-    document.querySelectorAll('#editModal .edit-swatch').forEach(s => {
-      s.addEventListener('click', () => selectEditColor(s.dataset.color));
-    });
+    document.querySelectorAll('#editModal .edit-swatch').forEach(s => s.addEventListener('click', () => {
+      if (s.hasAttribute('data-custom')) openColorPicker(s, selectedEditColor, { onInput: selectEditColor });
+      else selectEditColor(s.dataset.color);
+    }));
     document.getElementById('editModal').addEventListener('click', e => {
       if (e.target.id === 'editModal') closeEdit();
     });
@@ -1025,5 +1027,7 @@
     initNotifButton();
   </script>
   <script src="{{ url_for('static', filename='ambient.js') }}" defer></script>
+  {% include '_color_picker.html' %}
+  {% include '_canvas_feed.html' %}
 </body>
 </html>

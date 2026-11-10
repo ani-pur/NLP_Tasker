@@ -67,11 +67,13 @@ _worker = None      # (label, color) once this process has been given a worker n
 _WORKER_COLORS = ("36", "35", "34", "96", "95", "94")   # no green/yellow/red: those mean something in the message text
 
 
-def set_worker(number):
+def set_worker(number, name="worker"):
     """Give this process's background lines (warmup pings, vendor swaps) a small worker number
-    and its own color, so interleaved lines from several gunicorn workers can be told apart."""
+    and its own color, so interleaved lines from several gunicorn workers can be told apart.
+    `name` labels other processes, e.g. the Canvas sync worker."""
     global _worker
-    _worker = (f"worker {number} (pid {os.getpid()})", _WORKER_COLORS[(number - 1) % len(_WORKER_COLORS)])
+    label = f"worker {number} (pid {os.getpid()})" if name == "worker" else f"{name} (pid {os.getpid()})"
+    _worker = (label, _WORKER_COLORS[(number - 1) % len(_WORKER_COLORS)])
 
 
 def _actor(label=None):

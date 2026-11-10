@@ -59,5 +59,28 @@ services:
         # the app opens its connection pool at import time
         condition: service_healthy
 
+  # Canvas feed sync worker: same image as the app, its own process (never inside gunicorn).
+  # No hot reload: after editing logic/ics_*.py, `docker compose -f docker-compose.dev.yml restart ics_sync`
+  ics_sync:
+    build: .
+    command: python -m logic.ics_sync
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      TZ: America/Chicago
+      PYTHONUNBUFFERED: 1
+      POSTGRES_USER: tasker
+      POSTGRES_PASSWORD: tasker
+      POSTGRES_DB: tasker
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+    volumes:
+      - ./logic:/localtodo/logic
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+
 volumes:
   tasker_dev_db:

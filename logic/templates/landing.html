@@ -48,7 +48,7 @@
 
     /* ── hero: the 3D scene fills it; copy sits on the left over a soft shade ── */
     .hero { position: relative; height: calc(100vh - 57px); min-height: 640px; border-bottom: 1px solid var(--line); overflow: hidden; }
-    #hero-stars { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; transition: opacity 0.26s ease; }
+    #hero-stars { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; transition: opacity 0.26s ease; opacity: var(--fade, 1); }   /* --fade: stars.js, scrolling away on good */
     #hero-stars.off { opacity: 0; }
     .sky-ui { position: absolute; z-index: 3; right: 16px; top: 34px; display: flex; gap: 8px; }
     /* sliding pills: the thumb glides under the active option */

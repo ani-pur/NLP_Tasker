@@ -1,0 +1,179 @@
+{# Color picker for the default theme (desktop_v6 + mobile_3): the palette as quick picks, plus a
+   shade square, a hue strip and a hex box for any other color. Pointer events, so mouse, touch and pen
+   all work; arrow keys too. A small popover next to whatever opened it.
+   Needs _palette.html (TASK_PALETTE, NO_COLOR). Gives the page:
+     openColorPicker(anchorEl, hex, { onInput(hex), onDone(hex), onCancel() })   live updates while dragging; Esc reverts
+     syncSwatches(containerEl, hex)   marks the matching swatch, or the [data-custom] one for any other hex
+     placeNear(el, anchorEl, align)   positions a fixed popover by its button (also used by _canvas_feed.html) #}
+<div class="cpk" id="colorPicker" role="dialog" aria-label="Pick a color" hidden>
+  <div class="cpk-grid" id="cpkGrid"></div>
+  <div class="cpk-sv" id="cpkSv" tabindex="0" role="slider" aria-label="Shade (arrow keys)"><i class="cpk-knob" id="cpkSvKnob"></i></div>
+  <div class="cpk-hue" id="cpkHue" tabindex="0" role="slider" aria-label="Hue (arrow keys)"><i class="cpk-knob" id="cpkHueKnob"></i></div>
+  <div class="cpk-foot">
+    <span class="cpk-preview" id="cpkPreview"></span>
+    <input id="cpkHex" maxlength="7" spellcheck="false" autocomplete="off" aria-label="Hex color">
+    <button type="button" class="cpk-done" id="cpkDone">Done</button>
+  </div>
+</div>
+
+<style>
+  .cpk {
+    position: fixed; z-index: 10000; width: 252px; padding: 12px; border-radius: 14px; box-sizing: border-box;
+    color: var(--fg, #ededf0);
+    background: linear-gradient(135deg, var(--sheen, rgba(255,255,255,0.08)), transparent 40%), var(--pop-bg, rgba(18,18,26,0.82));
+    backdrop-filter: blur(16px) saturate(180%); -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid var(--rim-lo, rgba(255,255,255,0.2));
+    box-shadow: 0 18px 44px -12px rgba(0,0,0,0.6);
+    animation: cpkIn 0.16s cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .cpk[hidden] { display: none; }
+  @keyframes cpkIn { from { opacity: 0; transform: translateY(4px) scale(0.98); } }
+  .cpk-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 7px; margin-bottom: 12px; }
+  .cpk-grid button { aspect-ratio: 1; border-radius: 50%; border: 1px solid rgba(127,127,127,0.35); cursor: pointer; padding: 0;
+                     transition: transform 0.12s; }
+  .cpk-grid button:hover { transform: scale(1.12); }
+  .cpk-grid button.on { box-shadow: 0 0 0 2px var(--bg, #0b0b10), 0 0 0 4px currentColor; }
+  .cpk-grid .none { background: repeating-linear-gradient(135deg, rgba(127,127,127,0.5) 0 3px, transparent 3px 6px); }
+  .cpk-sv { position: relative; height: 132px; border-radius: 10px; cursor: crosshair; touch-action: none; outline: none;
+            background: linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, var(--hue, red)); }
+  .cpk-hue { position: relative; height: 14px; margin: 12px 0; border-radius: 7px; cursor: pointer; touch-action: none; outline: none;
+             background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00); }
+  @media (pointer: coarse) { .cpk-hue { height: 20px; border-radius: 10px; } }   /* a bigger target for fingers */
+  .cpk-knob { position: absolute; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; pointer-events: none;
+              border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,0.35), 0 2px 6px rgba(0,0,0,0.4); box-sizing: border-box; }
+  .cpk-hue .cpk-knob { top: 50%; }
+  .cpk-sv:focus-visible .cpk-knob, .cpk-hue:focus-visible .cpk-knob { box-shadow: 0 0 0 3px var(--accent, #818cf8); }
+  .cpk-foot { display: flex; align-items: center; gap: 8px; }
+  .cpk-preview { width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0; border: 1px solid rgba(127,127,127,0.35); }
+  #cpkHex { flex: 1; min-width: 0; height: 30px; box-sizing: border-box; padding: 0 9px; border-radius: 8px; font: 13px 'IBM Plex Mono', ui-monospace, monospace;
+            color: inherit; background: rgba(127,127,127,0.12); border: 1px solid rgba(127,127,127,0.3); outline: none; text-transform: uppercase; }
+  #cpkHex:focus { border-color: var(--accent, #818cf8); }
+  .cpk-done { height: 30px; padding: 0 12px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; font-size: 13px;
+              background: var(--accent, #818cf8); color: var(--accent-ink, #fff); }
+  /* the swatch rows' "custom" swatch: a color wheel until it holds a color the palette doesn't have */
+  [data-custom] { background: conic-gradient(#f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00) !important; }
+  [data-custom].holds { background: var(--custom) !important; }
+</style>
+
+<script>
+  (function () {
+    const $ = id => document.getElementById(id);
+    const pop = $('colorPicker'), sv = $('cpkSv'), hue = $('cpkHue'), hexIn = $('cpkHex');
+    let h = 0, s = 0, v = 1, opts = {}, startHex = null, anchor = null;
+    const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+    const norm = hex => (hex || '').toUpperCase();
+
+    function hsvToHex(h, s, v) {
+      const f = n => { const k = (n + h / 60) % 6; return v - v * s * Math.max(0, Math.min(k, 4 - k, 1)); };
+      return '#' + [f(5), f(3), f(1)].map(x => Math.round(x * 255).toString(16).padStart(2, '0')).join('').toUpperCase();
+    }
+    function hexToHsv(hex) {
+      const n = parseInt(hex.slice(1), 16), r = (n >> 16 & 255) / 255, g = (n >> 8 & 255) / 255, b = (n & 255) / 255;
+      const mx = Math.max(r, g, b), d = mx - Math.min(r, g, b);
+      let hh = 0;
+      if (d) { hh = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; hh = (hh * 60 + 360) % 360; }
+      return [hh, mx ? d / mx : 0, mx];
+    }
+
+    // palette quick picks (+ "no color"): one tap picks and closes
+    const grid = $('cpkGrid');
+    [...TASK_PALETTE.map(c => [c.hex, c.name]), [NO_COLOR, 'no color']].forEach(([hex, name]) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.title = name; b.dataset.hex = hex; b.style.color = hex === NO_COLOR ? 'var(--fg, #fff)' : hex;
+      if (hex === NO_COLOR) b.className = 'none'; else b.style.background = hex;
+      b.addEventListener('click', () => { setHex(hex); close(true); });
+      grid.appendChild(b);
+    });
+
+    function current() { return hsvToHex(h, s, v); }
+    function paint(emit = true) {
+      const hex = current();
+      sv.style.setProperty('--hue', `hsl(${h} 100% 50%)`);
+      $('cpkSvKnob').style.cssText = `left:${s * 100}%;top:${(1 - v) * 100}%;background:${hex}`;
+      $('cpkHueKnob').style.cssText = `left:${h / 3.6}%;background:hsl(${h} 100% 50%)`;
+      $('cpkPreview').style.background = hex;
+      if (document.activeElement !== hexIn) hexIn.value = hex;
+      grid.querySelectorAll('button').forEach(b => b.classList.toggle('on', norm(b.dataset.hex) === hex));
+      if (emit && opts.onInput) opts.onInput(hex);
+    }
+    function setHex(hex, emit = true) { [h, s, v] = hexToHsv(/^#[0-9a-f]{6}$/i.test(hex || '') ? hex : NO_COLOR); paint(emit); }
+
+    // drag on the square / strip: pointer capture keeps the drag going outside the element (mouse + touch)
+    function draggable(area, move) {
+      area.addEventListener('pointerdown', e => {
+        e.preventDefault(); area.focus({ preventScroll: true }); area.setPointerCapture(e.pointerId); move(e);
+        const onMove = ev => move(ev), end = () => { area.removeEventListener('pointermove', onMove); area.removeEventListener('pointerup', end); area.removeEventListener('pointercancel', end); };
+        area.addEventListener('pointermove', onMove); area.addEventListener('pointerup', end); area.addEventListener('pointercancel', end);
+      });
+    }
+    draggable(sv, e => { const r = sv.getBoundingClientRect(); s = clamp((e.clientX - r.left) / r.width, 0, 1); v = 1 - clamp((e.clientY - r.top) / r.height, 0, 1); paint(); });
+    draggable(hue, e => { const r = hue.getBoundingClientRect(); h = clamp((e.clientX - r.left) / r.width, 0, 1) * 360; paint(); });
+    sv.addEventListener('keydown', e => {
+      const d = e.shiftKey ? 0.1 : 0.02, k = { ArrowLeft: [-d, 0], ArrowRight: [d, 0], ArrowUp: [0, d], ArrowDown: [0, -d] }[e.key];
+      if (k) { e.preventDefault(); s = clamp(s + k[0], 0, 1); v = clamp(v + k[1], 0, 1); paint(); }
+    });
+    hue.addEventListener('keydown', e => {
+      const d = (e.shiftKey ? 15 : 3) * ({ ArrowLeft: -1, ArrowDown: -1, ArrowRight: 1, ArrowUp: 1 }[e.key] || 0);
+      if (d) { e.preventDefault(); h = (h + d + 360) % 360; paint(); }
+    });
+    hexIn.addEventListener('input', () => {
+      const t = hexIn.value.trim().replace(/^#?/, '#');
+      if (/^#[0-9a-f]{6}$/i.test(t)) setHex(t.toUpperCase());
+    });
+    hexIn.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); close(true); } });
+    $('cpkDone').addEventListener('click', () => close(true));
+
+    // a position:fixed popover just below its button (above it when there's no room), kept on screen.
+    // align 'center' centres it on the button, 'end' lines up right edges (for buttons at the right edge)
+    window.placeNear = function (el, anchorEl, align = 'center') {
+      const r = anchorEl.getBoundingClientRect(), w = el.offsetWidth, ht = el.offsetHeight, gap = 8;
+      let top = r.bottom + gap;
+      if (top + ht > window.innerHeight - 8) top = Math.max(8, r.top - gap - ht);
+      const left = align === 'end' ? r.right - w : r.left + r.width / 2 - w / 2;
+      el.style.left = clamp(left, 8, window.innerWidth - w - 8) + 'px';
+      el.style.top = top + 'px';
+    };
+    function place() { if (anchor) placeNear(pop, anchor); }
+
+    function close(commit) {
+      if (pop.hidden) return;
+      pop.hidden = true;
+      const done = opts.onDone, input = opts.onInput, cancel = opts.onCancel, hex = current();
+      opts = {};
+      if (commit) { if (done) done(hex); }
+      else { if (input) input(startHex); if (cancel) cancel(); }    // Esc: put back what was there
+      if (anchor && anchor.focus) anchor.focus({ preventScroll: true });
+    }
+
+    window.openColorPicker = function (anchorEl, hex, options) {
+      if (!pop.hidden) close(true);
+      anchor = anchorEl; opts = options || {}; startHex = hex || NO_COLOR;
+      setHex(startHex, false);
+      pop.hidden = false;
+      place();
+      setTimeout(() => sv.focus({ preventScroll: true }), 0);
+    };
+
+    window.syncSwatches = function (container, hex) {
+      if (!container) return;
+      const want = norm(hex || NO_COLOR);
+      let matched = false;
+      container.querySelectorAll('[data-color]').forEach(el => {
+        const on = !el.hasAttribute('data-custom') && norm(el.dataset.color) === want;
+        el.classList.toggle('selected', on);
+        matched = matched || on;
+      });
+      const custom = container.querySelector('[data-custom]');
+      if (custom) {
+        custom.classList.toggle('selected', !matched);
+        custom.classList.toggle('holds', !matched);
+        custom.style.setProperty('--custom', matched ? '' : want);
+      }
+    };
+
+    // a tap outside keeps the color; Esc reverts (capture phase: before the page's own Esc handling)
+    document.addEventListener('pointerdown', e => { if (!pop.hidden && !pop.contains(e.target) && e.target !== anchor) close(true); }, true);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !pop.hidden) { e.stopImmediatePropagation(); close(false); } }, true);
+    window.addEventListener('resize', () => { if (!pop.hidden) place(); });
+  })();
+</script>
