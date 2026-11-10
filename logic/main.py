@@ -114,6 +114,12 @@ def pwa_icon_512():
 def apple_touch_icon():
     return send_from_directory("static", "icon-192.png")
 
+# browser tab icon: Chrome/Firefox/Edge ask for /favicon.ico on every page by themselves. A tight crop of
+# the 192 icon's "t" (16/32/48px in one file) so it stays readable at tab size.
+@app.get("/favicon.ico")
+def favicon():
+    return send_from_directory("static", "favicon.ico", mimetype="image/vnd.microsoft.icon")
+
 @app.get("/sw.js")
 def service_worker():
     response = make_response(send_from_directory("static", "sw.js"))

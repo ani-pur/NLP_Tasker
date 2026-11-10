@@ -77,7 +77,7 @@ services:
       POSTGRES_PORT: 5432
     volumes:
       - ./logic:/localtodo/logic
-    restart: unless-stopped
+    # no restart policy, like the rest of the dev stack: nothing runs until you `up` it
     depends_on:
       db:
         condition: service_healthy
