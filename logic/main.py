@@ -3,6 +3,10 @@ from logic import hasher
 from logic import tasks_db as tasks
 from logic import llm_vendors as api
 from logic import applog
+from logic import ics_feed
+from logic import colors
+from logic import ics_sync
+from zoneinfo import ZoneInfo
 import secrets
 import os
 from datetime import timedelta
@@ -11,6 +15,7 @@ import subprocess
 import sys
 import json
 import urllib.request
+from urllib.parse import quote
 
 
 app = Flask(__name__)
@@ -21,6 +26,23 @@ VAPID_PUBLIC_KEY = os.environ.get('VAPID_PUBLIC_KEY', '')
 
 # one clean line per request + one-line events (see applog.py)
 applog.init_app(app)
+
+
+# "request your school" links in the Canvas panel (only UT Dallas is supported for now): a prefilled
+# GitHub issue when TASKER_README_URL is the GitHub repo, and an email to TASKER_ADMIN_EMAIL. Either is
+# left out when its setting is missing.
+_REQUEST_TITLE = "Canvas support for <your school>"
+_repo = (os.environ.get('TASKER_README_URL') or '').rstrip('/')
+REQUEST_SCHOOL = {
+    "issue": f"{_repo}/issues/new?title={quote(_REQUEST_TITLE)}" if _repo.startswith('https://github.com/') else None,
+    "email": f"mailto:{os.environ['TASKER_ADMIN_EMAIL']}?subject={quote(_REQUEST_TITLE)}" if os.environ.get('TASKER_ADMIN_EMAIL') else None,
+}
+
+
+# the task color palette, defined once in colors.py; templates/_palette.html turns it into JS
+@app.context_processor
+def palette():
+    return {"task_palette": colors.PALETTE, "no_color": colors.NO_COLOR, "request_school": REQUEST_SCHOOL}
 
 
 # Detects if the incoming request is from a mobile device by checking the user-agent header for mobile keywords
@@ -339,7 +361,7 @@ def handle_tasks():
 
 
         # color + reminder parsed on frontend, passed alongside tz metadata
-        color = task_data.get('color', '#FFFFFF')
+        color = colors.clean_color(task_data.get('color'))
         notif_time_offset = task_data.get('notif_time_offset', 0)
         notif_absolute_time = task_data.get('notif_absolute_time')
         reminder_display = task_data.get('reminder_display')
@@ -390,7 +412,7 @@ def edit_task(task_id):
 
     task_time = data.get('task_time')              # "H:MM AM/PM" or null
     due_date = data.get('due_date')                # "DD Mon YYYY" or null
-    color = data.get('color', '#FFFFFF')
+    color = colors.clean_color(data.get('color'))
     tz = data.get('user_tz_metadata', {})
     utc_offset_minutes = tz.get('utc_offset_minutes') if isinstance(tz, dict) else None
     tz_name = tz.get('user timezone: ') if isinstance(tz, dict) else None
@@ -417,6 +439,102 @@ def delete_task(task_id):
     else:
         applog.note(f"task {task_id} NOT deleted: db write failed", ok=False)
         return jsonify({'error': 'Task not found.'}), 404
+
+# --- Canvas calendar feed ---
+# Saving only stores the link and flags it for syncing; the sync worker (logic/ics_sync.py, its own
+# container) fetches and imports within ~30s. The page polls GET for progress. The link is a login
+# token: it never goes in a log line or back to the browser.
+
+@app.get('/canvas-feed')
+def canvas_feed_status():
+    if 'username' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    status = tasks.get_ics_feed(session['username'])
+    if status is None:
+        return jsonify({'error': "Couldn't load your Canvas feed"}), 500
+    return jsonify(status)
+
+
+@app.post('/canvas-feed')
+def canvas_feed_save():
+    if 'username' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    username = session['username']
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({'error': 'Invalid request'}), 400
+    try:
+        url, host = ics_feed.validate_feed_url(data.get('url') if isinstance(data.get('url'), str) else '')
+    except ics_feed.FeedURLError as e:
+        applog.note("canvas feed rejected: not an allowed feed link", ok=False)
+        return jsonify({'error': str(e)}), 400
+    tz = data.get('tz')
+    try:
+        if not isinstance(tz, str) or not tz or len(tz) > 64:
+            raise ValueError
+        ZoneInfo(tz)
+    except Exception:
+        tz = 'America/Chicago'      # the browser didn't say; Tasker's home timezone
+    result = tasks.save_ics_feed(username, url, host, tz)
+    if result == "too_soon":
+        applog.note("canvas feed NOT saved: saved another one seconds ago", ok=False)
+        return jsonify({'error': "Wait a few seconds and try again."}), 429
+    if result == "taken":
+        applog.note("canvas feed NOT saved: link already connected to another account", ok=False)
+        return jsonify({'error': "This link is already connected to another Tasker account."}), 409
+    if result == "error":
+        applog.note("canvas feed NOT saved: db write failed", ok=False)
+        return jsonify({'error': "Couldn't save your feed, try again"}), 500
+    applog.note(f"canvas feed {'unchanged (same working link)' if result == 'unchanged' else f'saved ({host}, {tz}), syncing'}", ok=True)
+    return jsonify(tasks.get_ics_feed(username) or {'state': 'pending'})
+
+
+@app.put('/canvas-feed/courses')
+def canvas_course_color():
+    if 'username' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict) or not isinstance(data.get('course_key'), str):
+        return jsonify({'error': 'Invalid request'}), 400
+    color = colors.clean_color(data.get('color'))
+    changed = tasks.set_course_color(session['username'], data['course_key'][:100], color)
+    if changed is None:
+        applog.note("course color NOT changed: no such course, or db write failed", ok=False)
+        return jsonify({'error': "Couldn't change that course's color"}), 404
+    applog.note(f"course color changed, {changed} task(s) recolored", ok=True)
+    return jsonify({'recolored': changed})
+
+
+@app.post('/canvas-feed/restore')
+def canvas_restore():
+    if 'username' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    data = request.get_json(silent=True)
+    import_id = data.get('id') if isinstance(data, dict) else None
+    if not isinstance(import_id, int):
+        return jsonify({'error': 'Invalid request'}), 400
+    try:
+        name = ics_sync.restore(session['username'], import_id)
+    except Exception as e:
+        applog.event('db', f"restore of canvas import {import_id} failed: {e}", 'error')
+        name = None
+    if name is None:
+        applog.note(f"canvas assignment {import_id} NOT restored (gone, past due, or not yours)", ok=False)
+        return jsonify({'error': "Couldn't restore that one, it may be past due or gone from Canvas"}), 404
+    applog.note(f"canvas assignment {import_id} restored", ok=True)
+    return jsonify({'ok': True})
+
+
+@app.delete('/canvas-feed')
+def canvas_feed_remove():
+    if 'username' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    if not tasks.remove_ics_feed(session['username']):
+        applog.note("canvas feed NOT removed: db write failed", ok=False)
+        return jsonify({'error': "Couldn't remove your feed, try again"}), 500
+    applog.note("canvas feed removed (imported tasks kept)", ok=True)
+    return jsonify({'state': 'none'})
+
 
 # the current task parser (active LLM vendor) and its latest ping time; the glass dashboard shows it as a tiny logo
 @app.get('/vendor')

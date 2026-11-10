@@ -1,0 +1,10 @@
+{# The task palette for the page's scripts, from logic/colors.py (the one place colors are defined).
+   Include it in <head>, before the page's own script. #}
+<script>
+  const TASK_PALETTE = {{ task_palette|tojson }};   // [{name, hex, typed}], in swatch order
+  const NO_COLOR = {{ no_color|tojson }};
+  // the words that color a typed task ("call mom tomorrow, teal"); see colors.py for why not all of them
+  const colorMap = Object.fromEntries(TASK_PALETTE.filter(c => c.typed).map(c => [c.name, c.hex]));
+  // a fresh regex each call: /g regexes carry state between uses
+  function colorWordRe(flags) { return new RegExp('\\b(' + Object.keys(colorMap).join('|') + ')\\b', flags); }
+</script>

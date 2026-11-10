@@ -1,0 +1,16 @@
+{# The "connect Canvas" card for the page's main column (desktop_v6, mobile_3). Hidden until the status
+   loads; _canvas_feed.html shows it until the user links Canvas or closes it with ×.
+   promo_class: the page's own card class, so it looks like the cards around it. #}
+<section class="{{ promo_class }} cf-promo" id="canvasPromo" hidden>
+  <span class="cf-promo-icon" aria-hidden="true">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M8 14h3M8 17h6"/></svg>
+  </span>
+  <div class="cf-promo-text">
+    <b id="cfPromoTitle">Bring in your Canvas assignments</b>
+    <span id="cfPromoSub">Upcoming assignments show up as tasks, and their due dates stay in sync.</span>
+  </div>
+  <button type="button" class="btn-save cf-promo-go" id="cfPromoGo" aria-haspopup="dialog">Connect Canvas</button>
+  <button type="button" class="cf-x cf-promo-x" id="cfPromoX" aria-label="Hide this" title="Hide (the Canvas button in the top bar stays)">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M6 6l12 12M18 6L6 18"/></svg>
+  </button>
+</section>
