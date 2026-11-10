@@ -3,7 +3,7 @@
    accent when the task has none). The page's button needs these children:
      <span class="ab-fill" aria-hidden="true"></span><span class="ab-ring" aria-hidden="true"></span>
      <span class="ab-label">Add task</span><span class="ab-text" aria-hidden="true">Parsing…</span>
-     <svg class="ab-check" aria-hidden="true" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+     <span class="ab-result" aria-hidden="true"><svg class="ab-check" aria-hidden="true" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="ab-secs"></span></span>
    and gets:
      const finish = addBtnStart(btn, hex)   disables the button and starts the loading state
      await finish(ok)                       plays the saved / failed ending, then re-enables the button
@@ -89,14 +89,24 @@
   .ab-on.ab-done .ab-ring::after, .ab-on.ab-fail .ab-ring::after { opacity: 1; }
   @keyframes ab-spin { to { --ab-a: 360deg; } }
 
-  /* saved: a check draws itself in */
+  /* saved: a check draws itself in, then how long the task took slides in beside it ("✓ 1.4s") */
+  .ab-on .ab-result {
+    position: absolute; z-index: 2; inset: 0; display: flex; align-items: center; justify-content: center; gap: 6px;
+    pointer-events: none; white-space: nowrap;
+  }
   .ab-on .ab-check {
-    position: absolute; z-index: 2; left: 50%; top: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px;
+    flex: none; width: 16px; height: 16px;
     fill: none; stroke: var(--ab-c); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round;
     stroke-dasharray: 22; stroke-dashoffset: 22; opacity: 0; transform: scale(0.8);
     transition: opacity var(--ab-t) var(--ab-ease), transform var(--ab-t) var(--ab-ease), stroke-dashoffset 350ms var(--ab-ease);
   }
   .ab-on.ab-done .ab-check { opacity: 1; transform: none; stroke-dashoffset: 0; }
+  .ab-on .ab-secs {
+    font-variant-numeric: tabular-nums; color: color-mix(in srgb, var(--fg) 85%, var(--ab-c));
+    opacity: 0; transform: translateX(-4px);
+    transition: opacity var(--ab-t) var(--ab-ease), transform var(--ab-t) var(--ab-ease);
+  }
+  .ab-on.ab-done .ab-secs { opacity: 1; transform: none; transition-delay: 120ms; }
 
   /* failed: one soft shake */
   .ab-on.ab-fail { animation: ab-shake 450ms var(--ab-ease); }
@@ -112,12 +122,13 @@
     .ab-on .ab-text, .ab-on.ab-busy .ab-text, .ab-on.ab-done .ab-text, .ab-on.ab-fail .ab-text { transform: translateY(-50%); }
     .ab-on.ab-busy .ab-text { animation: none; color: color-mix(in srgb, var(--fg) 70%, transparent); }
     .ab-on.ab-fail { animation: none; }
+    .ab-on .ab-secs { transform: none; }
   }
 </style>
 
 <script>
   const AB_MIN_LOADING_MS = 1000;    // the loading state shows at least this long
-  const AB_HOLD_DONE_MS = 700;       // how long the check stays up
+  const AB_HOLD_DONE_MS = 1000;      // how long the check and seconds stay up
   const AB_SHAKE_MS = 450;           // the failed shake (matches ab-shake)
   const AB_FADE_MS = 250;            // back to "Add task" (matches --ab-t)
 
@@ -133,6 +144,10 @@
     const startedAt = performance.now();
 
     return async function finish(ok) {
+      // the real round trip (click to reply), not the animation: finish() is called as the reply arrives
+      const took = (performance.now() - startedAt) / 1000;
+      const secs = btn.querySelector('.ab-secs');
+      if (ok && secs) secs.textContent = took < 10 ? `${took.toFixed(1)}s` : `${Math.round(took)}s`;
       await wait(startedAt + AB_MIN_LOADING_MS - performance.now());
       btn.classList.add(ok ? 'ab-done' : 'ab-fail');
       await wait(ok ? AB_HOLD_DONE_MS : AB_SHAKE_MS);
