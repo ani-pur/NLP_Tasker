@@ -2,7 +2,7 @@
    While a task is being parsed, an arc of light circles the button in the task's own color (the theme
    accent when the task has none). The page's button needs these children:
      <span class="ab-fill" aria-hidden="true"></span><span class="ab-ring" aria-hidden="true"></span>
-     <span class="ab-label">Add task</span>
+     <span class="ab-label">Add task</span><span class="ab-text" aria-hidden="true">Parsing…</span>
      <svg class="ab-check" aria-hidden="true" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
    and gets:
      const finish = addBtnStart(btn, hex)   disables the button and starts the loading state
@@ -31,6 +31,29 @@
     transition: opacity var(--ab-t) var(--ab-ease), transform var(--ab-t) var(--ab-ease), filter var(--ab-t) var(--ab-ease);
   }
   .ab-on.ab-busy .ab-label { opacity: 0; transform: scale(0.92); filter: blur(2px); }
+
+  /* "Parsing…": rises in just after the label leaves; a soft highlight drifts through the muted text
+     (in the page's text color, tinted a touch with the task's), then it lifts away for the ending */
+  .ab-on .ab-text {
+    position: absolute; z-index: 2; left: 0; right: 0; top: 50%; text-align: center; white-space: nowrap;
+    pointer-events: none; opacity: 0; transform: translateY(calc(-50% + 5px));
+    color: transparent; -webkit-background-clip: text; background-clip: text;
+    background-image: linear-gradient(90deg,
+      color-mix(in srgb, var(--fg) 55%, transparent) 0%, color-mix(in srgb, var(--fg) 55%, transparent) 38%,
+      color-mix(in srgb, var(--fg) 85%, var(--ab-c)) 50%,
+      color-mix(in srgb, var(--fg) 55%, transparent) 62%, color-mix(in srgb, var(--fg) 55%, transparent) 100%);
+    background-size: 250% 100%; background-position: 100% 0;
+    animation: ab-shimmer 2s linear infinite paused;
+    transition: opacity var(--ab-t) var(--ab-ease), transform var(--ab-t) var(--ab-ease);
+  }
+  .ab-on.ab-busy .ab-text {
+    opacity: 1; transform: translateY(-50%); animation-play-state: running;
+    transition-delay: 90ms;                  /* lets "Add task" clear out first */
+  }
+  .ab-on.ab-done .ab-text, .ab-on.ab-fail .ab-text {
+    opacity: 0; transform: translateY(calc(-50% - 5px)); transition-delay: 0s;
+  }
+  @keyframes ab-shimmer { from { background-position: 100% 0; } to { background-position: -150% 0; } }
 
   /* a dark pane tinted with the task's color covers the button's own fill, so any arc color reads on it;
      the faint track keeps pale colors (yellow, pink) visible on the light theme */
@@ -86,6 +109,8 @@
     .ab-on.ab-busy .ab-ring { animation: none; --ab-len: 360deg; opacity: 0.55; }
     .ab-on.ab-done .ab-ring, .ab-on.ab-fail .ab-ring { opacity: 1; }
     .ab-on.ab-busy .ab-label { transform: none; filter: none; }
+    .ab-on .ab-text, .ab-on.ab-busy .ab-text, .ab-on.ab-done .ab-text, .ab-on.ab-fail .ab-text { transform: translateY(-50%); }
+    .ab-on.ab-busy .ab-text { animation: none; color: color-mix(in srgb, var(--fg) 70%, transparent); }
     .ab-on.ab-fail { animation: none; }
   }
 </style>
