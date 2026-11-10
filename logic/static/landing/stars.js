@@ -13,7 +13,8 @@
 // Comets cross the sky now and then (one at a time on good, up to two on fry pc), on paths that steer
 // clear of the logo: a tiny nucleus in a soft cyan-green coma, a broad striated dust tail that curves
 // gently away, and a thin knotty blue ion tail. The gas slowly churns and the whole sky sways a little on
-// its own, so it keeps living with no input. Scrolling away, the sky burns away (see the exit pass).
+// its own, so it keeps living with no input. Scrolling away, the sky burns away on fry pc (see the exit
+// pass) and simply fades out on good.
 // A watchdog steps the level down if the page's frame rate drops after a level kicks in.
 // Paused while the hero is off screen or the tab is hidden; one still frame for reduced motion.
 // window.heroSkyMs: the sky's measured GPU time per frame (WebGL2 timer queries, where the browser
@@ -64,7 +65,9 @@
         vec2 id = id0 + vec2(i, j); float r = h21(id);
         if (r > dens) continue;
         vec2 d = (g - id - .15 - h22(id + 3.1) * .7) * px;               // pixels from the star
-        float k = h21(id + 9.7), b = pow(1. - r / dens, 2.2);               // brightness: most are faint
+        // brightness: most are faint. max(…, 0.): GPUs divide approximately, so for r right at dens this can come
+        // out a hair below 0, and pow() of a negative is NaN, which blacks out a square of cells around the star
+        float k = h21(id + 9.7), b = pow(max(1. - r / dens, 0.), 2.2);
         float s = sz * (.5 + 1.1 * b), dd = dot(d, d);
         float t = 1. - tw * (.5 + .5 * sin(uTime * (.6 + 2.2 * k) + k * 60.));
         float core = exp(-dd / (s * s * .5));
@@ -132,6 +135,19 @@
         float g = band * (.25 + .75 * gas) * (1. - lanes * .85) * (.6 + .5 * wisp);
         light += neb * g * (.75 + .25 * hi) + vec3(.06, .07, .15) * band * .3 + neb * band * exp(-across * across / .2) * .05;
         dense = band;
+        if (hi > 0.) {
+          // fry pc only: a fuller Milky Way. Finer, sharper dust lanes cut the gas into filaments, pink
+          // emission knots glow along it, and a warm core swells in the upper right, away from the logo.
+          // (Its dense star clouds are a star layer, further down.)
+          float fineLanes = smoothstep(.52, .64, fbm(w * 6.4 + 120.)) * band;
+          float knots = pow(smoothstep(.6, .88, fbm(w * 5.2 + 140.)), 2.) * band * (1. - lanes);
+          vec2 core = u - vec2(1.43, .82);                                    // on the band, past its middle
+          float bulge = exp(-dot(core, core) / .07) * band;
+          light += vec3(1., .8, .58) * bulge * .5 * (1. - lanes * .7);
+          light += vec3(1., .32, .55) * knots * .6;
+          light *= 1. - fineLanes * .6;
+          dense = min(1., band * 1.3);
+        }
       }
 
       // a nebula: big red-orange gas clouds with glowing filaments and a blue cloud, on the right
@@ -165,6 +181,9 @@
       light += stars(fc - drift * .6 - uPar * .6, 16., .32, .8, .55, gl * .6) * .85;
       light += stars(fc - drift - uPar, 70., .40, 1.3, .45, gl) * (1. - clr * .35);
       if (uBand > 0.) light += galaxies(fc - drift * .45 - uPar * .45, 150.) * .5;
+      // fry pc's Milky Way star clouds: a very fine, dense layer that only exists inside the band (skipped where
+      // the band has faded out: nothing would show, and a density near 0 is where float division misbehaves)
+      if (hi > 0. && uBand > 0. && dense > .05) light += stars(fc - drift * .3 - uPar * .3, 3.2, .75 * dense, .42, .25, 0.) * .5 * dense;
 
       // comets
       for (int i = 0; i < 3; i++) if (uCa[i].w > 0.) light += comet(fc, uCa[i], uCb[i]);
@@ -359,7 +378,10 @@
     { const w = canvas.width / px, h = canvas.height / px; gl.uniform4f(U('uLogo'), w * 0.6, h * 0.53, w * 0.22, h * 0.13); }   // where hero3d puts the logo
     if (cr) gl.uniform4f(U('uCopy'), cr.left - kr.left - 30, kr.bottom - cr.bottom - 30, cr.width + 60, cr.height + 60);
     const hr = hero.getBoundingClientRect(), sc = Math.max(0, Math.min(1, -hr.top / (hr.height * 0.75)));
-    const wet = sc > 0.001 && burn;
+    const wet = hi && sc > 0.001 && burn;                             // the burn is fry pc only
+    // good: the stars just fade as the hero scrolls away (a CSS variable, so .off still hides the sky on plain)
+    const fade = hi ? '1' : (1 - sc).toFixed(3);
+    if (canvas.style.getPropertyValue('--fade') !== fade) canvas.style.setProperty('--fade', fade);
     // stats for the hero's counter: rough star count (by layer density), comets, render size, passes
     const area = (canvas.width / px) * (canvas.height / px);
     window.heroSkyStats = {
