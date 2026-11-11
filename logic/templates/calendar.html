@@ -141,7 +141,7 @@
     .chip .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
     .chip.overdue { opacity: 0.65; text-decoration: line-through; }
     .chip .label { overflow: hidden; text-overflow: ellipsis; }
-    .chip .canvas-cap { color: var(--c); }
+    .mini-stats { display: none; }
 
     /* ── Stats row ── */
     .stats-strip { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
@@ -211,8 +211,23 @@
       .nav-links { gap: 12px; }
       .nav-links a { font-size: 13px; }
       .user-chip { font-size: 10px; padding: 4px 10px; }
-      main { padding: 12px 6px 28px; display: flex; flex-direction: column; }
-      .cal-toolbar { margin: 0 6px 10px; align-items: center; flex-wrap: nowrap; }
+      main { padding: 12px 0 28px; display: flex; flex-direction: column; }
+      .cal-toolbar { margin: 0 12px 12px; align-items: center; flex-wrap: wrap; row-gap: 10px; }
+      /* the stats, as one line under the month instead of three boxes under the grid */
+      .stats-strip { display: none; }
+      .mini-stats { display: flex; gap: 6px; order: 3; flex-basis: 100%; }   /* its own line under month + buttons */
+      .ms {
+        --s: var(--accent);
+        display: inline-flex; align-items: baseline; gap: 5px; padding: 3px 8px; border-radius: 7px;
+        font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase;
+        color: color-mix(in srgb, var(--s) 55%, #fff);
+        background: color-mix(in srgb, var(--s) 18%, transparent); border: 1px solid color-mix(in srgb, var(--s) 50%, transparent);
+      }
+      .ms b { font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 800; color: #fff; letter-spacing: -0.3px; }
+      .ms.od { --s: #f87171; }
+      .ms.od b { color: #fca5a5; }
+      .ms.zero { --s: #71717a; }
+      .ms.zero b { color: var(--muted); }
       .cal-title-wrap { gap: 8px; min-width: 0; }
       .cal-month { font-size: clamp(20px, 6.6vw, 26px); letter-spacing: -0.8px; }   /* "November" + the buttons fit a 320px phone */
       .cal-controls { gap: 6px; flex-shrink: 0; }
@@ -220,19 +235,28 @@
       .nav-btn, .today-btn { height: 34px; }
       .nav-btn { width: 34px; }
       .today-btn { padding: 0 11px; }
-      .weekdays { gap: 3px; margin-bottom: 5px; }
+      .weekdays { gap: 0; margin-bottom: 5px; }
       .weekday { letter-spacing: 1px; font-size: 9.5px; }
-      /* screen height minus the header (52) and the toolbar, weekday row and padding above (~84) */
-      .grid { gap: 3px; height: calc(100vh - 136px); height: calc(100dvh - 136px); min-height: 420px; grid-auto-rows: 1fr; }
-      .day-cell { min-height: 0; padding: 4px 3px 3px; border-radius: 9px; animation: none; }
-      .day-cell:hover { transform: none; box-shadow: none; }
-      .day-cell.selected { border-color: var(--accent); background: rgba(129,140,248,0.1); }
-      .day-num { font-size: 11px; margin: 0 2px 3px; }
+      /* Edge to edge: no gaps, no tile padding, no rounded tiles, just hairlines between days, so a task
+         gets nearly the whole column (7 columns across a phone is the hard limit). Rows are tall and fixed;
+         the month scrolls instead of squeezing into one screen. */
+      .grid { gap: 0; grid-auto-rows: 132px; border-top: 1px solid var(--border-hover); }
+      .day-cell, .day-cell.empty, .day-cell.today {
+        min-height: 0; padding: 4px 1px 2px; border-radius: 0; animation: none;
+        border: none; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+        background: rgba(5,5,8,0.4); box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none;
+      }
+      .day-cell.empty { background: rgba(5,5,8,0.2); }
+      .grid > .day-cell:nth-child(7n) { border-right: none; }
+      .day-cell:hover { transform: none; box-shadow: none; background: rgba(5,5,8,0.4); }   /* touch keeps :hover after a tap */
+      .day-cell.today { background: rgba(129,140,248,0.06); }
+      .day-cell.selected { background: rgba(129,140,248,0.2); }
+      .day-num { font-size: 11px; margin: 0 3px 3px; }
       .today .day-num .n { width: 20px; height: 20px; font-size: 11px; }
       .chips { gap: 2px; flex: 1; min-height: 0; }
       .chip {
-        display: block; flex-shrink: 0; white-space: normal; padding: 2px 3px 2px 4px; border-radius: 4px;
-        font-size: 9.5px; font-weight: 600; line-height: 1.22; letter-spacing: -0.2px;
+        display: block; flex-shrink: 0; white-space: normal; padding: 2px 2px 2px 4px; border-radius: 3px;
+        font-size: 10px; font-weight: 600; line-height: 1.22; letter-spacing: -0.2px;
         background: color-mix(in srgb, var(--c) 16%, transparent);
         border: none; border-left: 2px solid var(--c);
       }
@@ -243,13 +267,11 @@
         overflow: hidden; overflow-wrap: anywhere;
         -webkit-hyphens: auto; hyphens: auto;     /* "Sub-mit" rather than "Submi/t" where the browser can */
       }
-      /* phones: the cap gets its own little row, so the name still has both lines */
-      .chip .canvas-cap { width: 9px; height: 9px; margin: 1px 0 1px; }
+      /* phones: the accent box alone marks a Canvas task; the icon would cost a line of the name */
+      .chip .canvas-mark { display: none !important; }
+      .chip.from-canvas { background: color-mix(in srgb, var(--accent) 36%, transparent) !important; border-color: var(--accent) !important; color: #e0e3ff !important; }
       .chip.overdue { text-decoration: none; opacity: 0.5; }
       .day-num .more { font-size: 9.5px; font-weight: 600; }
-      .stats-strip { margin: 18px 4px 0; gap: 8px; }
-      .stat-box { min-width: 0; padding: 12px; }
-      .stat-value { font-size: 20px; }
 
       /* the day as a bottom sheet */
       .panel {
@@ -267,6 +289,13 @@
       .p-task-desc { font-size: 13.5px; }
       .p-task-foot { flex-wrap: wrap; }
       .del-btn { border-color: var(--border); }
+    }
+    /* the narrowest phones (320px): month, year and the three buttons still share one line */
+    @media (max-width: 360px) {
+      .cal-year { font-size: 12px; }
+      .today-btn { padding: 0 9px; font-size: 11px; }
+      .nav-btn { width: 30px; }
+      .cal-controls { gap: 5px; }
     }
   </style>
   {% include '_canvas_tag.html' %}
@@ -291,6 +320,7 @@
         <span class="cal-month" id="calMonth">—</span>
         <span class="cal-year" id="calYear"></span>
       </div>
+      <div class="mini-stats" id="miniStats"></div>
       <div class="cal-controls">
         <button class="today-btn" id="todayBtn">Today</button>
         <button class="nav-btn" id="prevBtn" aria-label="Previous month">
@@ -381,6 +411,9 @@
       document.getElementById('statMonth').textContent = monthCount;
       document.getElementById('statOverdue').textContent = overdue;
       document.getElementById('statTotal').textContent = allTasks.length;
+      const ms = (cls, n, label) => `<span class="ms ${cls}${n ? '' : ' zero'}"><b>${n}</b>${label}</span>`;
+      document.getElementById('miniStats').innerHTML =
+        ms('', monthCount, 'month') + ms('od', overdue, 'overdue') + ms('tot', allTasks.length, 'total');
     }
 
     function renderGrid() {
@@ -415,7 +448,7 @@
         const extra = dayTasks.length - maxChips;
 
         let chipsHtml = dayTasks.slice(0, maxChips).map(t => `
-          <div class="chip ${t.overdue ? 'overdue' : ''}" style="--c:${t.color};" title="${escapeHtml(t.name)}">
+          <div class="chip ${t.overdue ? 'overdue' : ''}${t.imported ? ' from-canvas' : ''}" style="--c:${t.color};" title="${escapeHtml(t.name)}">
             <span class="dot" style="background:${t.color};"></span>
             ${t.imported ? CANVAS_ICON : ''}<span class="label" style="color:${t.color};">${escapeHtml(t.name)}</span>
           </div>`).join('');

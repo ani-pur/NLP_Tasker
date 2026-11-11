@@ -1139,7 +1139,7 @@
       let body = '';
       if (maxChips > 0) {
         body = dayTasks.slice(0, maxChips).map(t => `
-          <div class="chip ${t.overdue ? 'overdue' : ''}" style="--c:${t.c};" data-id="${t.id}">
+          <div class="chip ${t.overdue ? 'overdue' : ''}${t.imported ? ' from-canvas' : ''}" style="--c:${t.c};" data-id="${t.id}">
             ${t.overdue ? WARN_ICON : ''}${t.imported ? CANVAS_ICON : ''}${t.time ? `<span class="at">${chipTime(t.time)}</span>` : ''}
             <span class="label">${escapeHtml(t.name)}</span>
           </div>`).join('');
