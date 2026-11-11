@@ -427,18 +427,20 @@
   levelSeg?.addEventListener('click', e => { const v = e.target.closest('button')?.dataset.v; if (v && v !== level) change(() => { level = v; store.set('tasker-sky-level', level); }); });
   document.fonts?.ready.then(label);                                // the pill widths settle once the font loads
 
-  // watchdog: after a level kicks in, watch the page's frame rate for a few seconds; if it can't hold
-  // ~40fps, step down a level (and remember it)
+  // watchdog: after a level kicks in, skip a 1.2s warm-up, then watch the page's frame rate for 2s; if it
+  // can't hold 55fps, step down a level (and remember it). The fps is measured from the frames' own
+  // timestamps; 55 leaves room for a 60Hz screen's normal jitter.
+  const WATCH_WARMUP = 1200, WATCH_MS = 2000, WATCH_FPS = 55;
   let watching = 0;
   function watch() {
     if (reduce || level === 'plain' || window.__noWatch) return;      // __noWatch: for screenshot tests on software GL
-    const id = ++watching, start = performance.now() + 1200; let frames = 0;
+    const id = ++watching, start = performance.now() + WATCH_WARMUP; let first = 0, frames = 0;
     requestAnimationFrame(function tick(now) {
       if (id !== watching) return;
       if (document.hidden || !visible) { watching++; return; }
-      if (now >= start) frames++;
-      if (now < start + 3000) return requestAnimationFrame(tick);
-      if (frames / 3 < 40) change(() => { level = LEVELS[LEVELS.indexOf(level) - 1]; store.set('tasker-sky-level', level); });
+      if (now >= start) { if (!first) first = now; else frames++; }   // frames = intervals since the first counted frame
+      if (!first || now < first + WATCH_MS) return requestAnimationFrame(tick);
+      if (frames * 1000 / (now - first) < WATCH_FPS) change(() => { level = LEVELS[LEVELS.indexOf(level) - 1]; store.set('tasker-sky-level', level); });
     });
   }
 
