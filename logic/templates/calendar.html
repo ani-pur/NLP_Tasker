@@ -18,6 +18,7 @@
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { overscroll-behavior-y: none; }   /* no rubber-band bounce dragging the header around */
 
     body {
       background: var(--bg);
@@ -140,6 +141,7 @@
     .chip .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
     .chip.overdue { opacity: 0.65; text-decoration: line-through; }
     .chip .label { overflow: hidden; text-overflow: ellipsis; }
+    .chip .canvas-cap { color: var(--c); }
 
     /* ── Stats row ── */
     .stats-strip { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
@@ -182,6 +184,8 @@
     .p-task-name { font-size: 15px; font-weight: 700; padding-left: 10px; }
     .p-task-desc { color: var(--muted); font-size: 13px; line-height: 1.55; margin-top: 4px; padding-left: 10px; }
     .p-task-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-left: 10px; gap: 8px; }
+    .p-pills { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .sheet-grip { display: none; }
     .time-pill {
       font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; color: var(--muted);
       background: rgba(255,255,255,0.04); border: 1px solid var(--border); padding: 5px 10px; border-radius: 6px;
@@ -199,22 +203,73 @@
     .panel-empty { text-align: center; color: var(--muted); padding: 50px 0; font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 1px; }
 
     /* ── Responsive / mobile ── */
+    /* ── Phones: the month fills the screen (stats wait below it), each task is a tinted block whose
+          name wraps onto two lines, and a day opens as a sheet from the bottom with full-size rows ── */
     @media (max-width: 720px) {
-      header { padding: 14px 18px; }
+      header { padding: 0 16px; height: 52px; }
+      .logo { font-size: 20px; }
       .nav-links { gap: 12px; }
-      main { padding: 20px 14px 40px; }
-      .cal-month { font-size: 26px; }
-      .grid, .weekdays { gap: 5px; }
-      .day-cell { min-height: 92px; padding: 5px; border-radius: 11px; }
-      .day-num { font-size: 11px; margin-bottom: 3px; }
-      /* keep compact text chips on phones (truncated) instead of bare dots,
-         so each day still shows a hint of what's on it */
-      .chip { padding: 2px 4px; font-size: 8.5px; gap: 3px; border-radius: 5px; line-height: 1.2; }
-      .chip .dot { width: 5px; height: 5px; }
-      .chips { gap: 3px; }
-      .panel { width: 100%; max-width: 100vw; }
+      .nav-links a { font-size: 13px; }
+      .user-chip { font-size: 10px; padding: 4px 10px; }
+      main { padding: 12px 6px 28px; display: flex; flex-direction: column; }
+      .cal-toolbar { margin: 0 6px 10px; align-items: center; flex-wrap: nowrap; }
+      .cal-title-wrap { gap: 8px; min-width: 0; }
+      .cal-month { font-size: clamp(20px, 6.6vw, 26px); letter-spacing: -0.8px; }   /* "November" + the buttons fit a 320px phone */
+      .cal-controls { gap: 6px; flex-shrink: 0; }
+      .cal-year { font-size: 14px; }
+      .nav-btn, .today-btn { height: 34px; }
+      .nav-btn { width: 34px; }
+      .today-btn { padding: 0 11px; }
+      .weekdays { gap: 3px; margin-bottom: 5px; }
+      .weekday { letter-spacing: 1px; font-size: 9.5px; }
+      /* screen height minus the header (52) and the toolbar, weekday row and padding above (~84) */
+      .grid { gap: 3px; height: calc(100vh - 136px); height: calc(100dvh - 136px); min-height: 420px; grid-auto-rows: 1fr; }
+      .day-cell { min-height: 0; padding: 4px 3px 3px; border-radius: 9px; animation: none; }
+      .day-cell:hover { transform: none; box-shadow: none; }
+      .day-cell.selected { border-color: var(--accent); background: rgba(129,140,248,0.1); }
+      .day-num { font-size: 11px; margin: 0 2px 3px; }
+      .today .day-num .n { width: 20px; height: 20px; font-size: 11px; }
+      .chips { gap: 2px; flex: 1; min-height: 0; }
+      .chip {
+        display: block; flex-shrink: 0; white-space: normal; padding: 2px 3px 2px 4px; border-radius: 4px;
+        font-size: 9.5px; font-weight: 600; line-height: 1.22; letter-spacing: -0.2px;
+        background: color-mix(in srgb, var(--c) 16%, transparent);
+        border: none; border-left: 2px solid var(--c);
+      }
+      .chip .dot { display: none; }
+      .chip[hidden] { display: none; }
+      .chip .label {
+        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+        overflow: hidden; overflow-wrap: anywhere;
+        -webkit-hyphens: auto; hyphens: auto;     /* "Sub-mit" rather than "Submi/t" where the browser can */
+      }
+      /* phones: the cap gets its own little row, so the name still has both lines */
+      .chip .canvas-cap { width: 9px; height: 9px; margin: 1px 0 1px; }
+      .chip.overdue { text-decoration: none; opacity: 0.5; }
+      .day-num .more { font-size: 9.5px; font-weight: 600; }
+      .stats-strip { margin: 18px 4px 0; gap: 8px; }
+      .stat-box { min-width: 0; padding: 12px; }
+      .stat-value { font-size: 20px; }
+
+      /* the day as a bottom sheet */
+      .panel {
+        top: auto; bottom: 0; left: 0; right: 0; width: 100%; max-width: none; height: auto; max-height: 78vh; max-height: 78dvh;
+        border-left: none; border-top: 1px solid var(--border-hover); border-radius: 22px 22px 0 0;
+        padding: 10px 16px calc(24px + env(safe-area-inset-bottom));
+        background: rgba(12,12,18,0.92); transform: translateY(100%);
+        box-shadow: 0 -20px 50px -20px rgba(0,0,0,0.8);
+      }
+      .panel.open { transform: none; }
+      .sheet-grip { display: block; width: 38px; height: 4px; border-radius: 2px; background: var(--border-hover); margin: 0 auto 12px; flex-shrink: 0; }
+      .panel-head { margin-bottom: 14px; }
+      .p-task { padding: 14px 14px 12px; }
+      .p-task-name { font-size: 16px; line-height: 1.35; }
+      .p-task-desc { font-size: 13.5px; }
+      .p-task-foot { flex-wrap: wrap; }
+      .del-btn { border-color: var(--border); }
     }
   </style>
+  {% include '_canvas_tag.html' %}
 </head>
 <body>
 
@@ -260,6 +315,7 @@
   <!-- Day detail slide-over -->
   <div class="overlay" id="overlay"></div>
   <aside class="panel" id="panel">
+    <div class="sheet-grip" aria-hidden="true"></div>
     <div class="panel-head">
       <div>
         <div class="panel-date" id="panelDate">—</div>
@@ -290,7 +346,7 @@
     // Parse a task row into a normalized object. Mirrors the dashboard's date logic:
     // due_date arrives as "DD Mon YYYY 00:00:00..." (or similar) and task_time as "HH:MM AM".
     function parseTask(row) {
-      const [id, , name, time, desc, due, color, reminder] = row;
+      const [id, , name, time, desc, due, color, reminder, imported, canvasUrl] = row;
       let y = null, mo = null, d = null, dt = null;
       if (due) {
         const cleanDate = due.replace(/ 00:00:00.*$/, '').trim();
@@ -299,6 +355,7 @@
         if (!isNaN(dt)) { y = dt.getFullYear(); mo = dt.getMonth(); d = dt.getDate(); }
       }
       return { id, name, time, desc, due, color: color || '#818cf8', reminder, y, mo, d, dt,
+               imported: !!imported, canvasUrl: canvasUrl || null,
                overdue: dt && !isNaN(dt) && dt < new Date() };
     }
 
@@ -353,13 +410,14 @@
         if (isThisMonth && d === today.getDate()) cell.classList.add('today');
         if (dayTasks.some(t => t.overdue)) cell.classList.add('has-overdue');
 
-        const MAX_CHIPS = window.innerWidth <= 720 ? 2 : 3;
-        const extra = dayTasks.length - MAX_CHIPS;
+        // phones get every task and fitChips() trims to what the tile has room for
+        const maxChips = phone() ? Infinity : 3;
+        const extra = dayTasks.length - maxChips;
 
-        let chipsHtml = dayTasks.slice(0, MAX_CHIPS).map(t => `
-          <div class="chip ${t.overdue ? 'overdue' : ''}" title="${escapeHtml(t.name)}">
+        let chipsHtml = dayTasks.slice(0, maxChips).map(t => `
+          <div class="chip ${t.overdue ? 'overdue' : ''}" style="--c:${t.color};" title="${escapeHtml(t.name)}">
             <span class="dot" style="background:${t.color};"></span>
-            <span class="label" style="color:${t.color};">${escapeHtml(t.name)}</span>
+            ${t.imported ? CANVAS_ICON : ''}<span class="label" style="color:${t.color};">${escapeHtml(t.name)}</span>
           </div>`).join('');
 
         cell.innerHTML = `
@@ -369,12 +427,41 @@
           </div>
           <div class="chips">${chipsHtml}</div>
         `;
+        cell.dataset.key = k;
+        if (k === selectedKey) cell.classList.add('selected');
         cell.addEventListener('click', () => openDay(viewYear, viewMonth, d));
         grid.appendChild(cell);
       }
 
+      fitChips();
       renderStats();
     }
+
+    const phone = () => window.matchMedia('(max-width: 720px)').matches;
+
+    // phones: hide the task blocks that don't fully fit in their tile and count them in "+N"
+    function fitChips() {
+      if (!phone()) return;
+      document.querySelectorAll('#grid .day-cell:not(.empty)').forEach(cell => {
+        const box = cell.querySelector('.chips'), chips = [...box.children];
+        chips.forEach(c => c.hidden = false);
+        const room = box.getBoundingClientRect().bottom;
+        let hidden = 0;
+        // once one doesn't fit, the rest go too (they're in time order)
+        chips.forEach(c => { if (hidden || c.getBoundingClientRect().bottom > room + 0.5) { c.hidden = true; hidden++; } });
+        // the +N itself sits in the day-number row, so it never takes a task's room
+        let more = cell.querySelector('.day-num .more');
+        if (!hidden) { more?.remove(); return; }
+        if (!more) { more = document.createElement('span'); more.className = 'more'; cell.querySelector('.day-num').appendChild(more); }
+        more.textContent = '+' + hidden;
+      });
+    }
+    // Safari resizes the page as its bars collapse: just refit, unless the layout crossed phone <-> desktop
+    let fitTimer, wasPhone = phone();
+    window.addEventListener('resize', () => {
+      clearTimeout(fitTimer);
+      fitTimer = setTimeout(() => { if (phone() !== wasPhone) { wasPhone = phone(); renderGrid(); } else fitChips(); }, 120);
+    });
 
     function escapeHtml(s) {
       return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
@@ -387,6 +474,8 @@
       document.getElementById('panelDate').textContent = `${MONTHS[m].slice(0,3)} ${d}`;
       document.getElementById('panelSub').textContent = dt.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric' }).toUpperCase();
       renderPanelBody();
+      document.querySelectorAll('#grid .day-cell.selected').forEach(c => c.classList.remove('selected'));
+      document.querySelector(`#grid .day-cell[data-key="${selectedKey}"]`)?.classList.add('selected');
       document.getElementById('overlay').classList.add('open');
       document.getElementById('panel').classList.add('open');
     }
@@ -404,8 +493,9 @@
           <div class="p-task-name" style="color:${t.color};">${escapeHtml(t.name)}</div>
           ${t.desc ? `<div class="p-task-desc">${escapeHtml(t.desc)}</div>` : ''}
           <div class="p-task-foot">
-            <div style="display:flex;gap:6px;align-items:center;">
+            <div class="p-pills">
               <span class="time-pill ${t.overdue ? 'overdue' : ''}">${t.time ? escapeHtml(t.time) : 'All day'}</span>
+              ${t.imported ? canvasTag(t.canvasUrl) : ''}
               ${t.reminder ? `<span class="reminder-badge">🔔 ${escapeHtml(t.reminder)}</span>` : ''}
             </div>
             <button class="del-btn" data-id="${t.id}">delete</button>
@@ -420,6 +510,7 @@
     function closePanel() {
       document.getElementById('overlay').classList.remove('open');
       document.getElementById('panel').classList.remove('open');
+      document.querySelectorAll('#grid .day-cell.selected').forEach(c => c.classList.remove('selected'));
       selectedKey = null;
     }
 
