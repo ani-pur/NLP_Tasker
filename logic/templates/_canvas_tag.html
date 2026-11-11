@@ -1,0 +1,40 @@
+{# Marks a task that came from the Canvas feed, the same way on every page that shows tasks
+   (glass_desktop, glass_mobile, calendar). Include it in <head>, before the page's own script.
+     canvasTag(url)   a solid "Canvas ↗" button for a task's meta row; with the assignment's url it links there
+     CANVAS_ICON      the small "from outside" mark for calendar chips
+     class from-canvas  on a calendar chip: the accent-tinted box (the course color stays as a stripe on its left)
+   Uses the page's --accent, --accent-ink (dark text if the page has none) and --fg. #}
+<style>
+  .canvas-tag {
+    display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; white-space: nowrap;
+    font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; font-weight: 700; letter-spacing: 0.4px; line-height: 1;
+    padding: 4px 7px 4px 8px; border-radius: 6px; text-decoration: none;
+    color: var(--accent-ink, #0b0b14); background: var(--accent); border: 1px solid var(--accent);
+    box-shadow: 0 2px 10px -4px var(--accent);
+    transition: filter 0.15s, transform 0.12s;
+  }
+  .canvas-tag svg { flex-shrink: 0; display: block; }
+  a.canvas-tag:hover { filter: brightness(1.12); }
+  a.canvas-tag:active { transform: scale(0.96); }
+
+  /* calendar chips: the accent box wins over the page's per-task tint, so Canvas work stands out at a glance */
+  .chip.from-canvas {
+    background: color-mix(in srgb, var(--accent) 24%, transparent) !important;
+    border: 1px solid color-mix(in srgb, var(--accent) 65%, transparent) !important;
+    box-shadow: inset 3px 0 0 var(--c, var(--accent));
+    color: color-mix(in srgb, var(--accent) 45%, var(--fg)) !important;
+  }
+  .chip.from-canvas .label { color: inherit !important; }
+  .chip.from-canvas .canvas-mark { flex-shrink: 0; display: block; color: var(--accent); }
+</style>
+<script>
+  // "from outside": an arrow leaving a box
+  const CANVAS_ICON = '<svg class="canvas-mark" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-label="From Canvas"><path d="M14 4h6v6M20 4l-9 9"/><path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></svg>';
+  function canvasTag(url) {
+    if (!url) return '<span class="canvas-tag" title="Imported from Canvas">Canvas</span>';
+    const href = String(url).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+    // its own arrow (an svg): iOS draws the ↗ character as an emoji box
+    return `<a class="canvas-tag" href="${href}" target="_blank" rel="noopener noreferrer" title="Open in Canvas" onclick="event.stopPropagation()">Canvas`
+         + '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M8 7h9v9"/></svg></a>';
+  }
+</script>

@@ -1,6 +1,6 @@
 """The task color palette: the one place it's defined.
 
-Flask hands it to the default theme's templates (desktop_v6, mobile_3: see the context processor in
+Flask hands it to the default theme's templates (glass_desktop, glass_mobile: see the context processor in
 main.py and templates/_palette.html), and the Canvas sync gives courses colors from it. Colors are
 stored on tasks as "#rrggbb" hex. Any hex works, not just these (the color picker has a custom
 option); the palette is the quick picks.

@@ -486,8 +486,6 @@
     .pill.when.jump:hover { color: var(--fg); border-color: var(--line-strong); }
     .task-card.overdue .pill.when { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 35%, transparent); }
     .pill.bell { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 35%, transparent); }
-    a.pill.canvas { color: var(--accent); text-decoration: none; }
-    a.pill.canvas:hover { color: var(--fg); border-color: var(--line-strong); }
     .row-actions { display: flex; flex-direction: column; gap: 2px; opacity: 0; transition: opacity 0.12s; }
     .task-card:hover .row-actions, .task-card:focus-within .row-actions, .inspector .row-actions { opacity: 1; }
     .row-btn {
@@ -679,7 +677,7 @@
     .swatch { width: 24px; height: 24px; border-radius: 50%; cursor: pointer; border: 1px solid var(--line-strong); transition: transform 0.12s; }
     .swatch:hover { transform: scale(1.1); }
     .swatch.selected { box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--fg); }
-    .swatch.none { background: repeating-linear-gradient(135deg, var(--line-strong) 0 4px, transparent 4px 8px); }
+    .swatch.none { background: var(--neutral); }   /* white = "no color": the same neutral its card shows */
     .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 22px; }
     .btn-ghost { background: var(--fog); border: 1px solid var(--line-strong); color: var(--fg); border-radius: 9px; padding: 8px 14px; font-family: 'Instrument Sans', sans-serif; font-size: 13px; cursor: pointer; }
     .btn-ghost:hover { background: var(--hover); }
@@ -687,6 +685,7 @@
     .btn-save:hover { filter: brightness(1.1); }
   </style>
   {% include '_palette.html' %}
+  {% include '_canvas_tag.html' %}
 </head>
 <body>
 
@@ -733,7 +732,7 @@
             <span class="char-counter" id="charCounter">0/200</span>
             <span id="reminderPreview" class="reminder-preview">⏰ <span id="reminderValue"></span></span>
             <span class="spacer"></span>
-            <button class="submit-btn" id="submitBtn">Add task</button>
+            <button class="submit-btn ab-on" id="submitBtn"><span class="ab-fill" aria-hidden="true"></span><span class="ab-ring" aria-hidden="true"></span><span class="ab-label">Add task</span><span class="ab-text" aria-hidden="true">Parsing…</span><span class="ab-result" aria-hidden="true"><svg class="ab-check" aria-hidden="true" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="ab-secs"></span></span></button>
           </div>
           <button type="button" class="help-btn" id="helpBtn" aria-label="How to write tasks and reminders" aria-expanded="false" aria-controls="helpPop">?</button>
         </div>
@@ -952,8 +951,8 @@
       return { offsetHours: 0, absoluteTime: null, display: null };
     }
 
-    let addTaskCooldown = false;
-    const ADD_TASK_COOLDOWN_MS = 3000;
+    // the browser stops waiting on POST /tasks after this (the server's LLM calls give up well before it)
+    const ADD_TASK_TIMEOUT_MS = 15000;
 
     /* ── TZ metadata ── */
     function buildUserTzMetadata() {
@@ -1027,8 +1026,8 @@
             ${t.desc ? `<div class="task-desc">${escapeHtml(t.desc)}</div>` : ''}
             <div class="task-meta">
               <span class="pill when${jump ? ' jump' : ''}" ${jump ? 'title="Show in calendar"' : ''}>${when}</span>
+              ${t.imported ? canvasTag(t.canvasUrl) : ''}
               ${t.reminder ? `<span class="pill bell">⏰ ${escapeHtml(t.reminder)}</span>` : ''}
-              ${t.canvasUrl ? `<a class="pill canvas" href="${escapeHtml(t.canvasUrl)}" target="_blank" rel="noopener noreferrer">Open in Canvas ↗</a>` : ''}
             </div>
           </div>
           <div class="row-actions">
@@ -1096,7 +1095,7 @@
       const seq = [];
       let fresh = 0;
       const place = t => {
-        const sig = JSON.stringify([t.name, t.desc, t.time, t.due, t.c, t.reminder, t.overdue, t.canvasUrl]);
+        const sig = JSON.stringify([t.name, t.desc, t.time, t.due, t.c, t.reminder, t.overdue, t.imported, t.canvasUrl]);
         let card = existing.get(String(t.id));
         if (!card || card.dataset.sig !== sig) {
           const isNew = !card;
@@ -1140,8 +1139,8 @@
       let body = '';
       if (maxChips > 0) {
         body = dayTasks.slice(0, maxChips).map(t => `
-          <div class="chip ${t.overdue ? 'overdue' : ''}" style="--c:${t.c};" data-id="${t.id}">
-            ${t.overdue ? WARN_ICON : ''}${t.time ? `<span class="at">${chipTime(t.time)}</span>` : ''}
+          <div class="chip ${t.overdue ? 'overdue' : ''}${t.imported ? ' from-canvas' : ''}" style="--c:${t.c};" data-id="${t.id}">
+            ${t.overdue ? WARN_ICON : ''}${t.imported ? CANVAS_ICON : ''}${t.time ? `<span class="at">${chipTime(t.time)}</span>` : ''}
             <span class="label">${escapeHtml(t.name)}</span>
           </div>`).join('');
       } else if (dayTasks.length) {
@@ -1237,8 +1236,8 @@
         ${t.desc ? `<div class="cp-desc">${escapeHtml(t.desc)}</div>` : ''}
         <div class="cp-meta">
           <span class="pill when">${escapeHtml(shortDate(t))}${t.time ? ' · ' + chipTime(t.time) : ''}</span>
+          ${t.imported ? canvasTag(null) : ''}
           ${t.reminder ? `<span class="pill bell">⏰ ${escapeHtml(t.reminder)}</span>` : ''}
-          ${t.canvasUrl ? `<a class="pill canvas" href="${escapeHtml(t.canvasUrl)}" target="_blank" rel="noopener noreferrer">Open in Canvas ↗</a>` : ''}
         </div>
         <i class="cp-notch"></i>`;
       // centered above the task with the notch on its middle; below it when there's no room above.
@@ -1527,10 +1526,9 @@
     refreshVendor();
 
     /* ── Submit ── */
-    document.getElementById('submitBtn').addEventListener('click', async () => {
-      if (addTaskCooldown) return;
-      addTaskCooldown = true;
-      setTimeout(() => { addTaskCooldown = false; }, ADD_TASK_COOLDOWN_MS);
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.addEventListener('click', async () => {
+      if (submitBtn.disabled) return;          // a task is already on its way (_add_button.html)
       const desc = taskInput.value.trim();
       if (desc.length < 10 || desc.length > 200) {
         alert('Task description must be 10–200 characters');
@@ -1540,7 +1538,9 @@
       const color = extractColor(desc);
       const cleanedDesc = cleanDescription(desc, reminder, color);
       document.getElementById('reminderPreview').style.display = 'none';
+      const finish = addBtnStart(submitBtn, color);
       const res = await fetch('/tasks', {
+        signal: AbortSignal.timeout?.(ADD_TASK_TIMEOUT_MS),
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1551,8 +1551,10 @@
           notif_absolute_time: reminder.absoluteTime,
           reminder_display: reminder.display
         })
-      }).catch(() => null);                    // null: the request never reached the server
+      }).catch(err => err);                    // an Error: no reply (offline, or timed out)
       if (res?.ok) {
+        // the page updates now; the button finishes its own animation on its own time
+        finish(true);
         taskInput.value = '';
         taskInput.style.color = '';
         document.getElementById('charCounter').textContent = '0/200';
@@ -1563,8 +1565,11 @@
         taskInput.placeholder = 'Try: ' + prompts[Math.floor(Math.random() * prompts.length)];
       } else {
         // the typed text stays in the box, so the user can just hit add again
-        const e = res ? await res.json().catch(() => ({})) : { error: "Couldn't reach Tasker, check your connection and try again" };
-        alert(e.error || 'Failed to add task, try again');
+        const error = res instanceof Response ? (await res.json().catch(() => ({}))).error
+          : res?.name === 'TimeoutError' ? 'Tasker took too long to answer, try again'
+          : "Couldn't reach Tasker, check your connection and try again";
+        await finish(false);                   // alert() freezes the page, so the shake plays first
+        alert(error || 'Failed to add task, try again');
       }
     });
 
@@ -1761,7 +1766,7 @@
       <label>Color</label>
       <div class="swatches">
         {% for c in task_palette %}<span class="swatch" data-color="{{ c.hex }}" style="background:{{ c.hex }}" title="{{ c.name }}"></span>
-        {% endfor %}<span class="swatch none" data-color="{{ no_color }}" title="No color"></span>
+        {% endfor %}<span class="swatch none" data-color="{{ no_color }}" title="White"></span>
         <span class="swatch" data-color="" data-custom title="Custom color"></span>
       </div>
       <div class="modal-actions">
@@ -1772,5 +1777,6 @@
   </div>
   {% include '_color_picker.html' %}
   {% include '_canvas_feed.html' %}
+  {% include '_add_button.html' %}
 </body>
 </html>

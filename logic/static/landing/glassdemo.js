@@ -1,4 +1,4 @@
-// Glass-only live demo: types example tasks into a desktop_v6 replica, and each one lands in
+// Glass-only live demo: types example tasks into a glass_desktop replica, and each one lands in
 // the task list and on the calendar. It runs on its own fixed timeline (DEMO_NOW), not the real
 // date, so the calendar never changes month and every example lands inside it.
 (function () {

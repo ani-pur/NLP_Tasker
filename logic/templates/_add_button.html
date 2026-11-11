@@ -1,0 +1,160 @@
+{# Loading animation for the Add task button, for the default theme (glass_desktop + glass_mobile).
+   While a task is being parsed, an arc of light circles the button in the task's own color (the theme
+   accent when the task has none). The page's button needs these children:
+     <span class="ab-fill" aria-hidden="true"></span><span class="ab-ring" aria-hidden="true"></span>
+     <span class="ab-label">Add task</span><span class="ab-text" aria-hidden="true">Parsing…</span>
+     <span class="ab-result" aria-hidden="true"><svg class="ab-check" aria-hidden="true" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="ab-secs"></span></span>
+   and gets:
+     const finish = addBtnStart(btn, hex)   disables the button and starts the loading state
+     await finish(ok)                       plays the saved / failed ending, then re-enables the button
+   The animation runs on its own clock: the page updates the list, the input and the ambient light as
+   soon as the reply arrives, and only waits on finish() when it needs to (the alert after a failure).
+   Loading always shows for at least AB_MIN_LOADING_MS, so a quick reply never just flickers. #}
+<style>
+  /* registered so they can be animated: the arc's angle and length */
+  @property --ab-a { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+  @property --ab-len { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+
+  .ab-on {
+    --ab-c: var(--accent);                  /* the arc's color: the task's, set by addBtnStart */
+    --ab-end: var(--ab-c);                  /* the closing ring: --ab-c when saved, red when not */
+    --ab-t: 250ms;
+    --ab-ease: cubic-bezier(0.33, 1, 0.68, 1);
+    position: relative; isolation: isolate;
+  }
+  .ab-on.ab-fail { --ab-end: #f05656; }
+  .ab-on:disabled { cursor: progress; filter: none; }
+
+  /* text and check sit above the fill and the ring */
+  .ab-on .ab-label {
+    position: relative; z-index: 2; display: inline-block;
+    transition: opacity var(--ab-t) var(--ab-ease), transform var(--ab-t) var(--ab-ease), filter var(--ab-t) var(--ab-ease);
+  }
+  .ab-on.ab-busy .ab-label { opacity: 0; transform: scale(0.92); filter: blur(2px); }
+
+  /* "Parsing…": rises in just after the label leaves; a soft highlight drifts through the muted text
+     (in the page's text color, tinted a touch with the task's), then it lifts away for the ending */
+  .ab-on .ab-text {
+    position: absolute; z-index: 2; left: 0; right: 0; top: 50%; text-align: center; white-space: nowrap;
+    pointer-events: none; opacity: 0; transform: translateY(calc(-50% + 5px));
+    color: transparent; -webkit-background-clip: text; background-clip: text;
+    background-image: linear-gradient(90deg,
+      color-mix(in srgb, var(--fg) 55%, transparent) 0%, color-mix(in srgb, var(--fg) 55%, transparent) 38%,
+      color-mix(in srgb, var(--fg) 85%, var(--ab-c)) 50%,
+      color-mix(in srgb, var(--fg) 55%, transparent) 62%, color-mix(in srgb, var(--fg) 55%, transparent) 100%);
+    background-size: 250% 100%; background-position: 100% 0;
+    animation: ab-shimmer 2s linear infinite paused;
+    transition: opacity var(--ab-t) var(--ab-ease), transform var(--ab-t) var(--ab-ease);
+  }
+  .ab-on.ab-busy .ab-text {
+    opacity: 1; transform: translateY(-50%); animation-play-state: running;
+    transition-delay: 90ms;                  /* lets "Add task" clear out first */
+  }
+  .ab-on.ab-done .ab-text, .ab-on.ab-fail .ab-text {
+    opacity: 0; transform: translateY(calc(-50% - 5px)); transition-delay: 0s;
+  }
+  @keyframes ab-shimmer { from { background-position: 100% 0; } to { background-position: -150% 0; } }
+
+  /* a dark pane tinted with the task's color covers the button's own fill, so any arc color reads on it;
+     the faint track keeps pale colors (yellow, pink) visible on the light theme */
+  .ab-on .ab-fill {
+    position: absolute; inset: 0; z-index: 0; border-radius: inherit; pointer-events: none; opacity: 0;
+    background: color-mix(in srgb, var(--ab-c) 16%, var(--bg));
+    box-shadow: inset 0 0 0 2px rgba(127,127,127,0.18), 0 0 22px -6px var(--ab-c);
+    transition: opacity var(--ab-t) var(--ab-ease);
+  }
+  .ab-on.ab-busy .ab-fill { opacity: 1; }
+
+  /* the arc: a conic gradient (a fading tail ending in a bright head) cut down to a 2px ring by the mask */
+  .ab-on .ab-ring {
+    position: absolute; inset: 0; z-index: 1; border-radius: inherit; pointer-events: none; padding: 2px; opacity: 0;
+    background: conic-gradient(from var(--ab-a), transparent 0deg, transparent calc(360deg - var(--ab-len)),
+      color-mix(in srgb, var(--ab-c) 30%, transparent) calc(360deg - var(--ab-len) * 0.75),
+      color-mix(in srgb, var(--ab-c) 75%, transparent) calc(360deg - var(--ab-len) * 0.35), var(--ab-c) 360deg);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+    animation: ab-spin 1.2s linear infinite paused;      /* paused, not removed: no jump back to 0deg on the way out */
+    transition: opacity var(--ab-t) var(--ab-ease), --ab-len var(--ab-t) var(--ab-ease);
+  }
+  .ab-on.ab-busy .ab-ring {
+    opacity: 1; --ab-len: 160deg; animation-play-state: running;
+    transition: opacity var(--ab-t) var(--ab-ease), --ab-len 600ms var(--ab-ease);    /* grows from a spark */
+  }
+  /* the ending: the arc closes into a full ring (the task's color, or red) */
+  .ab-on .ab-ring::after {
+    content: ''; position: absolute; inset: 0; background: var(--ab-end); opacity: 0;
+    transition: opacity var(--ab-t) var(--ab-ease);
+  }
+  .ab-on.ab-done .ab-ring::after, .ab-on.ab-fail .ab-ring::after { opacity: 1; }
+  @keyframes ab-spin { to { --ab-a: 360deg; } }
+
+  /* saved: a check draws itself in, then how long the task took slides in beside it ("✓ 1.4s") */
+  .ab-on .ab-result {
+    position: absolute; z-index: 2; inset: 0; display: flex; align-items: center; justify-content: center; gap: 6px;
+    pointer-events: none; white-space: nowrap;
+  }
+  .ab-on .ab-check {
+    flex: none; width: 16px; height: 16px;
+    fill: none; stroke: var(--ab-c); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round;
+    stroke-dasharray: 22; stroke-dashoffset: 22; opacity: 0; transform: scale(0.8);
+    transition: opacity var(--ab-t) var(--ab-ease), transform var(--ab-t) var(--ab-ease), stroke-dashoffset 350ms var(--ab-ease);
+  }
+  .ab-on.ab-done .ab-check { opacity: 1; transform: none; stroke-dashoffset: 0; }
+  .ab-on .ab-secs {
+    font-variant-numeric: tabular-nums; color: color-mix(in srgb, var(--fg) 85%, var(--ab-c));
+    opacity: 0; transform: translateX(-4px);
+    transition: opacity var(--ab-t) var(--ab-ease), transform var(--ab-t) var(--ab-ease);
+  }
+  .ab-on.ab-done .ab-secs { opacity: 1; transform: none; transition-delay: 120ms; }
+
+  /* failed: one soft shake */
+  .ab-on.ab-fail { animation: ab-shake 450ms var(--ab-ease); }
+  @keyframes ab-shake {
+    20% { transform: translateX(-4px); } 45% { transform: translateX(3px); }
+    70% { transform: translateX(-2px); } 100% { transform: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ab-on.ab-busy .ab-ring { animation: none; --ab-len: 360deg; opacity: 0.55; }
+    .ab-on.ab-done .ab-ring, .ab-on.ab-fail .ab-ring { opacity: 1; }
+    .ab-on.ab-busy .ab-label { transform: none; filter: none; }
+    .ab-on .ab-text, .ab-on.ab-busy .ab-text, .ab-on.ab-done .ab-text, .ab-on.ab-fail .ab-text { transform: translateY(-50%); }
+    .ab-on.ab-busy .ab-text { animation: none; color: color-mix(in srgb, var(--fg) 70%, transparent); }
+    .ab-on.ab-fail { animation: none; }
+    .ab-on .ab-secs { transform: none; }
+  }
+</style>
+
+<script>
+  const AB_MIN_LOADING_MS = 1000;    // the loading state shows at least this long
+  const AB_HOLD_DONE_MS = 1000;      // how long the check and seconds stay up
+  const AB_SHAKE_MS = 450;           // the failed shake (matches ab-shake)
+  const AB_FADE_MS = 250;            // back to "Add task" (matches --ab-t)
+
+  function addBtnStart(btn, hex) {
+    const wait = ms => new Promise(r => setTimeout(r, ms));
+    btn.disabled = true;
+    btn.setAttribute('aria-busy', 'true');
+    // no color ("#FFFFFF") falls back to the theme accent, set in the CSS
+    if (hex && hex.toUpperCase() !== NO_COLOR.toUpperCase()) btn.style.setProperty('--ab-c', hex);
+    else btn.style.removeProperty('--ab-c');
+    btn.classList.remove('ab-done', 'ab-fail');
+    btn.classList.add('ab-busy');
+    const startedAt = performance.now();
+
+    return async function finish(ok) {
+      // the real round trip (click to reply), not the animation: finish() is called as the reply arrives
+      const took = (performance.now() - startedAt) / 1000;
+      const secs = btn.querySelector('.ab-secs');
+      if (ok && secs) secs.textContent = took < 10 ? `${took.toFixed(1)}s` : `${Math.round(took)}s`;
+      await wait(startedAt + AB_MIN_LOADING_MS - performance.now());
+      btn.classList.add(ok ? 'ab-done' : 'ab-fail');
+      await wait(ok ? AB_HOLD_DONE_MS : AB_SHAKE_MS);
+      btn.classList.remove('ab-busy', 'ab-done', 'ab-fail');
+      await wait(AB_FADE_MS);
+      btn.disabled = false;
+      btn.removeAttribute('aria-busy');
+    };
+  }
+</script>

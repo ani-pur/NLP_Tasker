@@ -34,6 +34,10 @@
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
+    /* no rubber-band bounce on the page itself: the bounce dragged the top bar down with it */
+    html, body { overscroll-behavior-y: none; }
+    html { scroll-padding-top: 64px; }       /* scrolling a task into view stops below the fixed top bar */
+
     body {
       background: var(--bg);
       color: var(--fg);
@@ -85,13 +89,15 @@
       align-items: center;
       justify-content: space-between;
       border-bottom: 1px solid var(--border);
-      position: sticky;
-      top: 0;
+      /* fixed, not sticky: a sticky bar scrolls with the page while iOS bounces it */
+      position: fixed;
+      top: 0; left: 0; right: 0;
       isolation: isolate;
     }
-    /* blur lives on ::before so the theme menu inside the header can blur the page too */
+    /* blur lives on ::before so the theme menu inside the header can blur the page too. It starts
+       well above the screen's top edge, so nothing shows through above the bar mid-scroll. */
     header::before {
-      content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+      content: ''; position: absolute; inset: -120px 0 0; z-index: -1; pointer-events: none;
       background: rgba(5,5,8,0.6);
       backdrop-filter: blur(24px) saturate(180%); -webkit-backdrop-filter: blur(24px) saturate(180%);
     }
@@ -136,7 +142,7 @@
       width: 100%;
       max-width: 480px;
       margin: 0 auto;
-      padding: 24px 16px;
+      padding: calc(56px + 24px) 16px 24px;    /* 56px: the fixed top bar */
       display: flex;
       flex-direction: column;
       gap: 24px;
@@ -421,10 +427,10 @@
       .task-body, .task-expand, .chev, #taskList li.leaving { transition: none; }
     }
 
-    /* ── Edit modal ── */
+    /* ── Modals (.modal is also the Canvas popup's look, see _canvas_feed.html) ── */
     .modal-overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
-      z-index: 200; display: none; align-items: center; justify-content: center; padding: 20px;
+      position: fixed; inset: 0; background: rgba(0,0,0,0.55); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+      z-index: 200; display: none; align-items: flex-end; justify-content: center;
     }
     .modal-overlay.open { display: flex; }
     .modal {
@@ -434,23 +440,52 @@
       box-shadow: 0 24px 60px -20px rgba(0,0,0,0.8);
     }
     .modal h3 { font-size: 18px; font-weight: 800; letter-spacing: -0.4px; margin-bottom: 16px; }
-    .modal label { display: block; font-family: 'IBM Plex Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin: 12px 0 6px; }
+    .modal label { display: block; font-size: 12px; font-weight: 600; color: var(--soft); margin: 14px 0 6px; }
     .modal input, .modal textarea {
-      width: 100%; background: rgba(255,255,255,0.03); border: 1px solid var(--border);
-      border-radius: 10px; padding: 10px 12px; font-family: 'Sora', sans-serif; font-size: 14px;
-      color: var(--fg); outline: none; transition: all 0.2s;
+      display: block; width: 100%; min-width: 0; background: rgba(255,255,255,0.04); border: 1px solid var(--border-hover);
+      border-radius: 12px; padding: 11px 13px; font-family: 'Sora', sans-serif;
+      font-size: 16px;                       /* 16px: smaller makes iOS zoom in on focus */
+      color: var(--fg); outline: none; transition: border-color 0.2s, box-shadow 0.2s;
     }
-    .modal input:focus, .modal textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(129,140,248,0.1); }
-    .modal textarea { height: 70px; resize: none; }
-    .modal input[type="date"], .modal input[type="time"] { color-scheme: dark; }
-    .modal .row { display: flex; gap: 10px; }
-    .modal .row > div { flex: 1; }
-    .edit-swatches { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
-    .edit-swatch { width: 26px; height: 26px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: all 0.15s; }
+    .modal input:focus, .modal textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(129,140,248,0.15); }
+    .modal textarea { height: 76px; resize: none; line-height: 1.45; }
+    /* iOS gives date/time inputs a wide built-in minimum and centers their text: drop both so the pair fits */
+    .modal input[type="date"], .modal input[type="time"] { color-scheme: dark; -webkit-appearance: none; appearance: none; height: 46px; text-align: left; padding: 0 10px; }
+    .modal input::-webkit-date-and-time-value { text-align: left; }
+    .modal .row { display: grid; grid-template-columns: 1.25fr 1fr; gap: 10px; }
+    .modal .row > div { min-width: 0; }
+
+    /* the edit form: a sheet from the bottom, like the calendar's day sheet */
+    #editModal .modal {
+      max-width: 520px; max-height: 92vh; max-height: 92dvh; overflow-y: auto; overscroll-behavior: contain;
+      border-radius: 22px 22px 0 0; border-bottom: none; padding: 10px 18px calc(18px + env(safe-area-inset-bottom));
+      animation: sheetUp 0.28s var(--ease);
+    }
+    @keyframes sheetUp { from { transform: translateY(40px); opacity: 0.4; } to { transform: none; opacity: 1; } }
+    .sheet-grip { width: 38px; height: 4px; border-radius: 2px; background: var(--border-hover); margin: 0 auto 10px; }
+    .sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .sheet-head h3 { margin: 0; }
+    .sheet-x {
+      width: 34px; height: 34px; display: grid; place-items: center; flex-shrink: 0; cursor: pointer;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 50%; color: var(--soft);
+    }
+    /* an imported task's due date: shown, not editable (it follows Canvas) */
+    .edit-due {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+      padding: 11px 13px; border-radius: 12px; background: rgba(255,255,255,0.03); border: 1px dashed var(--border-hover);
+    }
+    .edit-due[hidden], .modal .row[hidden] { display: none; }
+    .edit-due b { font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 500; color: var(--fg); }
+    #editModal .edit-lock-note { font-size: 11.5px; margin-top: 7px; }
+    .edit-swatches { display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px 8px; margin-top: 2px; justify-items: center; }
+    .edit-swatch { width: 100%; max-width: 32px; aspect-ratio: 1; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: transform 0.15s; }
+    .edit-swatch:active { transform: scale(0.9); }
     .edit-swatch.selected { border-color: #fff; box-shadow: 0 0 0 2px var(--accent); }
-    .edit-swatch.none { background: linear-gradient(135deg, #2a2a30, #18181c); }
+    .edit-swatch.none { background: #dcdce4; }   /* white = "no color": the soft white its card shows */
     .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
-    .canvas-link { margin-right: auto; align-self: center; font-size: 12.5px; font-weight: 600; color: var(--accent); text-decoration: none; }
+    #editModal .modal-actions { margin-top: 22px; }
+    #editModal .btn-save { flex: 1; padding: 14px; font-size: 15px; border-radius: 12px; }
+    .task-meta .canvas-tag { font-size: 10px; padding: 3px 6px 3px 7px; }
     .btn-ghost { background: var(--surface); border: 1px solid var(--border); color: var(--muted); border-radius: 10px; padding: 9px 16px; font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; }
     .btn-save { background: linear-gradient(135deg, #818cf8, #6366f1); color: #fff; border: none; border-radius: 10px; padding: 9px 20px; font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; }
 
@@ -480,6 +515,7 @@
     }
   </style>
   {% include '_palette.html' %}
+  {% include '_canvas_tag.html' %}
 </head>
 <body>
 
@@ -511,7 +547,7 @@
           <span class="char-counter" id="charCounter">0/200</span>
           <span id="reminderPreview" class="reminder-preview">🔔 <span id="reminderValue"></span></span>
         </div>
-        <button type="submit" id="submitBtn" class="submit-btn">Add Task</button>
+        <button type="submit" id="submitBtn" class="submit-btn ab-on"><span class="ab-fill" aria-hidden="true"></span><span class="ab-ring" aria-hidden="true"></span><span class="ab-label">Add Task</span><span class="ab-text" aria-hidden="true">Parsing…</span><span class="ab-result" aria-hidden="true"><svg class="ab-check" aria-hidden="true" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="ab-secs"></span></span></button>
       </form>
     </div>
 
@@ -551,33 +587,42 @@
 
   <!-- Edit task modal -->
   <div class="modal-overlay" id="editModal">
-    <div class="modal">
-      <h3>Edit Task</h3>
+    <div class="modal" role="dialog" aria-labelledby="editTitle">
+      <div class="sheet-grip" aria-hidden="true"></div>
+      <div class="sheet-head">
+        <h3 id="editTitle">Edit task</h3>
+        <button type="button" class="sheet-x" onclick="closeEdit()" aria-label="Close">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
       <input type="hidden" id="editId">
-      <label>Name</label>
+      <label for="editName">Name</label>
       <input type="text" id="editName" maxlength="120" placeholder="Task name">
-      <label>Description</label>
-      <textarea id="editDesc" maxlength="200" placeholder="Details"></textarea>
-      <div class="row">
+      <label for="editDesc">Details</label>
+      <textarea id="editDesc" maxlength="200" placeholder="Add details"></textarea>
+      <div class="row" id="editWhen">
         <div>
-          <label>Date</label>
+          <label for="editDate">Date</label>
           <input type="date" id="editDate">
         </div>
         <div>
-          <label>Time</label>
+          <label for="editTime">Time</label>
           <input type="time" id="editTime">
         </div>
       </div>
-      <p class="edit-lock-note" id="editLockNote" hidden>Due date and time come from Canvas and update on their own.</p>
+      <div id="editDueBox" hidden>
+        <label>Due</label>
+        <div class="edit-due"><b id="editDueText"></b><span id="editDueTag"></span></div>
+        <p class="edit-lock-note" id="editLockNote" hidden>Due date and time come from Canvas and update on their own.</p>
+      </div>
       <label>Color</label>
       <div class="edit-swatches">
         {% for c in task_palette %}<span class="edit-swatch" data-color="{{ c.hex }}" style="background:{{ c.hex }}" title="{{ c.name }}"></span>
-        {% endfor %}<span class="edit-swatch none" data-color="{{ no_color }}" title="No color"></span>
+        {% endfor %}<span class="edit-swatch none" data-color="{{ no_color }}" title="White"></span>
         <span class="edit-swatch" data-color="" data-custom title="Custom color"></span>
       </div>
       <div class="modal-actions">
-        <button class="btn-ghost" onclick="closeEdit()">Cancel</button>
-        <button class="btn-save" onclick="saveEdit()">Save changes</button>
+        <button class="btn-save" onclick="saveEdit()">Save</button>
       </div>
     </div>
   </div>
@@ -687,8 +732,8 @@
     ['touchend','touchcancel','mouseup','mouseleave'].forEach(e => btn.addEventListener(e, () => btn.classList.remove('btn-pressed')));
 
     // --- Core ---
-    let addTaskCooldown = false;
-    const ADD_TASK_COOLDOWN_MS = 3000;
+    // the browser stops waiting on POST /tasks after this (the server's LLM calls give up well before it)
+    const ADD_TASK_TIMEOUT_MS = 15000;
 
     function buildUserTzMetadata() {
       const now = new Date();
@@ -718,12 +763,13 @@
 
     // one task card: tap the header to slide its details open
     function buildTask(task, isPastDue) {
-      const [id, , name, time, desc, due, color, reminder_display, , canvas_url] = task;
+      const [id, , name, time, desc, due, color, reminder_display, imported, canvas_url] = task;
       const dueDateDisplay = due ? due.replace(/ 00:00:00.*$/, '') : '';
       const fullDateTime = `${dueDateDisplay}${time ? ' \u00b7 ' + time : ''}`.trim();
       const open = openIds.has(id);
       const meta =
         (fullDateTime ? `<span class="time-pill${isPastDue ? ' overdue' : ''}">${escapeHtml(fullDateTime)}</span>` : '') +
+        (imported ? canvasTag(canvas_url) : '') +
         (reminder_display ? `<span class="reminder-badge">\ud83d\udd14 ${escapeHtml(reminder_display)}</span>` : '');
 
       const li = document.createElement('li');
@@ -740,7 +786,6 @@
           <div class="task-body"><div class="task-body-inner"><div class="task-expand">
             <div class="task-desc${desc ? '' : ' empty'}">${desc ? escapeHtml(desc) : 'No details'}</div>
             <div class="task-actions">
-              ${canvas_url ? `<a class="canvas-link" href="${escapeHtml(canvas_url)}" target="_blank" rel="noopener noreferrer">Open in Canvas ↗</a>` : ''}
               <button class="edit-btn" onclick="openEdit(${id})">edit</button>
               <button class="delete-btn" onclick="deleteTask(${id})">delete</button>
             </div>
@@ -894,7 +939,14 @@
       document.getElementById('editDesc').value = desc || '';
       document.getElementById('editDate').value = dueToInput(due);
       document.getElementById('editTime').value = timeTo24(time);
-      lockDueFields(!!t[8]);
+      const imported = !!t[8];
+      lockDueFields(imported);
+      document.getElementById('editWhen').hidden = imported;
+      document.getElementById('editDueBox').hidden = !imported;
+      if (imported) {
+        document.getElementById('editDueText').textContent = [due ? due.replace(/ 00:00:00.*$/, '') : 'No date', time].filter(Boolean).join(' \u00b7 ');
+        document.getElementById('editDueTag').innerHTML = canvasTag(t[9]);
+      }
       selectEditColor(color || '#FFFFFF');
       document.getElementById('editModal').classList.add('open');
     }
@@ -928,9 +980,7 @@
 
     document.getElementById('taskForm').addEventListener('submit', async e => {
       e.preventDefault();
-      if (addTaskCooldown) return;
-      addTaskCooldown = true;
-      setTimeout(() => { addTaskCooldown = false; }, ADD_TASK_COOLDOWN_MS);
+      if (btn.disabled) return;                // a task is already on its way (_add_button.html)
 
       const desc = taskInput.value;
       if (desc.length < 10 || desc.length > 200) return alert('Task description must be 10\u2013200 characters');
@@ -938,7 +988,9 @@
       const reminder = parseReminder(desc);
       const color = extractColor(desc);
       const cleanedDesc = cleanDescription(desc, reminder, color);
+      const finish = addBtnStart(btn, color);
       const res = await fetch('/tasks', {
+        signal: AbortSignal.timeout?.(ADD_TASK_TIMEOUT_MS),
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -949,9 +1001,11 @@
           notif_absolute_time: reminder.absoluteTime,
           reminder_display: reminder.display
         })
-      }).catch(() => null);                    // null: the request never reached the server
+      }).catch(err => err);                    // an Error: no reply (offline, or timed out)
 
       if (res?.ok) {
+        // the page updates now; the button finishes its own animation on its own time
+        finish(true);
         taskInput.value = '';
         taskInput.style.color = '';
         document.getElementById('charCounter').textContent = '0/200';
@@ -961,8 +1015,11 @@
         window.ambientPulse?.(color);
       } else {
         // the typed text stays in the box, so the user can just hit add again
-        const e = res ? await res.json().catch(() => ({})) : { error: "Couldn't reach Tasker, check your connection and try again" };
-        alert(e.error || 'Failed to add task, try again');
+        const error = res instanceof Response ? (await res.json().catch(() => ({}))).error
+          : res?.name === 'TimeoutError' ? 'Tasker took too long to answer, try again'
+          : "Couldn't reach Tasker, check your connection and try again";
+        await finish(false);                   // alert() freezes the page, so the shake plays first
+        alert(error || 'Failed to add task, try again');
       }
     });
 
@@ -1029,5 +1086,6 @@
   <script src="{{ url_for('static', filename='ambient.js') }}" defer></script>
   {% include '_color_picker.html' %}
   {% include '_canvas_feed.html' %}
+  {% include '_add_button.html' %}
 </body>
 </html>
